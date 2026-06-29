@@ -1,0 +1,24 @@
+# Cloned upstream repos (each has its own git history; not tracked by the umbrella repo)
+/repos/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Build / dependency artifacts
+node_modules/
+__pycache__/
+*.pyc
+target/
+build/
+dist/
+out/
+.gradle/
+
+# Local env / secrets
+.env
+.env.*
+*.local
