@@ -6,14 +6,15 @@
 Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki** (desktop + Android sharing one Rust engine). Owner: David Ordonez (GitHub `spinkicks`). License AGPL-3.0-or-later, credit Anki.
 
 ## Status (as of 2026-06-29, planning day)
-- ✅ BrainLift complete (`brainlift/BrainLift.md`) — 6 SPOVs, evidence-grounded, sources curated in `research/core-sources.md`.
+- ✅ BrainLift complete (`brainlift/BrainLift.md`) — **9 SPOVs**, evidence-grounded, sources curated in `research/core-sources.md`. (SPOV 7 = owner's "overtrain" hypothesis; 8 = motivation follows success / Garon-Carrier; 9 = consolidation lowers cognitive load / Sweller.)
 - ✅ PRD complete (`docs/PRD.md`) — hybrid architecture, data model, Rust change, 3 scores, content pipeline, sync, testing, tech stack, walking skeleton, risks.
 - ✅ Architecture/feasibility (`docs/ARCHITECTURE.md`) and Build workflow (`docs/BUILD-WORKFLOW.md`).
 - ✅ Decision log (`docs/DECISIONS.md`).
 - ✅ GitHub: forks `spinkicks/anki`, `spinkicks/Anki-Android`, `spinkicks/Anki-Android-Backend`; umbrella `spinkicks/speedrun` (private, docs pushed). Local clones in `repos/` with `origin`=fork, `upstream`=original.
 - ✅ Agent config: root `AGENTS.md` + `repos/anki/AGENTS.md` + `repos/Anki-Android-Backend/AGENTS.md`, `CLAUDE.md`, `.cursor/rules/speedrun.mdc`, `.cursor/mcp.json` (Serena), `repos/anki/.claude/settings.example.json` (hooks template).
-- ✅ Toolchain (desktop): Rust 1.96 (+ Android targets), JDK 21, uv, Node, ast-grep, repomix, gh, Claude Code 2.1.186.
-- ⏳ In progress / verify: cargo-ndk, Android Studio (SDK/NDK/emulator), Serena MCP first-run build. yarn + N2 + ANDROID_HOME/JAVA_HOME env vars pending (Phase 0).
+- ✅ Toolchain (desktop) COMPLETE: Rust 1.96 (+ all Android targets), JDK 21 (JAVA_HOME set), uv, Node, **yarn 1.22**, ast-grep, repomix, **cargo-ndk**, gh, Claude Code 2.1.186, **Android Studio**.
+- ✅ Serena MCP working: installed as uv tool (`C:\Users\davir\.local\bin\serena.exe`); use `serena start-mcp-server --context claude-code --project <anki>`. Claude Code shows Connected; Cursor `.cursor/mcp.json` points to the direct binary.
+- ⏳ Phase-0 (first build): N2 via `tools/install-n2` + MSYS2 (`pacman -S git rsync`). Phase-2: Android SDK/NDK/emulator via Android Studio first-run (NDK version per `libs.versions.toml`).
 
 ## Immediate next step
 Write the **implementation plan** via the `writing-plans` skill, scoped to the **walking skeleton → Wednesday MVP** (Phases 0–2): get Anki building (`./run`) → tiny Rust change + read-only `SpeedrunService` RPC with TDD (≥3 Rust tests + 1 Python integration) → same engine on Android via local AAR (`local_backend=true`). Save to `docs/plans/`.

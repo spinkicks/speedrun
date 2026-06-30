@@ -17,6 +17,8 @@ The ~24 sources that actually drive our SPOVs and design decisions. The fuller b
 10. **Willingham (2007), Critical Thinking / knowledge vs skills** [PR] — "memory is the residue of thought." (SPOV 6)
 11. **Huang et al. (2023), Retrieval practice may not benefit math problem-solving** [PR] — the key caveat: testing effect ≠ procedural transfer. (Insight 9) https://doi.org/10.3389/fpsyg.2023.1093653
 12. **Dunlosky et al. (2013)** [PR] + **Pashler et al. (2008), IES Practice Guide** [ORG] — practice testing + spacing + interleaving rank highest.
+12b. **Garon-Carrier et al. (2016), *Child Development* 87(1):165–175** [PR] — math *achievement* predicts later intrinsic motivation, **not** vice versa (motivation is a product of success). (SPOV 8) Direct source: **Kirschner, Hendrick & Heal, *Instructional Illusions* (Hachette/John Catt), p.52** ("the causal arrow the wrong way round").
+12c. **Sweller — split-attention effect & extraneous load** [PR] — scattered/disparate sources fragment working memory; consolidation lowers extraneous load. (SPOV 9) (Sweller 1988; Sweller, Ayres & Kalyuga 2011, *Cognitive Load Theory*.)
 
 ## 3. Honest readiness (the measurement machinery)
 13. **Guo et al. (2017), Calibration of Modern NNs** [PR] — ECE, temperature scaling. (SPOV 2)
