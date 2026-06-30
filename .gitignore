@@ -22,3 +22,6 @@ out/
 .env
 .env.*
 *.local
+
+# Claude Code -> Cursor mission-control watch file (live transcript digest)
+.claude/watch.log

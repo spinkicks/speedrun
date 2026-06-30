@@ -12,12 +12,14 @@ Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki**
 - ✅ Decision log (`docs/DECISIONS.md`).
 - ✅ GitHub: forks `spinkicks/anki`, `spinkicks/Anki-Android`, `spinkicks/Anki-Android-Backend`; umbrella `spinkicks/speedrun` (private, docs pushed). Local clones in `repos/` with `origin`=fork, `upstream`=original.
 - ✅ Agent config: root `AGENTS.md` + `repos/anki/AGENTS.md` + `repos/Anki-Android-Backend/AGENTS.md`, `CLAUDE.md`, `.cursor/rules/speedrun.mdc`, `.cursor/mcp.json` (Serena), `repos/anki/.claude/settings.example.json` (hooks template).
-- ✅ Toolchain (desktop) COMPLETE: Rust 1.96 (+ all Android targets), JDK 21 (JAVA_HOME set), uv, Node, **yarn 1.22**, ast-grep, repomix, **cargo-ndk**, gh, Claude Code 2.1.186, **Android Studio**.
+- ✅ Toolchain (desktop) COMPLETE: Rust (rustup host has 1.96; the anki fork **auto-pins & builds with 1.92.0** via `repos/anki/rust-toolchain.toml` — verified active) (+ all Android targets), JDK 21 (JAVA_HOME set), uv, Node, **yarn 1.22**, ast-grep, repomix, **cargo-ndk**, gh, Claude Code 2.1.186, **Android Studio**.
 - ✅ Serena MCP working: installed as uv tool (`C:\Users\davir\.local\bin\serena.exe`); use `serena start-mcp-server --context claude-code --project <anki>`. Claude Code shows Connected; Cursor `.cursor/mcp.json` points to the direct binary.
 - ⏳ Phase-0 (first build): install `just` + N2 (`tools/install-n2`) + MSYS2 (`pacman -S git rsync`); build via `just run` / `just check`. Phase-2: Android SDK/NDK/emulator via Android Studio first-run (NDK version per `libs.versions.toml`).
 
+- ✅ Plan written + **reviewed against PRD** (`docs/plans/2026-06-30-walking-skeleton-wed-mvp.md`). APIs/paths grounded in `repos/anki` (proto auto-discovery, generated service dispatch, `Tag.name`, `Collection::new()` test helper, justfile recipes, pylib wiring, `.version`=26.05 all confirmed). One defect found & patched: `pub(crate) mod service;` was declared before `service.rs` existed (Task 1.2/1.3 → E0583); now deferred to Task 1.5. Verdict: safe to execute Phases 0–2.
+
 ## Immediate next step
-Write the **implementation plan** via the `writing-plans` skill, scoped to the **walking skeleton → Wednesday MVP** (Phases 0–2): get Anki building (`just run`; Anki now uses `just`, not `./ninja`/`./run` directly, per `repos/anki/CLAUDE.md`) → tiny Rust change + read-only `SpeedrunService` RPC with TDD (≥3 Rust tests + 1 Python integration) → same engine on Android via local AAR (`local_backend=true`). Save to `docs/plans/`.
+**Execute Phase 0** (Claude Code, via subagent-driven-development): install MSYS2 `rsync` + n2 (`tools/install-n2`) + `just`, then `just run` (launch) and `just check` (green) on an unmodified `repos/anki` checkout. Feasibility gate before Phase 1. Anki uses `just`, NOT `./ninja`/`./run`, per `repos/anki/CLAUDE.md`.
 
 ## Cadence
 Mon=plan · Tue=heavy coding · Wed=both apps MVP (desktop+Android, NO AI) · Fri=AI+sync+3 scores · Sun=evals/ablation/ship.

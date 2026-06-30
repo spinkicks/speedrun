@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\davir\\Ultra\\Alpha\\Speedrun\\.claude\\claude-digest.ps1\" Stop"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\davir\\Ultra\\Alpha\\Speedrun\\.claude\\claude-digest.ps1\" SubagentStop"
+          }
+        ]
+      }
+    ]
+  }
+}

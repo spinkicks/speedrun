@@ -211,7 +211,10 @@ git commit -m "feat(speedrun): add additive SpeedrunService.GetCoverage proto co
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-pub(crate) mod service;
+// NOTE: `pub(crate) mod service;` is intentionally NOT declared here yet —
+// `service.rs` is not created until Task 1.5. Declaring a module whose file is
+// missing is a hard compile error (E0583) that would mask the intended RED.
+// It is added in Task 1.5 alongside the file it points to.
 
 #[cfg(test)]
 mod test {
@@ -273,7 +276,7 @@ Expected: FAIL — `cannot find function 'coverage' in this scope` (or unresolve
 
 - [ ] **Step 1: Add the `coverage` function above the test module**
 
-Insert directly after the `pub(crate) mod service;` line:
+Insert at the top of the file, directly below the license header (do NOT add `pub(crate) mod service;` yet — that comes in Task 1.5):
 ```rust
 /// Count how many `required` topic tags are present among the collection's
 /// `all_tags`. A required tag `t` is "present" if any collection tag equals `t`
@@ -368,6 +371,13 @@ Expected: FAIL — `no method named 'get_coverage' found for struct 'Collection'
 
 **Files:**
 - Create: `repos/anki/rslib/src/speedrun/service.rs`
+- Modify: `repos/anki/rslib/src/speedrun/mod.rs` (declare the module now that the file exists)
+
+- [ ] **Step 0: Declare the service module** — add this line at the top of `repos/anki/rslib/src/speedrun/mod.rs`, directly below the license header and above the `coverage` fn:
+```rust
+pub(crate) mod service;
+```
+(Deferred from Task 1.2 so the module file always exists when declared — avoids the E0583 "file not found for module" compile error.)
 
 - [ ] **Step 1: Write the service impl** (mirrors `rslib/src/tags/service.rs` `all_tags`; reads `self.storage.all_tags()`)
 
