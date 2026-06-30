@@ -134,11 +134,21 @@ git status   # clean, on new branch
 - Create `repos/anki/rslib/src/speedrun/mod.rs` — module root + pure `coverage()` function + `#[cfg(test)]` unit tests.
 - Create `repos/anki/rslib/src/speedrun/service.rs` — `impl crate::services::SpeedrunService for Collection`.
 - Modify `repos/anki/rslib/src/lib.rs` — register `pub mod speedrun;`.
+- Modify `repos/anki/rslib/proto/src/lib.rs` — add `protobuf!(speedrun, "speedrun");` to expose the generated module (see "Phase 1 sequencing reality" below). **[correction, discovered in execution]**
 - Create `repos/anki/pylib/anki/speedrun.py` — clean Python wrapper (`SpeedrunManager`).
 - Modify `repos/anki/pylib/anki/collection.py` — expose `col.speedrun`.
 - Create `repos/anki/pylib/tests/test_speedrun.py` — Python integration test (drives the real backend).
 
 > **Invariant reminders (AGENTS.md):** proto fields are append-only with NEW numbers; never edit generated files (`*_pb2.py`, `_backend_generated.py`, `@generated/*`); read-only methods need no `transact`. Tests in this plan are written by the implementer here, but once committed they are READ-ONLY (never weaken to pass).
+
+### ⚠️ Phase 1 sequencing reality (correction, discovered during execution 2026-06-30)
+
+Two things this plan originally got wrong about the proto seam. Both are about **task sequencing / verification commands**, not the design (the design is sound):
+
+1. **A new `.proto` service needs explicit crate registration, not just auto-discovery.** `proto/anki/speedrun.proto` is auto-compiled by codegen (`rslib/proto/rust.rs` `read_dir`) and `get_services` finds the service, so the generated `backend.rs` references `anki_proto::speedrun::*`. But the crate only *exposes* the `anki_proto::speedrun` module if `rslib/proto/src/lib.rs` lists `protobuf!(speedrun, "speedrun");` (alphabetical, between `search` and `stats`). Without it: `anki` fails to compile (unresolved `anki_proto::speedrun`). `cargo check -p anki_proto` is **too narrow to catch this** — `anki_proto` compiles fine without exposing the module; only the `anki` crate breaks.
+2. **Declaring + registering a service forces its `Collection` impl to exist before the `anki` crate compiles.** Once `speedrun.proto` exists and the module is registered, the generated dispatch requires `Collection: SpeedrunService` (E0277) for `anki` to compile at all. **Therefore the incremental "in-crate `cargo test -p anki speedrun::` green at Task 1.3" is infeasible** — Tasks 1.2–1.5 must converge before a real in-crate GREEN is reachable. The pure `coverage()` logic (Tasks 1.2/1.3) is still developed/verifiable in isolation, but the genuine **in-crate GREEN gate (4 tests) lands at Task 1.5**, which folds in the `protobuf!` registration + the `Collection` impl.
+
+**Net effect on the steps below:** keep writing the code task-by-task as specified, but treat the `cargo test -p anki speedrun::` "N passed" expectations in Tasks 1.2/1.3 as **not reachable until Task 1.5** (they'll fail to *compile* the `anki` crate — a genuine, compiler-demanded RED). The real 4-passing-test gate is Task 1.5.
 
 ### Task 1.1: Define the proto contract (additive, paired services)
 
@@ -185,7 +195,12 @@ message CoverageResponse {
 }
 ```
 
-- [ ] **Step 2: Verify the proto is syntactically discovered by the codegen** (proto files are auto-gathered via `read_dir` in `rslib/proto/rust.rs`; no manifest edit needed)
+- [ ] **Step 2: Register the proto module** (correction — see "Phase 1 sequencing reality"). Add to `repos/anki/rslib/proto/src/lib.rs`, alphabetically between the `search` and `stats` lines:
+```rust
+protobuf!(speedrun, "speedrun");
+```
+
+- [ ] **Step 3: Verify the proto types compile** (proto files are auto-gathered via `read_dir` in `rslib/proto/rust.rs`; no manifest edit needed)
 
 Run from `repos/anki`:
 ```bash
@@ -193,11 +208,13 @@ cargo check -p anki_proto 2>&1 | tail -20
 ```
 Expected: compiles (the generated Rust types `anki_proto::speedrun::*` and the `SpeedrunService` trait now exist). If `get_services` panics with `missing associated service` or an `assert_eq!` length mismatch, the `BackendSpeedrunService {}` line is missing — re-add it.
 
-- [ ] **Step 3: Commit the contract**
+> **Do NOT expect `cargo check -p anki` to pass yet.** With the service declared + registered but no `Collection` impl, the `anki` crate fails with `E0277: Collection: SpeedrunService is not satisfied`. That is expected and resolves at Task 1.5 — it is effectively the impl-level RED. (`-p anki_proto` is the only clean compile check at this task.)
+
+- [ ] **Step 4: Commit the contract** (the `protobuf!` registration may be committed here or folded into the Task 1.5 commit, since the `anki` crate only compiles once the impl lands)
 
 ```bash
-git add proto/anki/speedrun.proto
-git commit -m "feat(speedrun): add additive SpeedrunService.GetCoverage proto contract"
+git add proto/anki/speedrun.proto rslib/proto/src/lib.rs
+git commit -m "feat(speedrun): add additive SpeedrunService.GetCoverage proto contract + register module"
 ```
 
 ### Task 1.2: RED — failing Rust unit tests for the pure coverage function
@@ -297,15 +314,18 @@ pub(crate) fn coverage(all_tags: &[String], required: &[String]) -> (u32, u32) {
 }
 ```
 
-- [ ] **Step 2: Run the unit tests to verify they PASS**
+- [ ] **Step 2: Confirm the `coverage()` logic is correct** (correction — see "Phase 1 sequencing reality")
 
-Run from `repos/anki`:
+The in-crate `cargo test -p anki speedrun::` will **NOT** reach green here: with `speedrun.proto` declared + registered (Task 1.1) and no `Collection: SpeedrunService` impl yet, the `anki` crate fails to compile (`E0277`), so the test binary can't build. This is expected — the 3 unit tests' real in-crate GREEN is folded into the **Task 1.5** 4-test gate.
+
+To verify the pure logic in isolation here, you may smoke-check `coverage()` via a standalone path (e.g. a scratch `rustc` build of the fn + asserts) — but treat that as a sanity check only, **not** the GREEN gate (Claude's first attempt did exactly this and was transparent that "3 passed" via standalone `rustc` is not a real in-crate pass).
+
 ```bash
+# Expected to FAIL to compile the anki crate (E0277), NOT pass — green arrives at Task 1.5:
 cargo test -p anki speedrun:: 2>&1 | tail -20
 ```
-Expected: `test result: ok. 3 passed; 0 failed` for the `speedrun::test` module.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit** (the coverage fn + unit tests; in-crate green is gated at Task 1.5)
 
 ```bash
 git add rslib/src/speedrun/mod.rs rslib/src/lib.rs
@@ -415,7 +435,9 @@ impl crate::services::SpeedrunService for Collection {
 }
 ```
 
-- [ ] **Step 2: Run the full speedrun test module to verify GREEN**
+- [ ] **Step 2: Run the full speedrun test module to verify GREEN** (this is the **real in-crate GREEN gate** — the first point the `anki` crate compiles, since `Collection: SpeedrunService` now exists and `protobuf!(speedrun, …)` is registered from Task 1.1. The 3 unit tests from Tasks 1.2/1.3 + the 1 integration test from Task 1.4 all run here for the first time.)
+
+> If the `protobuf!(speedrun, "speedrun");` registration was not committed at Task 1.1, fold it into this task's commit — the crate cannot compile without it. Confirm it's present in `rslib/proto/src/lib.rs` before running.
 
 Run from `repos/anki`:
 ```bash
