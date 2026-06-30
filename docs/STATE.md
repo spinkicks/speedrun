@@ -14,10 +14,10 @@ Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki**
 - ✅ Agent config: root `AGENTS.md` + `repos/anki/AGENTS.md` + `repos/Anki-Android-Backend/AGENTS.md`, `CLAUDE.md`, `.cursor/rules/speedrun.mdc`, `.cursor/mcp.json` (Serena), `repos/anki/.claude/settings.example.json` (hooks template).
 - ✅ Toolchain (desktop) COMPLETE: Rust 1.96 (+ all Android targets), JDK 21 (JAVA_HOME set), uv, Node, **yarn 1.22**, ast-grep, repomix, **cargo-ndk**, gh, Claude Code 2.1.186, **Android Studio**.
 - ✅ Serena MCP working: installed as uv tool (`C:\Users\davir\.local\bin\serena.exe`); use `serena start-mcp-server --context claude-code --project <anki>`. Claude Code shows Connected; Cursor `.cursor/mcp.json` points to the direct binary.
-- ⏳ Phase-0 (first build): N2 via `tools/install-n2` + MSYS2 (`pacman -S git rsync`). Phase-2: Android SDK/NDK/emulator via Android Studio first-run (NDK version per `libs.versions.toml`).
+- ⏳ Phase-0 (first build): install `just` + N2 (`tools/install-n2`) + MSYS2 (`pacman -S git rsync`); build via `just run` / `just check`. Phase-2: Android SDK/NDK/emulator via Android Studio first-run (NDK version per `libs.versions.toml`).
 
 ## Immediate next step
-Write the **implementation plan** via the `writing-plans` skill, scoped to the **walking skeleton → Wednesday MVP** (Phases 0–2): get Anki building (`./run`) → tiny Rust change + read-only `SpeedrunService` RPC with TDD (≥3 Rust tests + 1 Python integration) → same engine on Android via local AAR (`local_backend=true`). Save to `docs/plans/`.
+Write the **implementation plan** via the `writing-plans` skill, scoped to the **walking skeleton → Wednesday MVP** (Phases 0–2): get Anki building (`just run`; Anki now uses `just`, not `./ninja`/`./run` directly, per `repos/anki/CLAUDE.md`) → tiny Rust change + read-only `SpeedrunService` RPC with TDD (≥3 Rust tests + 1 Python integration) → same engine on Android via local AAR (`local_backend=true`). Save to `docs/plans/`.
 
 ## Cadence
 Mon=plan · Tue=heavy coding · Wed=both apps MVP (desktop+Android, NO AI) · Fri=AI+sync+3 scores · Sun=evals/ablation/ship.

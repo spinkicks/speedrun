@@ -32,6 +32,8 @@ explore (Explore subagent) → plan (read-only) → GROUND every API via Serena 
 - Deleting tests, editing CI, touching `.proto` field numbers, adding native deps to rslib (OpenSSL banned — use rustls).
 
 ## Key commands (run inside repos/anki unless noted)
-- Desktop run: `./run` · All checks: `./ninja check` · Single stack: `./ninja check:rust|check:svelte|check:python` · Format/fix: `./ninja format` / `./ninja fix`
-- Rust tests: `cargo test -p anki <module>::` · Python integ: `uv run pytest pylib/tests/...`
+- Anki now drives builds via **`just`** recipes. Per `repos/anki/CLAUDE.md`, do NOT call `./ninja`, `./run`, or `tools/` scripts directly.
+- Desktop run: `just run` · All checks: `just check` · Rust tests: `just test-rust` (or `cargo test -p anki <module>::` for quick iteration) · Format: `just format`
+- `just` itself must be installed in Phase 0 (it wraps `tools/ninja`; N2 + MSYS2 rsync are the other Phase-0 gaps).
+- Python integ: `uv run pytest pylib/tests/...`
 - Android AAR: `cd ../Anki-Android-Backend && ./build.sh` (run BEFORE `cargo check`)
