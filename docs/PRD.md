@@ -20,6 +20,25 @@ Build, on top of Anki, an **honest** GRE-Math study app that reports **three sep
 
 **Hard limits to respect:** real Rust change (else 50% cap); phone companion sharing the engine + sync (else 70%); re-runnable tests (else 60%); held-out testing (else 60%); no fake readiness numbers (auto-fail); both apps run on a clean device (else 50%); no leaked test data (zeroes that score); AI claims need traceable sources.
 
+## 1b. User persona & user stories
+
+**Primary persona — "The quant-grad applicant."** A final-year math/physics/CS/econ undergrad or recent grad applying to math-heavy graduate programs that recommend or require the GRE Mathematics Subject Test. Technically sophisticated and self-motivated, but time-constrained (studying alongside coursework or a job) and skeptical of fluffy ed-tech. Has an uneven background (strong in some areas, rusty in others), wants an honest signal of readiness and the most efficient use of limited study time, and studies in two places: deep sessions at a desk and short reviews on a phone between commitments.
+**Secondary persona (future):** the GRE Physics Subject Test applicant (enabled by the exam-profile abstraction).
+
+**User stories** (As a test-taker, I want … so that …):
+1. … my readiness shown as an honest projected score *with a range* (or "not enough data yet"), so that I can trust it and decide whether I'm ready to sit the exam. (SPOV 2)
+2. … to see the gap between "I remember this" and "I can solve a timed problem on it," so that I spend time on what actually moves my score. (SPOV 1)
+3. … the app to tell me the single best next thing to study, so that I put limited time on the highest-leverage topic. (SPOV 4)
+4. … timed, mixed-topic practice that mirrors the real exam's pacing and topic-switching, so that test day feels familiar (and easy). (SPOV 3, 7)
+5. … to review on my phone between classes and have it sync with my desktop, so that no progress is lost or double-counted. (two-apps-one-engine)
+6. … every practice problem to be verified-correct and cite its source, so that I never learn a wrong fact. (SPOV 6)
+7. … the app to build motivation by making me succeed (not by nagging me with streaks), so that I keep coming back. (SPOV 8)
+8. … one coherent place for all GRE-math content instead of juggling books/PDFs/forums, so that my attention goes to learning, not reconciling sources. (SPOV 9)
+
+**Definition of success (for the user):** they reach a calibrated readiness band they trust, having spent their study time on the highest-leverage gaps, and feel (and are) prepared on test day.
+
+---
+
 ## 2. Architecture (Hybrid — Approach 3)
 **Fulcrum:** a desktop Python/Qt add-on does NOT appear on Android. So anything cross-device lives in (a) the shared **Rust core**, or (b) **synced collection data**, or (c) is re-implemented per platform.
 
