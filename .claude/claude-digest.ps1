@@ -40,7 +40,11 @@ if (-not $summary) { $summary = $fallback }
 
 $summary = ($summary -replace '\s+', ' ').Trim()
 if ($summary.Length -gt 400) { $summary = $summary.Substring(0, 400) + " ..." }
-if (-not $summary) { $summary = "(no assistant text found in transcript tail)" }
+
+# Suppress noise: Claude Code fires Stop for title/mode bookkeeping turns that
+# carry no assistant text or tool use. Only log real turns, so each watch.log
+# line (and Cursor notification) corresponds to actual progress.
+if (-not $summary) { exit 0 }
 
 Add-Content -Path $watch -Value ("[{0}][{1}] {2}" -f $ts, $ev, $summary)
 exit 0
