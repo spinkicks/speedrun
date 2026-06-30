@@ -1,0 +1,13 @@
+---
+description: Speedrun project rules (Anki fork, GRE Math). Always read AGENTS.md.
+alwaysApply: true
+---
+
+Follow `AGENTS.md` at the workspace root (repo map, hard invariants, TDD rules, grounding loop, commands) and the nearest nested `AGENTS.md` inside each repo (`repos/anki/AGENTS.md`, `repos/Anki-Android-Backend/AGENTS.md`).
+
+Non-negotiables:
+- Mutating backend ops go through `Collection::transact(Op::X, …)` returning `OpChanges`; never write the DB directly.
+- `proto/anki/*.proto`: append-only new field numbers; never renumber/reuse.
+- TDD: failing test first; tests are read-only to the implementer; never weaken a test to pass; `eval/holdout/` is off-limits.
+- Ground every API via Serena (LSP)/ast-grep/`cargo check` before editing. Show file paths + line numbers first.
+- AGPL-3.0-or-later on every new file; credit Anki.

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "serena": {
+      "command": "C:\\Users\\davir\\.local\\bin\\serena.exe",
+      "args": [
+        "start-mcp-server",
+        "--context", "claude-code",
+        "--project", "C:\\Users\\davir\\Ultra\\Alpha\\Speedrun\\repos\\anki"
+      ]
+    }
+  }
+}
