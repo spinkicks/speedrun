@@ -56,6 +56,7 @@ Everything we deliberately deferred, so nothing gets lost. Grouped by when it na
 1. **Nav shell** — persistent Speedrun navigation (Home / Study / Memory / Scores) across both platforms; Home links stop being one-off dialogs.
 2. **Reviewer restyle** — our card-review experience (the highest-touch, most invariant-sensitive surface; do after scores exist).
 3. **Branding assets** — logo/icon set, app name/launcher on Android, window title/icon on desktop.
+   - `[verified 2026-07-01]` **Android shell theming:** on the Speedrun Home/Memory PageFragments, the `MaterialToolbar` (top) and the system status/navigation bars (bottom) render WHITE against the dark "The Run" page — theme them to the dark palette (fragment toolbar color + `statusBarColor`/`navigationBarColor` or a dark theme on `SingleFragmentActivity`). Cosmetic; visible in any phone demo/recording, so fix before recording. WebView page itself is correctly dark.
 4. **Anki-chrome trimming** — desktop menu slimming, Android launch-activity + theme; deck picker demoted to a maintenance surface.
 5. Fri scores land directly in OUR UI (Home/scores page), not in new Anki-styled dialogs.
 **Guardrails:** engine invariants untouched (pure presentation/navigation); every slice spec'd → reviewed → built → screenshot-verified; Memory-page restyle to "The Run" tokens folded into the nav-shell slice (two aesthetics coexist until then — accepted, flagged in audit).
