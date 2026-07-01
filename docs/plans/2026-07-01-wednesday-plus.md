@@ -2,7 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **STATUS: CONSTRUCTED — DO NOT EXECUTE.** Handed to Cursor (mission control) for review first. Execution begins only after Cursor approves. **NO AI / no model calls anywhere** — AI integration is Friday (hard rule).
+> **STATUS: ✅ EXECUTED & MERGED (2026-07-01).** All four phases complete on `feat/speedrun-wed-plus`, every gate reviewed+APPROVED by Cursor, FF-merged to `main` on all 3 forks: anki `1fed9e109` · Anki-Android-Backend `299bb44` (rsdroid pin → `a0ead51c9`) · anki-android `a56dda6cfb`.
+> **Execution corrections (for the record):**
+> 1. Task E2 test: `col.storage.integrity_check_scalar()` doesn't exist → `col.storage.db_scalar::<String>("pragma integrity_check")` (patched inline below); `col.undo()` returns `OpOutput<UndoOutput>`.
+> 2. Task 1.4 Android: use `data object` (not `data class …(val unused: Unit)`) for the Destination; the bridge needed `Collection.*Raw` extension wrappers + explicit `collectionMethods` entries; there is no stats menu item to mirror in `deck_picker.xml`.
+> 3. E4: the rsdroid re-pin targeted the **branch HEAD `a0ead51c9`** (proto + the Svelte page), not the freeze commit `20dd7a2ea` — the AAR auto-bundles `out/sveltekit`, so pinning the freeze commit would have shipped an AAR without the page (404).
+> 4. §7b honesty caveat: the "all 20 revlog entries land" union holds because the two clients' revlog ids are disjoint (real reviews at distinct ms); a shared id would keep only one (`uniquify=false`) — documented in the test + `docs/SYNC-SELFHOST.md`.
+> **Post-merge audit note (2026-07-01):** a 7-agent audit later found the desktop webview→backend data path incomplete (speedrun methods missing from `exposed_backend_list` + `AnkiWebViewKind.DEFAULT` has no API access) and the exam profile never bootstrapped into config — both assigned as critical fixes on `feat/speedrun-home`. Historical document — kept for the record.
+>
+> **NO AI / no model calls anywhere** — AI integration is Friday (hard rule).
 
 **Goal:** On top of the Wednesday MVP, deliver: a network-independent clean-machine installer; the honest **Memory dashboard on BOTH platforms** (shared Svelte page rendered by desktop Qt + AnkiDroid) built exactly to `docs/design/memory-dashboard-spec.md`; the headline **interleaving / points-at-stake** engine change as a genuinely-mutating, undo-safe reposition via `transact`/`Op`; a **self-hosted sync server + two-way sync + conflict-rule test**; the coverage-map header; and **Performance/Readiness scaffolding** RPC/columns (deterministic, non-AI, clearly marked).
 
@@ -1447,5 +1455,5 @@ git commit -m "test(sync): §7b two-way reviews all land + same-card latest-wins
 
 ---
 
-## STOP — awaiting Cursor review
-Per the task, execution does not begin until Cursor reviews this plan. No code changed by this planning session (the branch/commits above are the *proposed* steps, not yet executed).
+## ~~STOP — awaiting Cursor review~~ (RESOLVED)
+Reviewed by Cursor phase-by-phase (Phase 0 gate → Phase E gate incl. the mutating-reorder undo/integrity review → Phase 1 → Phase 3), executed, and merged to `main` on all three forks. See the STATUS banner at the top for final SHAs + execution corrections.

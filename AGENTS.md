@@ -9,9 +9,9 @@ Cross-tool agent guide (Cursor + Claude Code). Keep this short; per-stack detail
 - (this repo) `speedrun`   — docs, BrainLift, research, external AI service, content pipeline.
 The external AI/RAG service lives OUTSIDE all native libs — never import it into rslib or rsdroid.
 
-## Tooling split
-- Claude Code = Rust engine, cross-repo Android build, TDD enforcement, orchestration.
-- Cursor = Svelte/TS UI, fast inline edits, semantic "where is X?" search.
+## Tooling split (updated 2026-07-01)
+- Claude Code = the builder: Rust engine, cross-repo Android build, AND the Svelte/TS + Qt frontend (owner call; keeps one subagent-driven build loop). TDD enforcement.
+- Cursor = mission control: design specs, phase-gate reviews, umbrella docs, git merges/consolidation, monitoring. Avoids concurrent writes in `repos/*` while Claude builds.
 
 ## Hard invariants (DO NOT VIOLATE)
 - Every mutating backend op MUST go through `Collection::transact(Op::X, |col| {…})` returning `OpChanges`. Never write the DB directly; never `transact_no_undo` for user-facing mutations. (rslib/src/ops.rs, collection/transact.rs, undo/)
@@ -26,7 +26,7 @@ The external AI/RAG service lives OUTSIDE all native libs — never import it in
 - The engine change needs ≥3 Rust unit tests + 1 Python-calling integration test.
 
 ## Grounding loop (codebase too big for one context window)
-explore (Explore subagent) → plan (read-only) → GROUND every API via Serena (LSP) / ast-grep / `cargo check` → edit (prefer Serena `replace_symbol_body`) → verify (`./ninja check`). Never edit before showing file paths + line numbers + LSP-confirmed symbol names.
+explore (Explore subagent) → plan (read-only) → GROUND every API via Serena (LSP) / ast-grep / `cargo check` → edit (prefer Serena `replace_symbol_body`) → verify (`just check`). Never edit before showing file paths + line numbers + LSP-confirmed symbol names.
 
 ## Boundaries (require human approval)
 - Deleting tests, editing CI, touching `.proto` field numbers, adding native deps to rslib (OpenSSL banned — use rustls).
@@ -36,4 +36,4 @@ explore (Explore subagent) → plan (read-only) → GROUND every API via Serena 
 - Desktop run: `just run` · All checks: `just check` · Rust tests: `just test-rust` (or `cargo test -p anki <module>::` for quick iteration) · Format: `just format`
 - `just` itself must be installed in Phase 0 (it wraps `tools/ninja`; N2 + MSYS2 rsync are the other Phase-0 gaps).
 - Python integ: `uv run pytest pylib/tests/...`
-- Android AAR: `cd ../Anki-Android-Backend && ./build.sh` (run BEFORE `cargo check`)
+- Android AAR: `cd ../Anki-Android-Backend && cargo run -p build_rust` (== `build.bat`; Windows host)

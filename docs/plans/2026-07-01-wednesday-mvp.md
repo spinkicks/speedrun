@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **STATUS: CONSTRUCTED — DO NOT EXECUTE.** This plan is handed to Cursor (mission control) for review first. Execution begins only after Cursor approves.
+> **STATUS: ✅ EXECUTED & MERGED (2026-06-30/07-01).** All phases complete on `feat/speedrun-wed-mvp`, FF-merged to anki `main` @ `92f4ebd` (13 commits over `b8b5369`). Execution corrections: Briefcase templates turned out to be git submodules (fixed via SyncSubmodule init — later superseded by wed-plus vendoring); Windows fixes (`render.rs` OS-separator, out-of-tree uv venv) folded in. Historical document — kept for the record.
 
 **Goal:** Complete the remaining Wednesday MVP items on top of the finished walking skeleton (Phases 0–2): (1) a topic-tagged GRE calc+LA seed deck + exam-profile config + a deterministic open-licensed scraper, (2) a read-only `SpeedrunService.GetTopicMastery` RPC that surfaces an honest per-topic memory score with a Wilson range + abstain rule, (3) a fixed clean-machine Briefcase installer, (4) the §7a "why Rust not Python" + upstream-files artifacts, and (5) the four proof recordings — all with **NO AI** (hard spec rule for Wednesday).
 
@@ -1540,6 +1540,6 @@ git commit -m "docs(proof): Wednesday MVP proof index + recordings (clean build,
 
 ---
 
-## STOP — awaiting Cursor review
+## ~~STOP — awaiting Cursor review~~ (RESOLVED)
 
-Per the task, execution does **not** begin until Cursor (mission control) reviews this plan. No code has been changed by this planning session.
+Reviewed by Cursor, approved, executed, and merged to `main` @ `92f4ebd`. See the STATUS banner at the top.

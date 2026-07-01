@@ -47,7 +47,7 @@ Captures the key decisions and rationale (much of which originated in planning c
 - Pedagogy: lead with **worked examples → interleaved + spaced practice**. Do NOT assume the retrieval/testing effect transfers cleanly to math problem-solving (Huang et al. 2023).
 
 ## Decision 8 — Mobile target: Android-first (confirmed feasible), iOS deferred
-- **Android via AnkiDroid** — feasible, medium risk. Critical finding: AnkiDroid pulls a *prebuilt* backend AAR, so to ship our modified `rslib` we must fork & build a **third repo, `ankidroid/Anki-Android-Backend` (rsdroid)** — NOT yet cloned. A `local_backend=true` flag makes the swap supported. **ACTION when building:** clone it to `repos/Anki-Android-Backend`.
+- **Android via AnkiDroid** — feasible, medium risk. Critical finding: AnkiDroid pulls a *prebuilt* backend AAR, so to ship our modified `rslib` we must fork & build a **third repo, `ankidroid/Anki-Android-Backend` (rsdroid)** — ✅ DONE: cloned to `repos/Anki-Android-Backend`, built, merged; `local_backend=true` swap works (proven Tue on the emulator).
 - **iOS deferred** — AnkiMobile is closed-source; building a Swift shell over rslib's FFI is not realistic in a 1-week build.
 - **One forked `anki` repo feeds BOTH bridges** (desktop PyO3 `pylib/rsbridge` + Android JNI rsdroid). Keep proto changes additive.
 - Full details, the proto→Rust→Python steps, sync model, and the day-1 walking skeleton: `docs/ARCHITECTURE.md`.
@@ -71,6 +71,15 @@ Captures the key decisions and rationale (much of which originated in planning c
 
 ## Decision 13 — Testimonial-derived defaults (the 99th-percentile playbook)
 - Calculus-first weighted plan; stereotyped-pattern decks for the low-yield tail; timed "mock-pace" interleaving at ~2.5 min/q; auto error-log → spaced review; conserved-mock readiness (don't burn the ~6 released forms early); formula/shortcut card type; coverage/triage dashboard. Frame honestly (self-selection/survivorship bias; score value diminishes past ~80th pct).
+
+## Decision 14 — Execution decisions from build week (recorded 2026-07-01)
+- **Proto FROZEN** @ anki `20dd7a2ea` (wed-plus Phase E): 5 RPCs on `SpeedrunService`; all later changes append-only with new field numbers.
+- **Interleaving implementation deviation from Decision 3:** wed-plus shipped points-at-stake as a **persisted new-card reposition** via `transact(Op::SortCards)` (undo-safe, corruption-free) instead of the queue-builder change; the **due-card queue-builder interleave** (read-time, no transact needed) is the Friday completion. Rationale: satisfy the mutating-op invariant with zero risk to review scheduling first.
+- **rsdroid `anki` submodule pin** → `a0ead51c9` (the wed-plus HEAD containing frozen proto + the Svelte page — NOT the freeze commit, because the AAR auto-bundles the sveltekit assets from the pinned tree).
+- **All 3 forks consolidated to `main`** (2026-07-01, owner call "everything on main"): anki `1fed9e109` · Anki-Android-Backend `299bb44`+`d4086e0` · anki-android `a56dda6cfb`. FF-only; feature branches kept as backup. Cursor executes merges at reviewed gates.
+- **Frontend revamp direction approved ("The Run"):** Speedrun is its OWN app on Anki's engine. Slice 1 = branded Home (splits + honest error-brackets, flat/sharp/terminal, amber pace accent, auto-open on launch) per `docs/design/speedrun-home-spec.md` + approved mockup. Owner pulled this forward (visible frontend changes same-day); heavier slices sequenced around Friday's scoring work.
+- **Lane update:** Claude Code builds the frontend too (owner call; keeps the proven subagent-driven loop). Cursor = mission control: specs, reviews, gates, docs, git. Cursor avoids concurrent writes in `repos/*` while Claude builds.
+- **Installer strategy:** Briefcase win/mac templates vendored in-tree (network-independent clean-machine build); supersedes the wed-mvp "populate submodules" fix; accepted trade-off = manual re-vendor on upstream template bumps.
 
 ## Open questions / TODO research
 - [x] Architecture & build feasibility → `docs/ARCHITECTURE.md` (DONE; desktop low-risk, Android medium, iOS deferred).

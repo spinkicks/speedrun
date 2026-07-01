@@ -1,5 +1,7 @@
 # Walking Skeleton → Wednesday MVP Implementation Plan
 
+> **STATUS: ✅ EXECUTED & MERGED (2026-06-30).** Phases 0–2 complete, independently reviewed, FF-merged to `main` on all 3 forks (anki `b8b5369`, Anki-Android-Backend `af56fe7`, anki-android `19d588e`). Execution corrections discovered: (1) new proto services need explicit `protobuf!(speedrun, "speedrun");` registration in `rslib/proto/src/lib.rs`; (2) real in-crate GREEN converges at the service-impl task, not the fn-impl task. Historical document — kept for the record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Get our forked Anki building & running on desktop, land one *real* read-only Rust engine change (`SpeedrunService.GetCoverage`) end-to-end through proto→Rust→Python via TDD, then rebuild the same `rslib` into an Android AAR so AnkiDroid runs the identical engine — proven by both apps returning the same backend version string.
