@@ -16,6 +16,12 @@ Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki**
   - Sync: `anki-sync-server` in-fork + §7b conflict test (revlog union + latest-wins, honest caveat documented) → `docs/SYNC-SELFHOST.md`.
 - **Per-repo `main` pins (single source of truth):** anki **`1fed9e109`** · Anki-Android-Backend **`d4086e0`** (contains `299bb44` rsdroid `anki`-submodule pin → **`a0ead51c9`**; note the pin is a wed-plus-branch commit, ancestor-equivalent content to main tip) · anki-android **`a56dda6cfb`** · umbrella `spinkicks/speedrun` `main` = latest. All FF, no merge commits; `feat/speedrun-wed-plus` branches kept as backup. Upstream tracking on `main` fixed on all forks.
 
+## ⚠️ LATEST (2026-07-01 ~17:30) — FRESH CHAT START HERE
+Execution ran far ahead of review. Current reality:
+- **Dashboard done on both platforms; Claude also built a "Speedrun Home" auto-open page** on branch **`feat/speedrun-home`** (anki `52bcefa7e`, pushed). An adversarial audit caught + FIXED real defects (desktop RPCs 403/404 → no live data; crash on fresh collection w/ no exam profile; auto-open stacking under sync dialog). `just check` green (mod. known complexipy crash). See `.claude/cursor-review.md` (Claude↔Cursor channel; all items Resolved).
+- **Claude is now auto-planning ANOTHER phase** (study-launch "START RUN" flow + reviewer surfaces + responsive CSS) — beyond any reviewed plan.
+**Fresh-chat first actions:** (1) get a grip on SCOPE — a lot was built past the reviewed `wed-plus` plan; (2) **clean-review the `feat/speedrun-home` diff** before any merge; (3) guide David's `just run` visual confirm; (4) FF-merge the 3 forks to `main` only after review; (5) decide whether to rein in / approve the new study-launch phase Claude is planning. Docs `BUILD-PREREQS.md` + `SYNC-SELFHOST.md` are placed.
+
 ## Immediate next step
 **Speedrun Home ("The Run") — frontend revamp slice 1 — ✅ MERGED to `main` on all 3 forks (2026-07-01).** Branded auto-open landing on both platforms per `docs/design/speedrun-home-spec.md`. Cursor-verified via David's desktop `just run` screenshot (Home auto-opened rendering live data — 9 topics, coverage, honest abstain rows). The 7-agent audit's 4 gate-blockers (desktop data path 403/404, exam-profile bootstrap, `closeWithCallback`, auto-open placement) are all fixed + code-verified + merged.
 - **Per-repo `main`:** anki **`52bcefa7e`** · Anki-Android-Backend **`a125ad5`** (rsdroid pin → `6341b6f61`) · anki-android **`2146d885e6`**.
