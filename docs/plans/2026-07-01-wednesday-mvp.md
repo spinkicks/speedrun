@@ -37,7 +37,7 @@ All `repos/anki` builds/checks go through **`just` recipes** (per `repos/anki/CL
 - Card-by-tag enumeration: `Collection::search_cards<N>(search, SortMode) -> Result<Vec<CardId>>` (`rslib/src/search/mod.rs:158`); card fetch `self.storage.get_card(cid)`.
 - Timing: `self.timing_today()?` (`rslib/src/stats/card.rs:32`).
 - Existing service seam (from Phase 1): `proto/anki/speedrun.proto`, `rslib/src/speedrun/{mod.rs,service.rs}`, `rslib/proto/src/lib.rs` has `protobuf!(speedrun, "speedrun");`, `pylib/anki/speedrun.py` (`SpeedrunManager`), `col.speedrun`.
-- Installer: `qt/installer/app/pyproject.toml` `[tool.briefcase.app.anki.windows]` has **no `template` key** → Briefcase clones the beeware Windows template over the network at build time (the reported "template-clone" failure). Linux is already vendored locally as `qt/installer/linux-template/` — the same vendor/pin pattern is the fix.
+- Installer (**CORRECTED via grounding 2026-07-01 — supersedes the original hypothesis**): the "template-clone failure" is an **uninitialized git submodule**, NOT a Briefcase/beeware network clone. `qt/installer/windows-template` and `qt/installer/mac-template` are **git submodules** (`.gitmodules`: win→`https://github.com/ankitects/briefcase-windows-app-template` branch `anki`; mac→`https://github.com/ankitects/briefcase-macOS-app-template` branch `anki`), both currently **uninitialized** (`git submodule status` shows a leading `-`: win `e995756449d4b4de27365c5c97b5c571d141ea08`, mac `8ef2200fb3f94f180faddd9fdc8b6ea251110910`). The installer build (`build/configure/src/installer.rs` → `SyncSubmodule { path: "qt/installer/windows-template", offline_build: false }`, lines 54-66; driven by `qt/tools/build_installer.py`) tries to sync these submodules and fails when they can't be populated. `linux-template/` is the odd one out — it is vendored **in-tree** (real files, NOT a submodule), which is why it never fails. **Fix direction:** initialize the pinned submodules (Option A) and, if a clean/offline machine can't clone them at build time, vendor the Windows template in-tree like linux (Option B). The `[tool.briefcase.app.anki.windows]` pyproject key is NOT the lever.
 
 ---
 
@@ -1233,80 +1233,103 @@ git rev-parse HEAD   # record SHA for the §7a artifacts (Phase D)
 
 # Phase C — Clean-machine installer fix — CRITICAL
 
-**Outcome:** the Briefcase desktop installer builds on a clean machine (no reliance on a network clone of the beeware Windows template) and the produced app launches. This clears the 50%-cap "must run on a clean device" risk.
+**Outcome:** the Briefcase desktop installer builds on a clean machine and the produced app launches. This clears the 50%-cap "must run on a clean device" risk. **Root cause is now grounded (see below): the installer templates are uninitialized git submodules, not a Briefcase beeware clone.**
 
 > Use **superpowers:systematic-debugging** for C1 — reproduce and root-cause the exact failure before changing anything. Do not guess-patch.
 
-### Task C1: Reproduce & root-cause the template-clone failure
+### Task C1: Root-cause the template failure — GROUNDED & CONFIRMED (2026-07-01)
 
-**Files:** none (diagnosis).
+**Files:** none (diagnosis). **This task is essentially DONE — the root cause was confirmed during execution grounding. The C2 fix below supersedes the original beeware-clone approach.**
 
-> ⚠️ **Cursor grounding correction (2026-06-30):** the assumed root cause ("no Windows template → network clone") is only a HYPOTHESIS — verify it. The actual `qt/installer/` tree already contains: `app/`, `briefcase_plugins/`, `linux-template/` (real, 20 files), `mac-template/`, **`windows-template/` (already exists but ~empty: 1 tracked file, no real template contents)**, and `README.md`. So the fix may be to **populate the existing (placeholder) `windows-template/`**, not create a new dir — and the wiring mechanism may be `briefcase_plugins/` or a CLI `--template` flag rather than a pyproject `template` key. Before any patch, ground how `linux-template/` and `mac-template/` are actually wired (they build fine) and mirror that exact mechanism for Windows.
+**CONFIRMED root cause (supersedes both the original hypothesis AND Cursor's placeholder-dir note):**
+- `qt/installer/windows-template` and `qt/installer/mac-template` are **git submodules**, declared in `repos/anki/.gitmodules`:
+  - `briefcase-windows-template` → url `https://github.com/ankitects/briefcase-windows-app-template`, branch `anki`, shallow.
+  - `briefcase-mac-template` → url `https://github.com/ankitects/briefcase-macOS-app-template`, branch `anki`, shallow.
+- Both are **uninitialized** locally — `git submodule status` shows a leading `-`:
+  - `-e995756449d4b4de27365c5c97b5c571d141ea08 qt/installer/windows-template`
+  - `-8ef2200fb3f94f180faddd9fdc8b6ea251110910 qt/installer/mac-template`
+- The installer build wires them via `build/configure/src/installer.rs` (lines 52-77): two `SyncSubmodule { path: "qt/installer/windows-template" | "mac-template", offline_build: false }` actions (`installer:template:win` / `installer:template:mac`), then `BuildCommand`/`PackageCommand` run `qt/tools/build_installer.py` (Briefcase). The `BuildCommand.files()` depends on `:installer:template` (both submodules) + `glob!["qt/installer/**"]`.
+- `linux-template/` is **NOT** a submodule — it is vendored in-tree (real files), which is why Linux never hits this failure.
+- ∴ the "template-clone failure" = the **submodule populate/clone failing** (the submodules were never initialized in Phase 0, and/or a build-time `SyncSubmodule` network fetch fails). It is NOT `[tool.briefcase.app.anki.windows]` / beeware.
 
-- [ ] **Step 1: Find how the installer is invoked** (there is no `just installer` recipe; locate the driver script/CI step)
+- [ ] **Step 1: Re-confirm the submodule state** (fast sanity check before fixing)
 
 Run from `repos/anki`:
 ```bash
-grep -rin "briefcase\|linux-template\|installer" --include="*.py" --include="*.toml" --include="*.yml" --include="*.yaml" --include="*.sh" --include="*.bat" build/ qt/installer/ .github/ 2>/dev/null | grep -vi "out/" | head -40
+git submodule status | grep -E 'installer|template'
+git config -f .gitmodules --get-regexp 'briefcase'
 ```
-Record the exact command that runs Briefcase (e.g. a `briefcase create windows` / `briefcase build` invocation and its working dir).
+Expected: the two template submodules show a leading `-` (uninitialized) at the SHAs above; `.gitmodules` shows the two `ankitects/briefcase-*-app-template` urls on branch `anki`.
 
-- [ ] **Step 2: Reproduce the failure verbatim** (run the invocation from Step 1; capture the full error)
+- [ ] **Step 2: Confirm the Briefcase template mechanism** (GROUNDED — read to understand, likely no change here)
 
-Expected observation: `briefcase create windows` fails while **cloning the template** — Briefcase resolves `[tool.briefcase.app.anki.windows]`, finds no local `template`, and attempts to clone `https://github.com/beeware/briefcase-windows-*-template` at a tag matching the Briefcase version; the clone fails (network/tag-not-found). Confirm this is the failure mode (contrast with `qt/installer/linux-template/`, which is vendored and does NOT clone).
+`qt/tools/build_installer.py` is the driver: `get_briefcase_template_path()` (lines 49-56) returns the **local** `qt/installer/windows-template` dir, and `get_briefcase_config_args()` (line 109) passes it to Briefcase as `-C template="<abs path>"`. So Briefcase points at the local submodule dir and treats it as a **git repo** — it does NOT fetch a beeware template. Critically, `build_installer.py` does **NOT** pass `--template-branch`, so Briefcase defaults to checking out a branch named after **its own version** (the memory-recorded error was branch **`v0.4.2`**). The ankitects submodule only has branch `anki` — and while uninitialized it's empty — hence "Unable to clone application template."
 
-- [ ] **Step 3: Identify the installed Briefcase version + the template it expects**
+∴ the fix has **two parts**: (1) initialize the submodule (C2 Option A Step 1), AND (2) reconcile the briefcase-version↔template-branch mismatch. Options for part 2, in preference order: (a) pass `--template-branch anki` (or the branch the ankitects template actually provides) — but that means editing `build_installer.py`'s `briefcase build`/`package` argv (an upstream file); (b) pin the installed `briefcase` version to one whose version-branch exists in the ankitects template; (c) check out the matching version branch inside the submodule. **Reproduce first** (C2 Option A Step 2) and read Briefcase's actual error + `git branch -a` inside the initialized submodule to pick the minimal correct option.
+
+### Task C2: Initialize (and, if needed, vendor) the installer template submodules
+
+**Approach:** Option A first (initialize the pinned submodules — minimal, keeps upstream parity). Only if a clean/offline machine cannot fetch them at build time, fall back to Option B (vendor in-tree).
+
+**Files (Option A):** none tracked change needed (submodules already pinned in the superproject index) — this is an environment/init fix. **Files (Option B fallback):** `.gitmodules` + de-submoduled template contents.
+
+#### Option A — initialize the pinned submodules (try this first)
+
+- [ ] **Step 1: Initialize both template submodules at their pinned commits**
+
+Run from `repos/anki`:
+```bash
+git submodule update --init qt/installer/windows-template qt/installer/mac-template
+git submodule status | grep -E 'installer|template'
+```
+Expected: the leading `-` disappears (submodules populated at `e995756…` / `8ef2200…`); `qt/installer/windows-template/` now contains real template files (cookiecutter). **If the clone fails** (network/auth/branch `anki` missing), capture the exact error and go to Option B — do NOT guess-patch. If it fails only due to environment (no network), that is a David/admin item — STOP and ask.
+
+- [ ] **Step 2: Build the installer** (the real gate — this is what was failing)
+
+Run from `repos/anki` (ground the exact recipe first with `just --list | grep -i install`; if no recipe, invoke the driver directly as `build_installer.py` is invoked by `installer.rs`):
+```bash
+just --list | grep -i install || true
+# then either the discovered recipe, or the direct driver the build uses:
+uv run python qt/tools/build_installer.py --version $(cat .version) build
+```
+Expected: the `SyncSubmodule` step finds the submodules already populated (no failing clone), Briefcase `build` completes, and a build artifact appears under the Briefcase output dir. Capture the output.
+
+- [ ] **Step 3: Package + smoke-launch** (produce the installable artifact and confirm it opens)
 
 ```bash
-cd repos/anki && uv run briefcase --version 2>/dev/null || python -m briefcase --version
+uv run python qt/tools/build_installer.py --version $(cat .version) package
 ```
-Record the version; Briefcase clones the template branch matching this version (e.g. `v0.3.26`, matching `qt/installer/app/pyproject.toml` header). Note the exact upstream template repo + tag it wants — this is what we will vendor/pin.
+Then launch the produced installer/app from its output dir and confirm the Anki window opens. (Captured in Phase E clean-machine recording.)
 
-- [ ] **Step 4: Write down the root cause + chosen fix** in the task tracker (root cause: unvendored Windows template ⇒ build-time network clone that fails on a clean machine; fix: vendor the Windows template locally and point `[tool.briefcase.app.anki.windows].template` at it, mirroring `linux-template/` — no network needed).
-
-### Task C2: Vendor & pin the Windows template
-
-**Files:**
-- Create: `repos/anki/qt/installer/windows-template/` (vendored)
-- Modify: `repos/anki/qt/installer/app/pyproject.toml`
-
-- [ ] **Step 1: Obtain the exact upstream template Briefcase wants** (one-time online fetch; the vendored copy is what ships)
-
-Using the repo + tag recorded in C1 Step 3 (Briefcase's default is the `briefcase-windows-VisualStudio-template` or `briefcase-windows-app-template` at the version tag). Fetch it into the installer dir:
-```bash
-cd repos/anki/qt/installer
-git clone --depth 1 --branch <TEMPLATE_TAG> <UPSTREAM_TEMPLATE_URL> windows-template
-rm -rf windows-template/.git
-```
-(If the clone fails for the same network reason, obtain the tag's zip via the browser/`gh release`/`curl` of the GitHub archive URL and unpack to `windows-template/`. Record the source + tag in the template's README for provenance.)
-
-- [ ] **Step 2: Point Briefcase at the vendored template** — modify `qt/installer/app/pyproject.toml`
-
-Change the empty Windows section:
-```toml
-[tool.briefcase.app.anki.windows]
-```
-to reference the local template (Briefcase accepts a local path as `template`):
-```toml
-[tool.briefcase.app.anki.windows]
-template = "../windows-template"
-```
-(Match the relative path to how `linux` resolves its vendored template — verify by how the linux build passes/points to `linux-template/`; if linux uses a CLI `--template` flag rather than pyproject, mirror that mechanism instead. Ground this against the C1 Step 1 invocation before editing.)
-
-- [ ] **Step 3: Rebuild the installer offline** (prove no network clone happens)
-
-Re-run the C1 Step 1 invocation. Expected: Briefcase uses `../windows-template` (log line: "Using existing template" / no clone attempt), the create/build stages complete, and an installer artifact is produced under the Briefcase output dir.
-
-- [ ] **Step 4: Smoke-launch the built app** (from the build output, not the dev tree)
-
-Launch the produced app/installer and confirm the Anki window opens. This is the artifact captured in Phase E (clean-machine recording).
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit only if something tracked changed** (Option A usually changes nothing tracked — the pins already exist). If the build required re-pinning a submodule to a working commit, commit the gitlink + `.gitmodules`:
 
 ```bash
 cd repos/anki
-git add qt/installer/windows-template/ qt/installer/app/pyproject.toml
-git commit -m "fix(installer): vendor + pin the Briefcase Windows template (no clean-machine network clone)"
+git add .gitmodules qt/installer/windows-template qt/installer/mac-template
+git commit -m "fix(installer): initialize/pin briefcase template submodules so the installer builds"
+```
+If nothing tracked changed, record in the task tracker that C2 was an init/environment fix (no commit) and note it for the clean-machine step (C3 must run `git submodule update --init` as part of setup, OR use Option B so the clean machine needs no network).
+
+#### Option B — vendor the Windows template in-tree (fallback, for offline/clean-machine robustness)
+
+Only if Option A's submodule clone cannot be relied on at build time on a clean machine.
+
+- [ ] **Step 1: Populate then de-submodule the Windows template**
+```bash
+cd repos/anki
+git submodule update --init qt/installer/windows-template   # get the files once (needs network here)
+git rm --cached qt/installer/windows-template               # remove the gitlink
+rm -rf qt/installer/windows-template/.git
+# remove the [submodule "briefcase-windows-template"] block from .gitmodules
+```
+Then `git add qt/installer/windows-template/` (now real files) so the template ships in-tree like `linux-template/`. Do the same for `mac-template` only if a mac installer build is in scope (Wed is Windows desktop — mac can stay a submodule if it isn't built).
+
+- [ ] **Step 2: Adjust the build if it still expects a submodule** — `build/configure/src/installer.rs` calls `SyncSubmodule` for the win template. A vendored (non-submodule) path makes `SyncSubmodule` a no-op or error; if it errors, change that action to a plain file dependency (mirror how `linux-template` is handled — grep `installer.rs`/`build/` for how linux is fed, since linux is in-tree and builds). Ground the exact edit against the linux path before changing `installer.rs`.
+
+- [ ] **Step 3: Build + package + smoke-launch** (same commands as Option A Steps 2-3), then commit:
+```bash
+git add .gitmodules qt/installer/windows-template/ build/configure/src/installer.rs
+git commit -m "fix(installer): vendor Windows briefcase template in-tree (clean-machine build, no submodule clone)"
 ```
 
 ### Task C3: Clean-machine verification

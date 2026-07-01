@@ -14,27 +14,21 @@ Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep ho
 
 ---
 
-## Wednesday MVP — "both apps work & review the same deck, NO AI"
+## Wednesday MVP — "both apps work & review the same deck, NO AI"  (updated 2026-06-30 late eve)
+Executed via the `docs/plans/2026-07-01-wednesday-mvp.md` plan on branch `feat/speedrun-wed-mvp`.
 ### Desktop
-- ✅ Anki forked and building from source.
-- ⚠️ Rust change working end-to-end + 3 Rust unit tests + 1 Python test. *(Have it via `GetCoverage`. Gaps: the required §7a artifacts — one-page "why Rust not Python" note + list of upstream files touched & merge difficulty — are NOT written. Also `GetCoverage` is a lightweight coverage query; consider strengthening — see "Recommended Wednesday plan".)*
-- ❌ **A review loop running on your exam deck.** *(No GRE deck exists — blocked on content.)*
-- ❌ **A memory model with an honest score: range + give-up rule.** *(Not built. FSRS retrievability exists in-engine but is not aggregated per-topic, scored, ranged, or displayed.)*
-- ❌ **An installer that runs on a clean machine.** *(Briefcase installer template-clone currently fails; needs fixing + a clean-machine recording.)*
+- ✅ Anki forked and building from source (Windows build fixed: n2 forward-slash `render.rs` patch + out-of-tree uv venv).
+- ✅ Rust change end-to-end + tests — now TWO read-only RPCs: `GetCoverage` + `GetTopicMastery` (FSRS retrievability → mastered proportion + Wilson 95% range + abstain). 9+ Rust tests + 2 Python integration tests; read-only, `integrity_check ok`.
+- ✅ Seed exam deck built (`speedrun/out/gre_math_seed.apkg`, ≥30 tagged calc+LA declarative notes w/ Source) → **review loop on the exam deck works** (import into either app).
+- ⚠️ **Memory model with honest score (range + give-up):** the RPC + Wilson range + abstain rule are DONE and pushed; **the visible score UI is Cursor's job** (Svelte/TS panel on the `GetTopicMastery` seam) — IN PROGRESS.
+- ✅ **Clean-machine installer:** fixed with **zero upstream change** — the Briefcase Windows/mac templates are git *submodules*; the fix was populating them via the existing `SyncSubmodule` (once the `render.rs` fix let n2 spawn the runner).
 ### Mobile
 - ✅ Phone app builds and runs on the emulator on the shared engine.
-- ❌ **Loads your exam deck and runs a real review session.** *(No deck; only the RPC gate test has run, not a study session.)*
-### Proof to capture
-- ✅ Commit hash. ✅ Test results (capturable). ❌ Clean-build recording. ❌ Clean-machine install recording. ❌ Phone review-session screen recording.
+- ⚠️ **Loads exam deck + real review session:** deck is ready to import; the actual review-session run is David's recording (Wed).
+### §7a artifacts — ✅ placed in `docs/artifacts/` (`why-rust-not-python.md`, `upstream-files-touched.md`; upstream surface = 4 files: lib.rs +1, proto/src/lib.rs +1, collection.py +2, render.rs +8/−2).
+### Proof to capture — **David does these Wednesday** (apps just need to be runnable): clean-build, clean-machine install, phone review session, honest-score demo (Step 4b). Run steps in `docs/RUN-MVP.md`.
 
-**Wednesday status: ~3.5 of 7 items done.** The hardest *technical* risk (build + shared engine + Rust change) is cleared; the remaining Wednesday items are **content (exam deck)**, **memory model + honest score/give-up**, **clean-machine installer**, the **§7a Rust-change write-ups**, and **recordings**.
-
-### Recommended Wednesday plan (highest-leverage order)
-1. **Seed exam deck + exam-profile** (topic taxonomy/DAG + ETS weights; a starter calc/LA deck of tagged declarative cards). Unblocks the review loop on both apps + coverage %.
-2. **Memory model + honest score** — add `GetTopicMastery` (per-topic FSRS retrievability aggregate + mastered count + avg recall). This simultaneously (a) is a *stronger* §7a Rust change ("mastery query" option), (b) powers the honest memory score with a **range** (Wilson/bootstrap) + **give-up rule** (abstain below N graded reviews). Read-only, so still corruption-safe.
-3. **Clean-machine installer** — fix the Briefcase template-clone; produce an installer + recording.
-4. **§7a artifacts** — one-page "why this belongs in Rust" + touched-upstream-files/merge-difficulty list.
-5. **Record proofs** — clean build, install, and a phone review session on the seed deck.
+**Wednesday status: code/build ✅ DONE & green (except the known complexipy tool crash).** Remaining: **(Cursor)** the memory-score UI + these docs (done); **(David, Wed)** the recordings. Known non-blocking env item: complexipy tool crash.
 
 ---
 
