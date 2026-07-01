@@ -32,6 +32,15 @@ Executed via the `docs/plans/2026-07-01-wednesday-mvp.md` plan on branch `feat/s
 
 ---
 
+## Wednesday-Plus (post-MVP hardening) — in progress (branch `feat/speedrun-wed-plus`)
+Executed via `docs/plans/2026-07-01-wednesday-plus.md`. Order: Phase 0 → Phase E (freeze proto) → merge+re-pin+AAR → Phase 1 (dashboard both platforms) → Phase 3 (sync). NO AI.
+- ✅ **Phase 0 — Installer network-independence** (gate APPROVED by Cursor 2026-07-01, @ `1fc5128`, not yet merged): Briefcase Windows(19)+mac(21) templates de-submoduled & vendored in-tree; `.gitmodules` now only `ftl/*`; `installer.rs` `SyncSubmodule` actions + `:installer:template` input removed (glob-only); `build.ninja` has 0 `installer:template` refs; installer tests pass; no submodule fetch at build time. Clean-machine build prereqs → `docs/BUILD-PREREQS.md`.
+- ❌ **Phase E — 3 additive RPCs + proto freeze**: `GetExamProfile` (read-only), **`ReorderNewByPointsAtStake`** (mutating, `transact(Op::SortCards)`, undo-safe new-card reposition + interleave + ablation toggle), `GetPerformanceReadiness` (scaffolding, always-abstain). Gate = merge-to-`main` + re-pin rsdroid submodule + rebuild AAR (**Cursor/David hard-stop**).
+- ❌ **Phase 1 — Memory dashboard on BOTH platforms**: one shared Svelte page (`ts/routes/speedrun-memory/`) rendered by desktop Qt dialog (Tools menu) + Android PageFragment; coverage header folded in. Risk to verify first: Android web-asset serving path + `PostRequestHandler`.
+- ❌ **Phase 3 — Self-hosted sync + §7b conflict test** (stretch): launch `anki-sync-server`, two-way sync, latest-mtime-wins conflict rule; `docs/SYNC-SELFHOST.md`.
+
+---
+
 ## Friday — AI added & checked; phone syncs; three scores
 - ❌ **Topic-aware interleaving / points-at-stake** scheduler change (the *mutating* engine change, via `transact`/`Op`) — the headline learning-science feature (§8 ablation, 15%).
 - ❌ Self-hosted **sync server** (`rslib/sync`) + **two-way sync** + offline-reconnect + **conflict rule** (§7b).

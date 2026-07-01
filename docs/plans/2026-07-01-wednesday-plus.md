@@ -624,13 +624,16 @@ Because `Card::set_new_position` is private to `new.rs`, add a crate-visible shi
             note.tags = vec![tag.into()];
             col.update_note(&mut note)?;
         }
-        let before = col.storage.integrity_check_scalar()?; // helper below; or assert via pragma in python
+        // Grounded 2026-07-01 (Claude): the real integrity-check API is
+        // `col.storage.db_scalar::<String>("pragma integrity_check")` — there is
+        // no `integrity_check_scalar` helper. `col.undo()` -> OpOutput<UndoOutput>.
+        let before = col.storage.db_scalar::<String>("pragma integrity_check")?;
         let weights = vec![("calc".to_string(), 0.9), ("linear_algebra".to_string(), 0.1)];
         let out = col.speedrun_reorder_new(DeckId(1), weights, AblationMode::Full)?;
         assert!(out.output >= 1); // repositioned at least one card
         // Undo restores (no corruption): undo the op.
         col.undo()?;
-        assert_eq!(before, col.storage.integrity_check_scalar()?);
+        assert_eq!(before, col.storage.db_scalar::<String>("pragma integrity_check")?);
         Ok(())
     }
 
@@ -646,7 +649,7 @@ Because `Card::set_new_position` is private to `new.rs`, add a crate-visible shi
         Ok(())
     }
 ```
-(If `integrity_check_scalar` / `col.undo()` names differ, ground via `cargo check`; the intent is: run reorder, then `col.undo()`, then assert `pragma integrity_check == ok`. Prefer asserting integrity in the Python test where `col.db.scalar("pragma integrity_check")` is available — see Step 7. Keep ≥3 Rust tests total via the pure tests in Step 2 + these.)
+(Confirmed 2026-07-01: use `col.storage.db_scalar::<String>("pragma integrity_check")` and `col.undo()`; the intent is: run reorder, then `col.undo()`, then assert `pragma integrity_check == ok`. Prefer asserting integrity in the Python test where `col.db.scalar("pragma integrity_check")` is available — see Step 7. Keep ≥3 Rust tests total via the pure tests in Step 2 + these.)
 
 - [ ] **Step 6: Python wrapper** — add to `pylib/anki/speedrun.py`:
 ```python
