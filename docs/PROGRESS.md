@@ -48,7 +48,7 @@ Executed via `docs/plans/2026-07-01-wednesday-plus.md`. Order: Phase 0 → Phase
 - ✅ **Phase 1 — Memory dashboard on BOTH platforms** (code-complete + building; desktop reviewed; **emulator smoke = David's pending step**): one shared Svelte page (`ts/routes/speedrun-memory/`: `+page`, `MemoryDashboard`, `TopicRow`, `RangeBand`, `data.ts`) rendered by desktop Qt dialog (Tools → "Speedrun: Memory", `a558dbc`/`8aea05f`) + Android `PageFragment` (`a0ead51c`); coverage header + Perf/Readiness scaffolding columns folded in. **#1 risk RESOLVED:** the SvelteKit output auto-bundles into the rsdroid AAR (`anki_artifacts/backend/sveltekit/`) — no-404 confirmed after AAR rebuild; rsdroid re-pinned to `a0ead51c9` (branch), AAR rebuilt with 5 `*Raw` RPC methods + the page.
 - ✅ **Phase 3 — Self-hosted sync + §7b conflict test** (stretch; test committed `1fed9e109`, Claude gate report pending): `docs/SYNC-SELFHOST.md` draft written (Cursor to place after gate); §7b two-way (10+10 offline reviews all land) + same-card latest-wins conflict test against the real sync harness.
 - ⏭️ **NEXT (owner priority): Frontend/UX revamp** — see `FUTURE-PLANS.md`. Cursor-led design (brainstorm → `app-shell-spec.md` → plan → build). Goal: make Speedrun its own app on Anki's engine; first visible changes targeted for today.
-- 🔀 **Git consolidation:** wed-plus lives on `feat/speedrun-wed-plus` across the 3 forks; **FF-merge ALL to their `main`s once Phase 3 gate lands** (Cursor executes) — branches are the staging buffer, not permanent.
+- ✅ **Git consolidation → `main` (Cursor, 2026-07-01):** all 3 forks FF-merged to `main` — anki `1fed9e109`, Anki-Android-Backend `299bb44`, anki-android `a56dda6cfb`. Branches kept as backup. Everything on `main`.
 
 ---
 
