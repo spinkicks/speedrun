@@ -25,6 +25,13 @@ Branded auto-open landing on BOTH platforms, per `docs/design/speedrun-home-spec
 - ✅ **All 4 audit gate-blockers fixed + code-verified** (commit `6341b6f61` + `52bcefa7e`): desktop data path (`AnkiWebViewKind.SPEEDRUN` API access + 4 methods in `exposed_backend_list` — fixed Home AND Memory), exam-profile bootstrap (`include_str!` default, both platforms), `closeWithCallback` on both dialogs, auto-open moved into post-sync `_onsuccess` + safeMode guard. 15/15 Rust tests, Python data-proof test, adversarial review (couldn't refute), Playwright e2e (RPCs 200 + render).
 - ✅ **Android emulator smoke DONE (2026-07-01):** `installPlayDebug` on `Pixel_10`; Speedrun Home renders identically to desktop (same shared page + engine — two-platform parity proven visually). One cosmetic follow-up: Android shell toolbar + system bars render white vs the dark page (theming slice; see FUTURE-PLANS — fix before recording). ⬜ David's recordings remain.
 
+## 🔄 Mobile-first UX + START RUN + reviewer (branch `feat/speedrun-mobile-first`) — in progress
+Plan APPROVED (`docs/plans/2026-07-01-mobile-first-and-startrun-plan.md`). David's on-device testing found START RUN bugs + mobile layout wrapping.
+- ✅ **M0 — mobile-first responsive Home + Memory** (merged to anki `main` `0c5112957`): base ~360px stacked cards + `@media(min-width:768px)` desktop restore; compact abstain copy; e2e no-overflow gate 4/4; desktop unchanged. Cursor-reviewed diff + merged.
+- 🔄 **M1** Android dark shell · **S1** desktop START RUN (real study + honest "import"/"caught up" + Custom Study) · **S2** Android START RUN (`bridgeCommand`) · **R1** full reviewer chrome restyle (both platforms, presentation-only). M1/S1/S2/R1 need David's GUI/emulator visual gates.
+- ➕ Folded in: re-theme Memory page dark to match "The Run" (was light; resolves the audit's RangeBand-token finding).
+- ⚠️ **R1 watch:** full-chrome reviewer is the timeline risk — descope/split if it threatens Friday's scoring work.
+
 ## Prior 7-agent audit (2026-07-01) — RESOLVED
 The audit that caught the above (UI shipped "code-complete" but never rendered on desktop: RPCs 403/404 + no profile bootstrap) is now fully addressed on `main`. Non-critical audit items remain itemized in `FUTURE-PLANS.md` under `[audit]`. Original finding text kept below for the record:
 - ⚠️ **7-AGENT AUDIT FINDINGS (2026-07-01) — fixes assigned to Claude's current branch:**
