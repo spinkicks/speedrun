@@ -74,7 +74,9 @@ git checkout main
 
 **4. Build + install + run the app on the emulator** — PowerShell, in `repos\anki-android`:
 ```powershell
-.\gradlew :AnkiDroid:installDebug
+.\gradlew :AnkiDroid:installPlayDebug
+# NOTE: AnkiDroid has product flavors (amazon/full/play) — there is NO plain
+# `installDebug`. Use installPlayDebug (standard dev) or installFullDebug (FOSS).
 # then open the AnkiDroid app on the emulator
 ```
 (Or open `repos\anki-android` in Android Studio and press Run with `Pixel_10` selected.)
@@ -83,7 +85,7 @@ git checkout main
 
 **6. Re-run the "one engine, two apps" proof (the gate test)** — PowerShell, in `repos\anki-android`:
 ```powershell
-.\gradlew :AnkiDroid:connectedDebugAndroidTest --tests "*SpeedrunCoverageTest*"
+.\gradlew :AnkiDroid:connectedPlayDebugAndroidTest --tests "*SpeedrunCoverageTest*"
 ```
 `SpeedrunCoverageTest` calls `getCoverage(...)` through the Android `.so` and asserts `backendVersion == "26.05"` — identical to desktop. Green = same engine on both apps.
 
