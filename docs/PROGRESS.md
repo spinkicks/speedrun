@@ -1,5 +1,14 @@
 # Speedrun — Progress Tracker (done / left), mapped to the spec
 
+## Wednesday-Plus (in progress, branch `feat/speedrun-wed-plus` — held, not merged pending review)
+- ✅ **Phase 0** — installer network-independence: Windows (19) + mac (21) Briefcase templates vendored in-tree, de-submoduled; `SyncSubmodule` actions removed from `installer.rs`; `.gitmodules` now only `ftl/*`. @ `1fc5128`.
+- ✅ **Phase E (engine RPCs) green + proto FROZEN** (held on branch): E1 `GetExamProfile` (config-backed, `ce0f729c9`), E2 `ReorderNewByPointsAtStake` (mutating reorder via `transact(Op::SortCards)`; undo + *persisted-state* `integrity_check==ok` evidence; ablation Full/FeatureOff/Plain), E3 `GetPerformanceReadiness` scaffolding (always-abstain, non-AI). Full `just check` gate green (except known complexipy). Proto frozen for the Android re-pin.
+- 🔄 **Phase 1 (dashboard)** — shared SvelteKit page (`ts/routes/speedrun-memory/`) building; Android verify-first grounding in parallel (where AnkiDroid serves the page + real `PostRequestHandler`).
+- ⬜ Merge `feat/speedrun-wed-plus` → anki `main` + re-pin rsdroid submodule + rebuild AAR (E4 gate — awaiting Cursor review); ⬜ Android shell (1.4); ⬜ Phase 3 sync (stretch); ⬜ Cursor to place `docs/BUILD-PREREQS.md` + `docs/SYNC-SELFHOST.md` drafts.
+
+---
+
+
 Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). Last updated 2026-06-30 (Tue eve), after the walking skeleton merged to `main` on all forks.
 
 ## ✅ Done so far (the walking skeleton — technical foundation)
