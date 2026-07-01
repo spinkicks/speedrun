@@ -45,5 +45,11 @@ Fixed max-width column (~960px) with left/right hairline borders.
 - Same shared Svelte page renders on Android after AAR rebuild (no 404).
 - `just check` green (mod. known complexipy crash). AGPL headers on new files. No AI.
 
+## REQUIRED fixes folded into this slice (2026-07-01 audit — gate blockers)
+1. **Desktop webview→backend data path:** add `get_coverage`, `get_topic_mastery`, `get_exam_profile`, `get_performance_readiness` to `exposed_backend_list` (`qt/aqt/mediasrv.py` ~L728) AND give the speedrun dialogs an API-enabled `AnkiWebViewKind` (add e.g. `SPEEDRUN` to `_profileForPage`, `qt/aqt/webview.py` ~L136). `DEFAULT` kind has NO API access — without both fixes every RPC POST 403s and the page shows only an error. Android needs nothing (bridge already wired).
+2. **Exam-profile bootstrap:** fresh collections return `""` from `GetExamProfile` → Home/Memory error forever. Bootstrap `speedrun/exam_profiles/gre_math.json` into collection config (engine `include_str!` default or set-on-open; both platforms must resolve it).
+3. **Dialog lifecycle:** `closeWithCallback` on `SpeedrunHome` + `SpeedrunMemory` (mirror `stats.py` L86-88) — `DialogManager.closeAll` crashes on quit/profile-switch without it; mainline once Home auto-opens.
+- **Gate evidence:** the page RENDERED with live data — screenshot of desktop Home (fresh-collection abstain state and/or seed-deck split rows), not just a green build. (Process rule from the audit: UI gates require visual proof.)
+
 ## Coordination note
 `ts/` + `qt/aqt` shell = **Cursor's lane**; engine/Android/AAR = **Claude's lane**. Only one branch can be checked out in the shared `repos/anki` tree — sequence so Cursor and Claude are not editing/building `repos/anki` simultaneously.
