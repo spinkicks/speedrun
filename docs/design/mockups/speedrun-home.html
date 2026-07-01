@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!-- Speedrun Home — design mockup (not production). Flat, sharp, terminal/quant.
+     Faithful token preview for brainstorm approval. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speedrun — Home (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0B0E12;
+    --panel: #12161C;
+    --line: #232A33;
+    --fg: #E6EAEF;
+    --muted: #7C8794;
+    --pace: #E8B23A;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --disp: "Space Grotesk", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--ink); color: var(--fg); font-family: var(--disp); }
+  body { padding: 0; -webkit-font-smoothing: antialiased; }
+  .app { max-width: 960px; margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+
+  /* run header */
+  header { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 28px 18px; border-bottom: 1px solid var(--line); }
+  .wordmark { font-weight: 700; font-size: 22px; letter-spacing: 0.14em; }
+  .wordmark .k { color: var(--pace); }
+  .subtitle { font-family: var(--mono); font-size: 11px; letter-spacing: 0.28em; color: var(--muted); margin-top: 6px; text-transform: uppercase; }
+  .status { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; color: var(--muted); text-align: right; text-transform: uppercase; }
+  .status .live { color: var(--pace); }
+  .status .dot { display: inline-block; width: 7px; height: 7px; background: var(--pace); margin-right: 6px; vertical-align: middle; }
+
+  /* stat row */
+  .stats { display: flex; border-bottom: 1px solid var(--line); }
+  .stat { flex: 1; padding: 16px 28px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: none; }
+  .stat .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.24em; color: var(--muted); text-transform: uppercase; }
+  .stat .val { font-family: var(--mono); font-size: 26px; font-weight: 500; margin-top: 8px; letter-spacing: 0.02em; }
+  .stat .val small { color: var(--muted); font-size: 14px; }
+  .meter { height: 6px; background: #0a0d11; border: 1px solid var(--line); margin-top: 10px; position: relative; }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--fg); }
+  .meter.pace i { background: var(--pace); }
+
+  /* splits */
+  .splits-hd { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 28px 10px; }
+  .splits-hd h2 { font-family: var(--mono); font-size: 12px; letter-spacing: 0.28em; color: var(--fg); text-transform: uppercase; font-weight: 600; }
+  .sort { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; }
+  .seg td { padding: 16px 28px 6px; border-top: 1px solid var(--line); }
+  .seg .num { font-family: var(--mono); color: var(--pace); font-size: 12px; letter-spacing: 0.1em; }
+  .seg .name { font-family: var(--disp); font-weight: 700; font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .seg .wt { font-family: var(--mono); color: var(--muted); font-size: 11px; float: right; letter-spacing: 0.08em; }
+  tr.row td { padding: 7px 28px; font-family: var(--mono); font-size: 13px; border: none; vertical-align: middle; }
+  tr.row + tr.row td { padding-top: 3px; }
+  .c-topic { color: var(--fg); width: 200px; letter-spacing: 0.02em; }
+  .c-recall { color: var(--fg); width: 60px; text-align: right; }
+  .c-band { width: 300px; }
+  .c-range { color: var(--muted); width: 92px; text-align: right; }
+  .c-flag { width: 40px; text-align: center; color: var(--pace); }
+
+  /* the signature: inline error-bracket band */
+  .band { display: flex; align-items: center; gap: 0; font-family: var(--mono); color: var(--muted); }
+  .band .track { position: relative; height: 14px; flex: 1; margin: 0 6px; }
+  .band .axis { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--line); }
+  .band .br { position: absolute; top: 2px; bottom: 2px; border-left: 2px solid var(--fg); border-right: 2px solid var(--fg); }
+  .band .br::before { content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 3px; transform: translateY(-50%); background: var(--fg); opacity: 0.28; }
+  .band .pt { position: absolute; top: -1px; width: 2px; height: 16px; background: var(--pace); }
+  .band .cap { color: var(--muted); font-size: 12px; }
+
+  tr.abstain td { color: var(--muted); }
+  tr.abstain .c-topic { color: var(--muted); }
+  .locked { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+  .locked b { color: var(--pace); font-weight: 500; }
+
+  /* action bar */
+  .action { display: flex; align-items: center; gap: 20px; padding: 22px 28px; border-top: 1px solid var(--line); margin-top: 8px; }
+  .run { font-family: var(--mono); font-weight: 600; font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; background: var(--pace); color: var(--ink); border: none; padding: 14px 26px; cursor: pointer; }
+  .run:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  .next { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .next b { color: var(--fg); font-weight: 500; }
+  .foot { padding: 14px 28px 26px; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; border-top: 1px solid var(--line); text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="wordmark">SPEED<span class="k">RUN</span></div>
+        <div class="subtitle">GRE Mathematics · Subject Test</div>
+      </div>
+      <div class="status"><span class="dot"></span><span class="live">RUN ACTIVE</span><br />SESSION 04 · PB PACE</div>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Coverage</div>
+        <div class="val">32<small>/40 topics</small></div>
+        <div class="meter"><i style="width:80%"></i></div>
+      </div>
+      <div class="stat">
+        <div class="label">Memory · verified</div>
+        <div class="val">11<small>/32 timed</small></div>
+        <div class="meter"><i style="width:34%"></i></div>
+      </div>
+      <div class="stat">
+        <div class="label">Readiness · pace</div>
+        <div class="val" style="color:var(--muted)">— <small>abstains</small></div>
+        <div class="meter pace"><i style="width:0%"></i></div>
+      </div>
+    </div>
+
+    <div class="splits-hd">
+      <h2>Splits</h2>
+      <div class="sort">SORT ▾ WEIGHT</div>
+    </div>
+
+    <table>
+      <tbody>
+        <tr class="seg"><td colspan="5"><span class="num">01</span> &nbsp; <span class="name">Calculus</span> <span class="wt">ETS WEIGHT 50%</span></td></tr>
+        <tr class="row">
+          <td class="c-topic">limits</td>
+          <td class="c-recall">72%</td>
+          <td class="c-band"><div class="band"><span class="cap">0</span><div class="track"><div class="axis"></div><div class="br" style="left:58%;right:19%"></div><div class="pt" style="left:72%"></div></div><span class="cap">100</span></div></td>
+          <td class="c-range">58–81%</td>
+          <td class="c-flag">✓</td>
+        </tr>
+        <tr class="row">
+          <td class="c-topic">integrals</td>
+          <td class="c-recall">64%</td>
+          <td class="c-band"><div class="band"><span class="cap">0</span><div class="track"><div class="axis"></div><div class="br" style="left:41%;right:23%"></div><div class="pt" style="left:64%"></div></div><span class="cap">100</span></div></td>
+          <td class="c-range">41–77%</td>
+          <td class="c-flag">✓</td>
+        </tr>
+        <tr class="row abstain">
+          <td class="c-topic">derivatives</td>
+          <td class="c-recall">—</td>
+          <td class="c-band" colspan="2"><span class="locked">NOT TIMED — review <b>12 more</b> to unlock a split</span></td>
+          <td class="c-flag">▮</td>
+        </tr>
+
+        <tr class="seg"><td colspan="5"><span class="num">02</span> &nbsp; <span class="name">Linear Algebra</span> <span class="wt">ETS WEIGHT 25%</span></td></tr>
+        <tr class="row">
+          <td class="c-topic">eigenvalues</td>
+          <td class="c-recall">81%</td>
+          <td class="c-band"><div class="band"><span class="cap">0</span><div class="track"><div class="axis"></div><div class="br" style="left:69%;right:9%"></div><div class="pt" style="left:81%"></div></div><span class="cap">100</span></div></td>
+          <td class="c-range">69–91%</td>
+          <td class="c-flag">✓</td>
+        </tr>
+        <tr class="row abstain">
+          <td class="c-topic">vector spaces</td>
+          <td class="c-recall">—</td>
+          <td class="c-band" colspan="2"><span class="locked">NOT TIMED — review <b>20 more</b> to unlock a split</span></td>
+          <td class="c-flag">▮</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="action">
+      <button class="run">► START RUN</button>
+      <div class="next">NEXT SEGMENT · <b>derivatives</b> — weakest timed topic</div>
+    </div>
+
+    <div class="foot">Speedrun measures what you can recall — not a guessed score. Ranges are 95% intervals; untimed segments abstain by design.</div>
+  </div>
+</body>
+</html>
