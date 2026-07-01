@@ -21,6 +21,19 @@ Everything we deliberately deferred, so nothing gets lost. Grouped by when it na
 - **LangGraph adoption** for the AI service (manager's graph+agents vision): hierarchical spawn → managed agents; install `langchain-ai/langchain-skills` (`langgraph-fundamentals`, `langchain-rag`, `langgraph-human-in-the-loop`, `deep-agents-core`) via `npx skills` when the Friday AI service starts.
 - **Context-engineering** (see `docs/CONTEXT-ENGINEERING.md`): dogfood the tips now; optionally install `addyosmani/agent-skills --skill context-engineering` if agent output starts drifting. Make "context-as-graph" explicit inside the LangGraph work (bounded context per node + checkpointer state).
 
+## Product frontend / UX revamp — OWNER PRIORITY ("our own app on Anki's skeleton")
+**Vision (David, 2026-07-01):** Speedrun is its OWN product. `rslib` (the Rust engine) is the skeleton/backend; the **frontend & UX should be ours**, not Anki's default reviewer / deck-picker / Tools-menu / theming. Today's build is intentionally additive ("Anki + our pages"), which was correct for the Wed goal (prove one-engine/two-apps + honest dashboard, NO AI) but is NOT the product. This is a real gap between the current plans and the product vision — captured honestly here.
+
+**Foundation already in place:** the wed-plus `speedrun-memory` dashboard is our first custom shared-Svelte surface rendered in a webview on BOTH platforms via the RPC bridge. The revamp EXTENDS this pattern; it is not a rewrite.
+
+**Approach (highest-leverage first):**
+1. **Maximize the shared custom Svelte surface** — build our own home / study-session / scores routes as SvelteKit pages both platforms render in webviews (one implementation → both apps). Cheapest way to a "custom app" feel.
+2. **Branding + theming** — our typography, color system, logo; replace/hide Anki's default chrome.
+3. **Per-platform shell trimming (do last, heavier):** desktop opens our home instead of the deck picker + trimmed Qt menus; Android custom launch activity + theme (native Kotlin — heaviest).
+4. **Engine invariants untouched** — pure presentation/navigation; `transact`/proto/`OpChanges` unchanged.
+
+**Sequencing:** dedicated workstream AFTER the core rubric items (Fri AI+3 scores+sync; Sun evals/ablation), since those dominate the grade and carry more risk. Rubric "useful product & clean UX" is only 8%, but this is the owner's product bar. First step when we reach it: a design spec (`docs/design/app-shell-spec.md`) — same discipline as `memory-dashboard-spec.md` — then implement the shared surface. Do NOT derail the Wed two-platform proof or Fri scoring to start this early.
+
 ## Architecture / cleanup (do-it-right refactors)
 - **Relocate content toolchain** `repos/anki/speedrun/` → the umbrella `speedrun` repo, where root `AGENTS.md` says the content pipeline belongs (permanently removes the .venv/minilints class of problem). Deferred because A0–A2 already committed it in the fork.
 - **arm64-v8a Android support** — add the target to the cargo-ndk AAR build for *physical* devices (currently x86_64-only for the emulator; fine for demo).
