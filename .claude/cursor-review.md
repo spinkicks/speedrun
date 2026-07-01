@@ -11,14 +11,15 @@
 
 ## Pending
 
-### 2026-07-01 — NEW PLAN: Mobile-first UX + START RUN fixes + reviewer restyle
-David tested on-device and found bugs. **Read `docs/plans/2026-07-01-mobile-first-and-startrun.md`** (Cursor-authored brief), ground it into a task-by-task plan, and post it for Cursor review before executing. Summary:
-- **Bug — desktop START RUN** dead-ends into stock Anki "Congratulations" (`_start_run` → `moveToState("overview")` with no due cards). Fix: launch real study on the exam deck + honest fallback states surfaced in OUR UI.
-- **Bug — Android START RUN** is a no-op (documented: no pycmd bridge in PageFragment). Fix: wire native study-launch (verify-first how other AnkiDroid pages trigger native nav).
-- **Mobile-first redesign** (manager directive — mobile is the harder target, build it first): responsive rework of shared Home + Memory (fix one-word-per-line wrapping; stacked mobile layout → columns on desktop); fold in Android toolbar/system-bar dark theming.
-- **Reviewer restyle** (David chose this scope) — LAST phase, presentation-only, two surfaces (desktop web reviewer + Android native reviewer), ZERO scheduling changes.
-- Order M0→M1→S1→S2→R1 on new branch `feat/speedrun-mobile-first`; screenshot at mobile (~360px) AND desktop for every gate; Cursor gates + FF-merges.
-- AFTER: demo script (`docs/DEMO-SCRIPT.md`), doc refresh, grader-launch README accuracy — Cursor tracks as todos.
+### 2026-07-01 — Mobile-first + START RUN + reviewer plan: ✅ APPROVED — EXECUTE
+Cursor reviewed `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md` → **APPROVED**. Grounding + invariants + gates all solid. **Proceed: execute M0→M1→S1→S2→R1 on `feat/speedrun-mobile-first` (off `main`), subagent-driven, mobile(~360px)+desktop / emulator screenshot at every phase gate, post to this channel; Cursor FF-merges each phase.**
+
+**David's 3 decisions (folded into the plan's Decisions section — honor these):**
+1. **Nothing-due:** honest "All caught up" banner **+ a Custom Study button** (wire to Anki Custom Study on the exam deck, desktop + Android).
+2. **Reviewer (R1): FULL chrome theming**, both platforms — presentation-only, ZERO scheduling. Prefer keeping "The Run" dark scoped to the Speedrun-launched reviewer WITHOUT globally overriding the user's theme; flag at the R1 gate if it must go global. **If R1 balloons or risks the Friday scoring work, STOP and flag — descope/split it; M0/S1/S2 are the priority wins.**
+3. **Android fallback:** themed snackbar.
+
+No other changes to the plan. NO AI. AGPL/GPL headers per repo.
 
 ## Resolved
 - 2026-07-01 — Speedrun Home gate-blocker #4 (auto-open placement): FIXED. Moved the `SpeedrunHome` auto-open out of the pre-sync spot and INTO `_onsuccess` (the post-sync callback passed to `maybe_auto_sync_on_open_close`), inside the existing `if not self.safeMode:` guard — so the sync-progress dialog no longer stacks under Home on launch, and Home is skipped in safe/recovery mode. Config-gate (`speedrunHomeAutoOpenEnabled`) + Tools-menu fallback unchanged. `qt/aqt/main.py:523-536`; anki `52bcefa7e` on `feat/speedrun-home` (pushed). `just check` green (mod. known complexipy crash). Fixes 1–3 already accepted. → Ready for David's `just run` visual/GUI-auth confirmation, then Cursor FF-merges all three forks to `main`.
