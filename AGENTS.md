@@ -12,6 +12,7 @@ The external AI/RAG service lives OUTSIDE all native libs — never import it in
 ## Tooling split (updated 2026-07-01)
 - Claude Code = the builder: Rust engine, cross-repo Android build, AND the Svelte/TS + Qt frontend (owner call; keeps one subagent-driven build loop). TDD enforcement.
 - Cursor = mission control: design specs, phase-gate reviews, umbrella docs, git merges/consolidation, monitoring. Avoids concurrent writes in `repos/*` while Claude builds.
+- **Cross-agent channels:** Claude→Cursor via `.claude/watch.log` (Stop-hook digests Cursor tails); Cursor→Claude via `.claude/cursor-review.md` (gate feedback Claude reads at each gate). Both umbrella-only.
 
 ## Hard invariants (DO NOT VIOLATE)
 - Every mutating backend op MUST go through `Collection::transact(Op::X, |col| {…})` returning `OpChanges`. Never write the DB directly; never `transact_no_undo` for user-facing mutations. (rslib/src/ops.rs, collection/transact.rs, undo/)
