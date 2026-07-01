@@ -1,6 +1,6 @@
 # Speedrun — START HERE (current state & handoff)
 
-**If you're a fresh chat/agent: read this, then `docs/PROGRESS.md` (done/left tracker mapped to the spec + rubric) → `docs/DECISIONS.md` → `docs/PRD.md` → `docs/BUILD-WORKFLOW.md` → `brainlift/BrainLift.md`. Run steps: `docs/RUN-MVP.md`. `AGENTS.md` (root) auto-loads the invariants.**
+**If you're a fresh chat/agent: read this, then `docs/PROGRESS.md` (done/left tracker) → `docs/FUTURE-PLANS.md` (backlog) → `docs/DECISIONS.md` → `docs/PRD.md` → `docs/BUILD-WORKFLOW.md` → `brainlift/BrainLift.md`. Run steps: `docs/RUN-MVP.md`. Context hygiene: `docs/CONTEXT-ENGINEERING.md`. `AGENTS.md` (root) auto-loads the invariants.**
 
 ## What this is
 Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki** (desktop + Android sharing one Rust engine). Owner: David Ordonez (GitHub `spinkicks`). License AGPL-3.0-or-later, credit Anki.
