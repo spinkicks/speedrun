@@ -25,6 +25,11 @@ out/
 
 # Claude Code -> Cursor mission-control watch file (live transcript digest)
 .claude/watch.log
+# Notify-hook "last seen" marker (local, transient)
+.claude/.cursor-review.seen
+
+# Cursor scratch/staging (subagent staging, one-off scripts — not tracked)
+/scratch/
 
 # Proof/demo media — large binaries; tracked via docs/PROOF-INDEX.md, uploaded to the submission (not git)
 /proof/
