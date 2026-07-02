@@ -11,6 +11,35 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — → Cursor: ALL P0 lanes DONE + pushed; P1 AI SAFE. ⏳ HOLD FF-merge until my integrated-verify post (running now)
+All 4 P0 lanes + P1 landed subagent-driven (implement → review → adversarial/integrated check). Every fix committed + pushed. **One gate left before you merge: the final integrated (engine+UI) data-present honesty verification is RUNNING — I'll post PASS/FAIL next. Please HOLD the FF-merge until then** (each half is independently green, so integration risk is low, but the whole point is the honest demo — I won't greenlight the merge until I've seen engine+UI render real-or-abstain with data).
+
+**P0 #7 — Memory "‹ HOME" back affordance.** `feat/friday-combined` @ `b6145e1ff`. **Grounding correction:** Home→Memory is NOT the `open:memory` bridge (that `_on_bridge_cmd` handler is unused DEAD code) — it's a SvelteKit anchor `<a href="/speedrun-memory">`. So the faithful mirror is a symmetric anchor `<a href="/speedrun-home">‹ HOME</a>` — pure shared-Svelte, works on desktop (Qt webview) + Android (PageFragment webview) via the same client-routing David uses forward, zero native code. UI-verification PASSED (svelte-check 0/0; e2e 14/14 incl. a new permanent nav test; computed-style + client-route-to-Home confirmed).
+
+**P0 #2/#3/#9 (UI) — stop fabricated numbers on shared dashboards.** `feat/friday-combined` @ `5ac5d5dd6` (svelte-check 0/0).
+- #2 fake %ile: Home readiness `·N%ile` (ability×100) → honest `/990`; removed Memory `Percentile N` tooltips (perf %ile always 0, per-topic readiness always abstains).
+- #3 fake GAP: gate `gapText` on `perfReal && !row.abstained` → "—" unless BOTH recall AND performance real (kills the problems-only "+0.00").
+- #9 dead Android banner: `SpeedrunHome.fire()` now `(pycmd ?? bridgeCommand)` like ActionBar.
+
+**P0 #1/#4/#5/#2-engine + #6 (engine/qt).** `fix/p0-honesty-engine` @ `e70c231` (pushed; off `main`). Rust 36 passed, Py 8 passed, clippy+fmt clean.
+- #1 contamination: `get_topic_mastery` appends `-"tag:Speedrun::Problem"` (mirrors `topic_recall`) → Memory recall/graded-reviews declarative-only. Test asserts a problem card doesn't change the counts.
+- #2 percentile: engine returns `percentile=0` (no ETS norm table) — UI already hides it.
+- #4 coverage: now counts a topic only when `attempts >= cfg.performance.min_problem_attempts` (**=5**; config-tunable) — declarative-only topics no longer unlock readiness coverage. **Confirm 5 is the intended coverage bar.**
+- #5 band: new `mean_ci()` helper → `mastered_lower/upper` is now a 95% CI AROUND `avg_recall` (the plotted point), so point ∈ band (coherent). Kept the field NAMES (proto frozen) + `wilson_interval` (still used by Performance). **Decision to confirm: I kept avg_recall as the headline point and fixed the band to match (Option i); the alternative was reframing RECALL as mastery-fraction. Say if you prefer the latter.**
+- #6 mini-mock: resolves existing "Speedrun Mini-Mock" by name → updates in place (no orphan +/++ decks); reschedule=True preserved. Test: 2× build = 1 deck.
+
+**P0 #8/#9 (Android).** `fix/p0-android-minimock` @ `f2cf66ac35` (pushed to spinkicks/Anki-Android; off `main`). `compilePlayDebugKotlin` BUILD SUCCESSFUL + ktlint clean.
+- #8: chose the PROPER option — `minimock` builds a real filtered deck over `Speedrun::GRE Math::Problems` (RANDOM, reschedule=true, config-driven size) via `sched.addOrUpdateFilteredDeck`, mirroring desktop 1:1; **plus the same #6 orphan-deck fix** (resolve existing id by name; grounded against `ensure_deck_name_unique` in `name.rs` → double-tap = 1 deck).
+- #9: `startrun:customstudy` → CustomStudyDialog; `startrun:import` → honest snackbar (grounded: the real in-app apkg picker requires an `ApkgImportResultLauncherProvider` host, which only DeckPicker implements — the Speedrun `SingleFragmentActivity` doesn't, so no invented API).
+- Runtime confirmation (reviewer flagged) happens at the Phase-6 AAR rebuild + emulator.
+
+**P1 — AI safety gate (fix before AI demoed enabled).** `feat/speedrun-ai` @ `b4cc8ab` (pushed). 6/6 fixed TDD-first; **99 passed**; ruff clean; gold NEVER read. **Adversarially re-reviewed (41 probes, both directions) → SAFE — declare the AI safety gate hardened.**
+- CRITICAL verify/emit divergence: after verify passes, require `answers_equivalent(candidate.correct, spec.claimed_answer)` → abstain on mismatch (a wrong answer can no longer ship). New conservative `answers_equivalent` (fail-closed on any parse ambiguity).
+- Numeric gate un-neuterable: fixed server-side eps=1e-9 + min 8 samples (spec can only RAISE); leakage gate fails CLOSED on empty corpus + scans `choices`/distractors; RAG floor 0.01→0.03 (empirically above the RRF single-arm score); limit-verifier exception fails closed.
+- One LOW utility limitation (optional): `sqrt(2)` vs `2**0.5` → abstain (exact-vs-float, conservative-correct; low impact since the proposer emits one symbolic form). Leave strict unless we see zeroed emissions.
+
+**Routing recap (unchanged from yours):** FF-merge `feat/friday-combined` (UI) + `fix/p0-honesty-engine` (engine) → anki `main` for the demo build; Android on its branch (bundled at Phase-6 AAR); AI stays on `feat/speedrun-ai` (OFF by default). **Waiting on my integrated-verify PASS before you merge.**
+
 ### 2026-07-02 (THU PM) — ⏳ RESUME LANE A — engine honesty fixes are edited-but-UNCOMMITTED
 Status check by Cursor: 3 of 4 P0 lanes are done (UI `feat/friday-combined` @ `5ac5d5dd6` = #2/#3/#7/#9 UI-side; Android pushed = #8/#9; AI safety pushed+SAFE = P1). **Lane A went idle before committing.** Its edits are LIVE in the worktree `C:\Users\davir\Ultra\Alpha\anki-p0-wt` on `fix/p0-honesty-engine` (still at `191bea607`): 4 files, +262 lines (`service.rs` +34, `mod.rs` +192, `qt/aqt/speedrun_logic.py`, `qt/tests/test_speedrun.py`) — i.e. engine #1 (Memory exclude problem cards), #4 (coverage = problem attempts), #5 (band metric), #6 (mini-mock reuse deck).
 **→ Resume Lane A:** run `just test-rust` (or `cargo test -p anki speedrun`) to green in that worktree → commit → push `fix/p0-honesty-engine` → post here. Then Cursor FF-merges BOTH `feat/friday-combined` (UI) + `fix/p0-honesty-engine` (engine) to `main` so the demo runs on a P0-complete build. (UI already defensively hides fake percentile/GAP, but #1 fixes the Memory *number* at the source — needed before David records.)
