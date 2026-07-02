@@ -1,41 +1,75 @@
 # Speedrun
 
-A desktop + mobile study app built on **Anki**, focused on a single graduate-level exam: the **GRE Mathematics Subject Test**.
+A desktop + Android study app built **on Anki**, focused on one graduate exam: the **GRE Mathematics Subject Test**.
 
-> One exam. Two apps on one engine. A real Rust engine change. Honest scores (memory, performance, readiness) — each with a range, each able to refuse to answer when it lacks data.
+> One exam. Two apps on one Rust engine. A real engine change. Honest scores that show a **range** and **refuse to answer** when they lack data.
 
-Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitects/anki). Some upstream components are BSD-3-Clause.
+Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitects/anki). Some upstream components are BSD-3-Clause; the Android app is GPL-3.0.
 
-## Why the GRE Mathematics Subject Test
-This exam is the strongest fit for the project's thesis (memory ≠ performance ≠ readiness) *and* for being innovative:
-- **An almost empty tool market** — no adaptive tool, no calibrated readiness predictor, and no knowledge-graph product exists for it.
-- **A real prerequisite structure** — calculus is 50% of the exam *and* the prerequisite for much of the other 50% (real analysis, complex variables, ODEs), so a dependency-graph engine is genuinely valuable.
-- **Native learning-science evidence** — the foundational interleaving study (Rohrer & Taylor 2007) is literally about shuffling *mathematics* problems.
-- **Objective answers** — math problems have verifiable answers and worked solutions, making AI-card checking and gold sets clean.
-- Official ETS content weights (Calculus 50% / Algebra 25% / Additional Topics 25%) give a defensible coverage map; scale is 200–990 (median ≈ 680 = 50th percentile).
+---
 
-We build *on top of* Anki the way Blazing Audio built on Brilliant: Anki/FSRS is the proven spaced-repetition memory chassis; we add a practice-problem engine, a prerequisite knowledge graph, and an honest, abstaining readiness model.
+## Status (2026-07-01 — working MVP, both platforms, NO AI yet)
+Both apps build, run, and review the same GRE deck on **one shared Rust engine**. See `docs/WHAT-WE-BUILT.md` for the honest, per-item real / scaffolding / planned breakdown, and `docs/CHANGELOG-2026-07-01.md` for the full change log.
+
+**Real today:**
+- Forked Anki building from source; **one engine, two apps** (desktop + Android emulator), proven by an instrumentation test (identical backend version).
+- A real **Rust engine change** on `SpeedrunService`: read-only RPCs (`GetCoverage`, `GetTopicMastery`, `GetExamProfile`) + one **mutating, undo-safe** RPC (`ReorderNewByPointsAtStake`, via `transact(Op::SortCards)`) + a non-AI scaffolding RPC. ~15 Rust tests + Python integration.
+- **Honest Memory score:** per-topic recall from FSRS retrievability → Wilson 95% interval + **abstention** below a data threshold ("review N more to unlock"). No fake numbers.
+- **Speedrun Home + Memory dashboard** — our own branded, mobile-first, dark UI (one shared SvelteKit surface rendered on both platforms). START RUN launches a real review session.
+- Self-hosted **sync** + a §7b two-way conflict test; **network-independent installer** (clean-machine build).
+- 35-card GRE calc+LA seed deck + exam-profile coverage map.
+
+**Not built yet (Friday/Sunday — do NOT assume these work):** Performance & Readiness scores (currently abstain-only scaffolding), calibration, weakness-driven *review-queue* scheduling, the AI problem-generation service, and the 3-build ablation. Anki's FSRS is the memory engine — we build **on** it, unchanged.
+
+---
+
+## How to run (for graders / reviewers)
+
+**Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
+
+### Desktop — easiest: the installer
+A packaged Windows installer (`.msi`) is produced by the build (network-independent). Install it on any Windows machine and launch **Speedrun** — it opens into Speedrun Home. (Build it with `uv run python qt/tools/build_installer.py --version "$(cat .version)" build` then `… package` in `repos/anki`; artifact under `repos/anki/out/`.)
+
+### Desktop — from source
+```powershell
+cd repos/anki
+git checkout main
+just run              # builds + launches; Speedrun Home auto-opens
+```
+Then **File → Import** `repos/anki/speedrun/out/gre_math_seed.apkg`, and click **► START RUN** to review. Tools → **Speedrun: Memory** for the dashboard. Run tests: `cargo test -p anki speedrun::` and `just check`.
+
+### Android — emulator (x86_64)
+```powershell
+# 1. Build the engine AAR from our rslib:
+cd repos/Anki-Android-Backend
+git checkout main
+git submodule update --init --recursive
+cargo run -p build_rust            # -> rsdroid AAR (bundles the shared pages)
+# 2. Launch the Pixel_10 x86_64 emulator, then:
+cd ../anki-android
+git checkout main                  # local.properties has local_backend=true
+.\gradlew :AnkiDroid:installPlayDebug
+```
+Open **AnkiDroid** → ⋮ → **Speedrun: Home**. To review: `adb push speedrun/out/gre_math_seed.apkg /sdcard/Download/`, import it in AnkiDroid, then **START RUN**.
+
+Self-hosted sync demo: `docs/SYNC-SELFHOST.md`.
+
+---
 
 ## Architecture: two apps, one engine
-- **Desktop + shared engine:** `repos/anki` — fork of [`ankitects/anki`](https://github.com/ankitects/anki).
-  The Rust backend (`rslib/`) is where our engine change lives; the desktop uses it directly.
-- **Phone companion:** `repos/anki-android` — built on [`ankidroid/Anki-Android`](https://github.com/ankidroid/Anki-Android),
-  which consumes Anki's Rust backend via `rsdroid`. Our Rust change ships to the phone through the same backend.
-
-## Headline features
-- **Prerequisite-aware *sequencing* / points-at-stake (the Rust change):** order reviews by topic centrality (graph leverage) × student weakness, plus topic-aware interleaving — implemented in the Rust scheduler queue. The graph drives study *order*; the score itself is a weighted sum, not a gate.
-- **Interleaving (learning-science feature):** trains *technique selection*, the core skill of a mixed 66-problem exam (math-native RCT evidence, d≈0.83). Validated with the 3-build ablation (feature on / off / plain Anki).
-- **Memory→performance bridge:** worked-examples-led practice-problem engine that tests whether a remembered technique transfers to a novel problem.
-- **Honest, abstaining readiness:** a calibrated flat IRT/mastery projection on 200–990 with a conformal range that widens on sparse data and a give-up rule. A prerequisite-graph readiness model is a v2 experiment that must beat the flat baseline before adoption.
+- **Desktop + shared engine:** `repos/anki` — fork of [`ankitects/anki`](https://github.com/ankitects/anki). The engine change lives in `rslib/src/speedrun/`; desktop UI in `ts/routes/speedrun-*` (Svelte) + `qt/aqt/speedrun.py`.
+- **Phone:** `repos/anki-android` — fork of [`ankidroid/Anki-Android`](https://github.com/ankidroid/Anki-Android); renders the same shared Svelte pages via `PageFragment`.
+- **Engine → Android bridge:** `repos/Anki-Android-Backend` — fork of `rsdroid`; cross-compiles `rslib` into the JNI AAR (with `local_backend=true`).
+- The external AI/RAG service (Friday) lives **outside** all native libs.
 
 ## Repository layout
 ```
 Speedrun/
-├── brainlift/     # The BrainLift (planning, SpikyPOVs, knowledge tree, evidence base)
-├── docs/          # Architecture notes, model descriptions, exam coverage map
-├── research/      # Raw research notes and source captures
-└── repos/         # Upstream clones (anki, anki-android) — not tracked by this repo
+├── brainlift/     # BrainLift (thesis, SpikyPOVs, evidence base)
+├── docs/          # PRD, architecture, run guide, changelog, honest "what we built", plans
+├── research/      # Research notes and source captures
+└── repos/         # Forks: anki, anki-android, Anki-Android-Backend (not tracked here)
 ```
 
-## Status
-Planning phase: BrainLift complete; app implementation not yet started.
+## Key docs
+`docs/RUN-MVP.md` (run steps) · `docs/WHAT-WE-BUILT.md` (honest status) · `docs/CHANGELOG-2026-07-01.md` · `docs/PRD.md` · `docs/DEMO-VIDEO-SCRIPT.md` · `brainlift/BrainLift.md`.
