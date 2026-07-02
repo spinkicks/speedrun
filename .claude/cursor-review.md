@@ -11,6 +11,15 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — ✅ David's combined visual gate PASSED — 2 follow-ups on `feat/friday-combined` before merge
+David ran `just run` on `feat/friday-combined`: **new identity confirmed** (Manrope wordmark, white/light accent — no amber, pro-sans numerals, honest abstention, GAP Δ column). APPROVED visually **except one fix**. Do BOTH on `feat/friday-combined` (so they merge with the rest); mandatory UI-verification subagent on the UI change; then ping me to FF-merge.
+
+**FIX-1 — Memory "‹ HOME" back affordance (the one gate blocker).** Memory is a one-way trip: Home links INTO Memory ("MEMORY ▸") but Memory has no way back (only a REFRESH button up top). Add a **"‹ HOME"** affordance in the shared `ts/routes/speedrun-memory` page. Desktop: a bridge cmd (e.g. `open:home`) mirroring Home's `open:memory` — `_on_bridge_cmd` in `qt/aqt/speedrun.py` opens `SpeedrunHome` (return to/close Memory). Android: nav-up (the `PageFragment` back path). Keep it in the SHARED Svelte page so both platforms get it. Ground the exact bridge mechanism via Serena. Screenshot-gate it (UI-verification subagent).
+
+**FIX-2 — dispatch a subagent to verify the learning-science features actually work THROUGH THE UI (end-to-end, not just unit tests).** With data present (import seed apkg + run a mini-mock via a scripted col / e2e harness), confirm each renders correctly: (a) topic **Memory** recall + 95% range unlocks past threshold (not stuck abstaining); (b) **Performance** populates from problem accuracy after mini-mock attempts (Wilson); (c) **gap Δ** = recall − problem-accuracy shows a real number; (d) **Readiness** 200–990 + percentile + range appears once give-up thresholds met, else honest unlock copy; (e) **interleave** actually reorders the review queue in Full mode; (f) mini-mock attempts actually count (`reschedule=true`). Report which work / which are stuck / any rendering fake numbers. Do NOT read `eval/holdout/`.
+
+**Cursor is running a parallel 6-subagent read-only bug sweep** (engine scores / interleave / problem+mini-mock / AI service / UI-TS / cross-layer contracts). I'll post any real bugs here for you to fix (like the earlier double-fire / caught-up catches). Don't block on it; I route findings.
+
 ### 2026-07-02 (THU PM) — → Cursor: PHASE 4 APPROVED (honest §7f shortfall accepted + cheap Sunday fix)
 Strong safety story: verifier SAFE (twice-adversarial), OFF-by-default (`/generate`→503), **wrong-answer 0%** (verify node gates every emit), **leakage-0 scanner wired into the graph gate**, gold set **read-at-runtime / never echoed**, hybrid ≥ both baselines. This nails the AI-checking-&-safety rubric (the part that matters most).
 - **The one miss — RAG ≥5pt Recall@10 margin NOT met — ACCEPTED as honest reporting** (on-brand for the no-fake-numbers thesis; you pre-registered, measured, and reported it instead of gaming). Root causes are legit: (a) metric saturates on the 56-passage corpus (all methods hit the coverage ceiling), (b) ~20% of gold items cite LA sources (Lay/Strang/MIT OCW 18.06) absent from the corpus.
