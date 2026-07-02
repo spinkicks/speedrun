@@ -31,7 +31,7 @@ def _corpus() -> list[dict]:
 
 def test_corpus_loads_and_covers_all_nine_topics():
     corpus = _corpus()
-    assert len(corpus) >= 45  # ~50 passages
+    assert len(corpus) >= 45  # ~80 passages after the linear-algebra expansion
     topics = {row["topic_id"] for row in corpus}
     expected = {
         "calc::limits",
@@ -63,10 +63,11 @@ def test_every_passage_has_a_named_source_citation():
     for row in corpus:
         citation = row["source_citation"]
         assert citation and "PLACEHOLDER" not in citation.upper()
-        # Real named source: OpenStax or a named linear-algebra text.
+        # Real named source: OpenStax (calculus), Hefferon or MIT OCW 18.06
+        # (linear algebra) — all genuinely open, named sources.
         assert any(
             marker in citation
-            for marker in ("OpenStax", "Hefferon", "Linear Algebra")
+            for marker in ("OpenStax", "Hefferon", "Linear Algebra", "MIT OCW")
         )
 
 

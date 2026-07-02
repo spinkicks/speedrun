@@ -13,26 +13,35 @@ problem is **dropped**. This is the drop-if-unverifiable gate.
 
 | File | Purpose |
 | --- | --- |
-| `corpus/gre_math_sources.jsonl` | Vendored corpus of 56 source passages (JSONL). |
+| `corpus/gre_math_sources.jsonl` | Vendored corpus of 82 source passages (JSONL). |
 | `retriever.py` | `HybridRetriever` (BM25 + dense → RRF) + `ground()` adapter. |
 | `eval_inhouse.py` | In-house `(query, expected_id)` eval; Recall@k per arm. |
 
 ## Corpus provenance
 
-- **56 passages**, covering all 9 scored leaf topics (5–7 each):
+- **82 passages**, covering all 9 scored leaf topics:
   `calc::limits` (6), `calc::single_var::differentiation` (7),
   `calc::single_var::integration` (7), `calc::sequences_series` (7),
-  `calc::multivar` (7), `linear_algebra::vector_spaces` (6),
-  `linear_algebra::matrices` (5), `linear_algebra::eigen` (5),
-  `linear_algebra::linear_maps` (6).
+  `calc::multivar` (7), `linear_algebra::vector_spaces` (12),
+  `linear_algebra::matrices` (12), `linear_algebra::eigen` (11),
+  `linear_algebra::linear_maps` (13).
+- The four linear-algebra leaves were **broadened** (from 5–6 to 11–13 passages
+  each) on **domain grounds** — the §7f coverage diagnostic flagged that the
+  original corpus was missing canonical open LA sources. The 26 added passages
+  cover eigenvalues/eigenvectors/diagonalization, determinants/inverses/rank,
+  vector spaces/subspaces/basis/dimension, and linear maps/rank-nullity, split
+  between **Hefferon** (12) and **MIT OCW 18.06** (14). This expansion is
+  **topic-driven, not gold-driven**: no `eval/holdout/` content was ever read.
 - Each row: `{id, topic_id, title, text, source_citation}`. `text` is a faithful
   2–5 sentence summary of a real textbook section's key definitions / theorems /
   techniques.
 - **Citations are real named sections**, reusing the style of
   `repos/anki/speedrun/seed/cards_calc.yaml`:
-  **OpenStax Calculus Vol. 1/2/3** (CC BY 4.0) for calculus and
-  **Hefferon, *Linear Algebra*** (free license) for linear algebra. No citation
-  is fabricated or a placeholder — the corpus-integrity tests enforce this.
+  **OpenStax Calculus Vol. 1/2/3** (CC BY 4.0) for calculus,
+  **Hefferon, *Linear Algebra*** (free license, cited at chapter granularity),
+  and **MIT OCW 18.06 *Linear Algebra* (Strang)** (MIT OpenCourseWare open
+  license, cited at lecture granularity). No citation is fabricated or a
+  placeholder — the corpus-integrity tests enforce this.
 - Content is AI-authored (Friday permits it) but mathematically checked against
   the cited sources. It was **not** copied from `eval/holdout/` (the held-out
   gold set), which this stage never reads.
