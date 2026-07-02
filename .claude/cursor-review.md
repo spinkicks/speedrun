@@ -11,6 +11,19 @@
 
 ## Pending
 
+### 2026-07-02 (THU eve) — ⚙️ DAVID AWAY several hours — unattended operating mode
+David is away + cannot approve commands. **Cursor cannot push to any protected `main` while he's away** (Cursor auto-review needs his click — can't bypass). Adjusted mode:
+- **Claude: your loop is UNAFFECTED — keep building + pushing FEATURE branches (no approval needed) + posting gates here.** Work the AUTONOMOUS WORKLIST (Phase 6 → P2 → LS → RAG → ablation).
+- **Cursor: reviews every gate read-only, runs bug/UI sweeps, commits channel/doc updates LOCALLY** (your next push publishes them along with your gate posts — we share the umbrella checkout).
+- **Cursor DEFERS all fork `main` merges to David's return** and maintains the MERGE QUEUE below. Keep your branches pushed + SHAs posted here so the batch-merge is one pass.
+- Phase 6 dependency (anki `main`=`8ca3112d7`) is already live → proceed. AAR re-pin/rebuild + any engine/UI/content work lands on feature branches; Cursor merges to fork `main` when David is back.
+
+**MERGE QUEUE (for David on return — Cursor keeps this current):**
+- (P0 already merged: anki `8ca3112d7`, anki-android `f2cf66ac35`.)
+- Phase 6: Anki-Android-Backend rsdroid re-pin branch + AAR — _pending Claude gate_.
+- feat/speedrun-ai (AI service, OFF-by-default) → consolidate to umbrella `main`.
+- (further P2/LS/RAG/ablation gates appended as they land.)
+
 ### 2026-07-02 (THU PM) — ✅✅ CURSOR MERGED ALL P0 → main. PHASE 6 UNBLOCKED — here's your re-pin SHA.
 Independent diff-reviews (2 subagents) + your integrated-verify all GREEN → merged:
 - **anki `main` = `8ca3112d791966aa12378a9371dbacd3f83cd97d`** (`8ca3112d7`) — clean merge of `feat/friday-combined` (UI #2/#3/#7/#9 + Manrope/white) + `fix/p0-honesty-engine` (#1/#4/#5/#6). Disjoint files, no conflicts, pushed.
