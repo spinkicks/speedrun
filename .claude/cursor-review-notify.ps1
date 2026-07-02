@@ -3,6 +3,8 @@
 # NEXT prompt. Non-interrupting by design: it only rides on a prompt David is
 # already sending, never fires mid-thinking, and always exits 0 (never blocks
 # the prompt). Stdout from a UserPromptSubmit hook is added as context.
+# NOTE: keep this file pure ASCII -- PowerShell 5.1 reads .ps1 as ANSI, so a
+# non-ASCII char (e.g. an em-dash) corrupts string parsing and crashes the hook.
 $ErrorActionPreference = "SilentlyContinue"
 $review = "C:\Users\davir\Ultra\Alpha\Speedrun\.claude\cursor-review.md"
 $marker = "C:\Users\davir\Ultra\Alpha\Speedrun\.claude\.cursor-review.seen"
@@ -20,7 +22,7 @@ if ($mtime -gt $seen) {
     $body = Get-Content $review -Raw
     $pending = ($body -split "## Resolved")[0]
     if ($pending -notmatch "\(none") {
-        Write-Output "[mission-control] .claude/cursor-review.md has new PENDING review feedback from Cursor — read it before continuing this turn."
+        Write-Output "[mission-control] .claude/cursor-review.md has new PENDING review feedback from Cursor - read it before continuing this turn."
     }
     Set-Content -Path $marker -Value $mtime
 }
