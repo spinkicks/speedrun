@@ -52,6 +52,9 @@ Everything we deliberately deferred, so nothing gets lost. Grouped by when it na
 ## Product frontend / UX revamp — OWNER PRIORITY ("our own app on Anki's skeleton")
 **Vision (David, 2026-07-01):** Speedrun is its OWN product. `rslib` is the skeleton/backend; the frontend & UX are ours — not Anki's default reviewer / deck-picker / theming.
 **Status:** ACTIVE — pulled forward from "after Friday" by owner decision. Slice 1 (**Speedrun Home, "The Run"**) is in build today on `feat/speedrun-home` per the approved `docs/design/speedrun-home-spec.md` (flat/sharp/terminal aesthetic; splits with honest error-brackets; amber pace accent; auto-open on launch, config-gated).
+**Known UX gaps (small fixes):**
+- `[found recording 2026-07-01]` **Desktop Memory dashboard has no "back to Home"** — it opens as its own QDialog; Home links into Memory but not vice-versa (one-way). Add a "‹ HOME" affordance in the shared Memory page (bridge `open:home` on desktop / nav-up on Android). Low priority; not submission-blocking.
+
 **Remaining slices (design-first, one spec each):**
 1. **Nav shell** — persistent Speedrun navigation (Home / Study / Memory / Scores) across both platforms; Home links stop being one-off dialogs.
 2. **Reviewer restyle** — our card-review experience (the highest-touch, most invariant-sensitive surface; do after scores exist).

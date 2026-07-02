@@ -11,12 +11,45 @@
 
 ## Pending
 
+### 2026-07-01 — 🐞 UX gap (desktop): Memory dashboard has no "back to Home"
+David caught this while recording. Desktop Memory opens as its own `SpeedrunMemory` QDialog (`aqt.dialogs.open("SpeedrunMemory")`), so there's no in-page way back to Home — Home links INTO Memory ("MEMORY ▸" in `SpeedrunHome.svelte`) but Memory has no return path. One-way trip.
+**Fix (small, low priority — schedule with Friday UI or as a quick standalone):** add a "‹ HOME" / back affordance on the Memory page that returns to Home. Options: (a) a bridge cmd `open:home` mirroring Home's `open:memory` (desktop `_on_bridge_cmd` in `qt/aqt/speedrun.py` opens `SpeedrunHome`; Android nav back); or (b) simplest — since Memory is a separate desktop dialog, a "‹ HOME" link that closes Memory (returns focus to the still-open Home) + on Android navigates up. Keep it in the shared Svelte page so both platforms get it. Screenshot-gate. NOT blocking the Wednesday submission — desktop demo just uses Home's link into Memory, not back.
+
+### 2026-07-01 — 📋 FRIDAY PLAN READY FOR YOUR REVIEW (grounded, not executed)
+Per your note, I grounded `docs/plans/2026-07-03-friday-brief.md` into a full task-by-task TDD plan: **`docs/plans/2026-07-03-friday-ai-scores-sync.md`**. Grounding was a 6-agent read-only sweep of the actual source (queue builder, proto/scoring scaffolding, problem/seed layer, AI-service/eval surface, UI/sync, PRD-requirements map) — every file:line verified. **NOT executed — awaiting your review.**
+
+**Structure:** Phase 0 (verify the 2 unverified prereqs) → Phase 1 (due-card interleave) → Phase 2 (proto + scores) → Phase 3 (problem layer) → Phase 4 (AI service, parallel-safe) → Phase 5 (UI) → Phase 6 (AAR re-pin + sync demo). Maps 1:1 to brief Items 1–6.
+
+**Key grounded findings that shaped it:**
+- **Prereqs:** 4/5 carry-in fixes already merged; **#4 (get_topic_mastery N+1) and #5 (Full-mode determinism test) are NOT done** — Phase 0 does them first (bench/ablation are meaningless until then).
+- **Item 1 interleave is read-time / NO transact:** new `QueueBuilder::sort_review()` off `build()` (`builder/mod.rs:187`, mirrors `sort_new`), gated by `AblationMode` (which is NOT currently threaded into the builder — must plumb from synced config). The persisted new-card reposition already satisfies the mutating-op requirement.
+- **Proto stays frozen-compatible:** append-only fields (verified next-free numbers: `ScoreScaffold`=5, `TopicScaffold`=4, `PerformanceReadinessResponse`=4) + a new `ScoreScale` enum so Readiness 200–990 isn't misread as the 0–1 band.
+- **TS boundary bug spotted:** `ScaffoldCell` (`data.ts:87-89`) currently DROPS `point/lower/upper` (proto already delivers them) — that's why Perf/Readiness render "—". Phase 5 widens it.
+
+**4 design decisions I made (brief delegates them) — please confirm:**
+- **D1** Performance = **in-engine deterministic** (FSRS recall + observed problem accuracy + coverage; abstains), IRT difficulty fit **offline** and baked into Problem notes. Rationale: kill-switch-safe + deterministic for the ablation/rubric + honest. (Not a live service-side fit.)
+- **D2** Scores are **recomputed on read, not persisted** in a separate synced blob — deterministic-from-synced-inputs ⇒ byte-identical on both platforms without fighting Anki's whole-blob config sync. (Deviation from the brief's "persist in config blob" — flag if you want literal persistence for audit.)
+- **D3** **Extend** `GetPerformanceReadiness` (append-only), don't split into `GetPerformance`/`GetReadiness`.
+- **D4** Mini-mock = **Anki filtered deck** over `tag:Speedrun::Problem` (per-answer wall-clock already in `revlog.taken_millis` — zero engine change).
+
+**Open questions for David (block specific tasks; in the plan's final section):** (1) problem-bank floor per topic; (2) which LLM/API + key; (3) mini-mock length (recommend 10 @ 2.5 min/q); (4) gold-set authorship (you/Cursor write the 50 pairs in `eval/holdout/` — agents must not); (5) permanent `PROBLEM_MODEL_ID`. **Review the plan + these decisions; I'll revise or start Phase 0 on your go.**
+
 ### 2026-07-01 — Package the desktop installer (for the clean-machine recording)
 Mobile-first + START RUN all merged + David-verified on BOTH platforms (Android review session confirmed). Last Wednesday gap = the installer artifact. **Please build the packaged desktop installer** so David can run it in Windows Sandbox and record the clean-machine install:
 - From `repos/anki` on `main`: `uv run python qt/tools/build_installer.py --version "$(cat .version)" build` then the `… package` step → produce the real `.exe`/`.msi` and report its exact output path + size.
 - Confirm it builds with NO network submodule fetch (the Phase-0 vendoring should hold) and that `qt/tests/test_installer.py` still passes.
 - Windows installer only (`.dmg` is out of scope — decided; macOS-CI is the documented fallback). Report the artifact path when done; Cursor updates `WEDNESDAY-DELIVERABLES.md`.
 - Then you're clear to switch to grounding the **Friday brief** (`docs/plans/2026-07-03-friday-brief.md`) into a full plan for Cursor review (Thursday work — do whenever).
+
+**→ Claude 2026-07-01 — ✅ INSTALLER BUILT (offline) + test green. Artifact ready; one quality decision pending David.**
+- **Canonical build path used** (not the raw `build_installer.py` one-liner — that omits our fork wheels and would pull upstream Anki from PyPI): `tools\ninja installer:package`, which builds `:wheels:anki` + `:wheels:aqt` from our fork, runs briefcase `build`, then `package` (WiX → MSI). Built from `main` @ `af1138428`.
+- **Artifact:** `repos/anki/out/installer/dist/anki-26.05-win-x64.msi` — **636,633,982 bytes (~607 MiB)**. Valid MSI (OLE magic `d0cf11e0`). Built in 288s, 19 ninja tasks.
+- **Offline confirmed:** no submodule fetch, no template clone, no network. The Phase-C **vendoring held** — `qt/installer/windows-template` is now in-tree (empty `.gitmodules`, 19 files), not an uninitialized submodule; briefcase used the local cookiecutter template + the warm briefcase cache (support pkg / WiX / stub all present).
+- **`qt/tests/test_installer.py` → 27 passed** (incl. `test_build_and_package` + `test_compile_fails_loudly`, the two that previously failed on the `v0.4.2` template-clone). The known-CI installer failures are RESOLVED.
+- **✅ RELEASE=1 rebuild done (David's call).** Rebuilt with the Release profile (`out/env`=`;1;` → cargo `--release`, opt-level 3 → **optimized engine**), then packaged directly (as CI does — `build_installer.py package`, since the ninja `installer:package` target doesn't re-run package after a reconfigure) with `compression_level="high"`.
+  - **FINAL artifact:** `repos/anki/out/installer/dist/anki-26.05-win-x64.msi` — **627,602,302 bytes (~599 MiB)**, valid MSI (`d0cf11e0`), engine = release (opt-level 3), MSI compression = high. Offline; `test_installer.py` 27/27.
+  - **Size note (honest):** it only dropped ~9 MB vs the debug MSI, most of that from smaller release binaries — WiX LZX compresses the Qt6+Chromium payload poorly, so it stays ~599 MB (upstream Anki ships smaller via a different pipeline + stripped symbols). Fully functional for a Windows-Sandbox recording. Meaningfully shrinking it = a separate packaging task (strip symbols / prune Qt / stronger compression) — out of scope here; can do on request.
+- **This block can move to Resolved.** Next: Friday-brief grounding per your note.
 
 ### 2026-07-01 — ✅ RESOLVED (was GATE FAIL): S1 desktop START RUN false "all caught up"
 **Fixed (`f0a06ce68`) + David-verified 2026-07-01 20:35** — START RUN now launches a real review session (20 new cards due, dark reviewer confirmed on-screen). Fix used `col.sched.deck_due_tree(did)` + a characterization regression test. Merge to `main` pending only Claude's QA-sweep triage (bug-class hunt). Original report retained below.
