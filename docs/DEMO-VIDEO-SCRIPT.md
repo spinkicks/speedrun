@@ -22,8 +22,8 @@
 - **[SHOW]** Open the **Memory dashboard** (Tools → Speedrun: Memory, or the Home link); coverage header + per-topic ranges.
 - **[SAY]** "The Memory dashboard is the same idea in depth — coverage against the real exam blueprint, and per-topic mastery with ranges and abstention."
 
-### Scene 3 — The study loop ⏳ (~45s) *(needs START RUN fix S1)*
-- **[SHOW]** Click **► START RUN** → a real review session on the GRE deck; answer a card or two. (If nothing's due, show the honest "all caught up / Custom Study" state.)
+### Scene 3 — The study loop ✅ (~45s) *(START RUN works on both platforms; import the seed deck first)*
+- **[SHOW]** Click **► START RUN** → a real review session on the GRE deck (dark reviewer on **desktop**); answer a card or two. (If nothing's due, show the honest "all caught up / Custom Study" state.) NOTE: the **desktop** reviewer is themed dark ("The Run"); the **Android** reviewer is still Anki's default light theme (branded reviewer is a post-Friday item) — so show the *dark reviewer beat on desktop*.
 - **[SAY]** "START RUN drops you straight into studying the exam deck. Under the hood this is Anki's FSRS scheduler — we didn't reinvent memory science, we built on the best. What we add on top is **how the new cards are ordered**: by points-at-stake — the highest-weighted exam topics — and **interleaved** across topics, which the research shows beats blocked practice."
 
 ### Scene 4 — Two apps, one engine (~45s)

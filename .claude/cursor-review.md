@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-01 — Package the desktop installer (for the clean-machine recording)
+Mobile-first + START RUN all merged + David-verified on BOTH platforms (Android review session confirmed). Last Wednesday gap = the installer artifact. **Please build the packaged desktop installer** so David can run it in Windows Sandbox and record the clean-machine install:
+- From `repos/anki` on `main`: `uv run python qt/tools/build_installer.py --version "$(cat .version)" build` then the `… package` step → produce the real `.exe`/`.msi` and report its exact output path + size.
+- Confirm it builds with NO network submodule fetch (the Phase-0 vendoring should hold) and that `qt/tests/test_installer.py` still passes.
+- Windows installer only (`.dmg` is out of scope — decided; macOS-CI is the documented fallback). Report the artifact path when done; Cursor updates `WEDNESDAY-DELIVERABLES.md`.
+- Then you're clear to switch to grounding the **Friday brief** (`docs/plans/2026-07-03-friday-brief.md`) into a full plan for Cursor review (Thursday work — do whenever).
+
 ### 2026-07-01 — ✅ RESOLVED (was GATE FAIL): S1 desktop START RUN false "all caught up"
 **Fixed (`f0a06ce68`) + David-verified 2026-07-01 20:35** — START RUN now launches a real review session (20 new cards due, dark reviewer confirmed on-screen). Fix used `col.sched.deck_due_tree(did)` + a characterization regression test. Merge to `main` pending only Claude's QA-sweep triage (bug-class hunt). Original report retained below.
 
@@ -37,8 +44,10 @@ self.mw.col.decks.select(did); self.close(); self.mw.moveToState("review")
 - **Refactor for testability:** extracted the decision into a **Qt-free** `qt/aqt/speedrun_logic.py::decide_start_run` (importNeeded / caughtUp / ready) so it's unit-testable without a QApplication. `_start_run` is now thin glue. Presentation-only w.r.t. scheduling: read-only counts; no `transact`/FSRS/`answerCard`.
 - **Android (your ask to verify S2):** confirmed CORRECT — `SpeedrunHomeFragment.onStartRun` uses `sched.deckDueTree().find(did)?.hasCardsReadyToStudy()` = the **scheduler** tree, not the countless structural one. No change needed.
 - **Regression tests:** new `qt/tests/test_speedrun.py`, 4/4 green (`check:pytest:aqt` + direct pytest), ruff+format+mypy green. Covers importNeeded / caughtUp / ready **+ a characterization test** that pins the mechanism on a live collection with a due card (`decks.deck_tree()`→`new_count==0`; `sched.deck_due_tree()`→`new_count==1`) so this can't silently regress. **Root cause of the miss:** e2e bypasses the Qt bridge (`pycmd` no-op) so `_start_run` had zero automated coverage — now closed.
-- **QA sweep (David's ask — running):** independent read-only multi-agent audit of ALL Speedrun cross-layer contracts (bridge-command emit↔handle both platforms; `speedrunStartStatus` banner; deck-name + due parity; backend-branch coverage; data/RPC/token render), each finding adversarially verified. Confirmed findings to be posted here.
-- **Ready for David's re-smoke of Step 3** (import → START RUN → real review launches) and your FF-merge. **Move this block to Resolved once David confirms on `just run`.**
+- **QA sweep (David's ask — DONE):** independent 12-agent read-only audit of 5 Speedrun cross-layer contract areas, every finding adversarially verified. **45 contracts confirmed correct**; of 7 reported issues, **6 refuted** as dead-code/latent/test-coverage (not user-facing), **1 confirmed real** and now fixed:
+  - **✅ FIXED `af1138428` — desktop START RUN double-fire.** `ActionBar.svelte` fired BOTH `pycmd` + `bridgeCommand`, but the Qt webview aliases them to the **same function** (`qt/aqt/webview.py:93`) → `startrun` dispatched twice → `_start_run()` ran twice (redundant `decks.select` + double `moveToState("review")` = reviewer re-entry). Android injects only `bridgeCommand`, so it was unaffected. Fix: fire exactly one, `(g.pycmd ?? g.bridgeCommand)?.("startrun")` — correct on desktop/Android/dev. Low severity (terminal state was correct; worst case a flicker), but same bug-class as the caught-up fix so worth closing. `check:svelte` green.
+  - **Explicitly verified GOOD (no action):** deck name `"Speedrun::GRE Math"` byte-identical across desktop/Android/seed/test; due-count semantics provably equivalent desktop↔Android (`sum>0 ⇔ any>0`, both on the `now=int_time` scheduler tree); all 4 RPCs allow-listed + `SPEEDRUN` webview API-enabled; TS↔proto field shapes match; Memory/Home CSS tokens all defined (no phantom); `_custom_study` selects deck before Custom Study; command routing order correct; Android snackbar action wired.
+- **Both fixes on `feat/speedrun-mobile-first`** (anki tip `af1138428`, pushed). Caught-up fix already David-verified on `just run`. **Ready for your FF-merge to `main`** (double-fire fix is desktop-web only — David can eyeball on next `just run`, but it's low-risk and typecheck-green).
 
 ### 2026-07-01 — Mobile-first + START RUN + reviewer plan: ✅ APPROVED — EXECUTE
 Cursor reviewed `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md` → **APPROVED**. Grounding + invariants + gates all solid. **Proceed: execute M0→M1→S1→S2→R1 on `feat/speedrun-mobile-first` (off `main`), subagent-driven, mobile(~360px)+desktop / emulator screenshot at every phase gate, post to this channel; Cursor FF-merges each phase.**
