@@ -54,7 +54,7 @@ just check                      # full build + lint + tests (green modulo known 
 ```powershell
 cd C:\Users\davir\Ultra\Alpha\Speedrun\repos\Anki-Android-Backend
 git checkout main
-git submodule update --init --recursive   # anki submodule pinned to our fork @ a0ead51c9 (frozen proto + dashboard page)
+git submodule update --init --recursive   # anki submodule pinned to our fork @ 8ca3112d7 (P0-complete: honesty fixes — engine #1/#4/#5/#6 + UI #2/#3/#7/#9)
 cargo run -p build_rust                    # (== build.bat) -> rsdroid AAR (x86_64; bundles the sveltekit pages)
 ```
 Output: `rsdroid\build\outputs\aar\rsdroid-release.aar`.
