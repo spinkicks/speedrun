@@ -74,6 +74,22 @@ Everything we deliberately deferred, so nothing gets lost. Grouped by when it na
 ## Known CI/env items (non-blocking)
 - **complexipy** tool crash on our diff (Windows cp1252 bug inside the tool) — cosmetic; fix/report before any CI gate is required.
 
+## Learning-science research audit (2026-07-02) — coverage + gaps
+3-subagent read-only audit of `research/` (~150 items). **Core thesis already built/landing:** points-at-stake interleave (Phase 1), 3 honest scores + conformal + abstention (Phase 2), §7d gap meter (Phase 2), honest topic mastery + Wilson (Wed), problem bank + timed mini-mock (Phase 3), neuro-symbolic gen + SymPy verifier + mal-rule distractors + gold-set gate (Phase 4), IRT difficulty, exam-profile abstraction, prerequisite DAG (structural).
+
+**GREENLIT additions (David 2026-07-02, NON-BLOCKING — after host-phase core / else Sunday):**
+- **LS1 Calibration self-bet** — pre-answer confidence (Sure/Think-so/Guess) on problem attempts only (NOT Anki revlog schema); Brier/ECE "overconfidence tax", abstains below threshold.
+- **LS2 Worked-examples-first + faded worked examples** — Huang 2023 (retrieval drilling weak for math procedures); reuse `WorkedSolution`; example→faded→solo progression.
+- **LS3 Honesty guardrail copy** — diminishing-returns flag, survivorship-bias note, desirable-difficulty messaging, strengthen abstention framing. (All in `.claude/cursor-review.md`.)
+
+**DEFERRED gaps (surfaced, worth it later, NOT now — v2 / Sunday / stretch):**
+- Counterexample gauntlet + adversarial-sibling problems (AI-service generation modes; BrainLift flagships).
+- Misconception catalog + distractor↔misconception mapping (powers diagnosis; fold into AI distractors when time).
+- Interference-aware scheduling (separate confusable topics); projected-decay readiness (score at exam-date memory state).
+- Graph knowledge-tracing v2 (ONLY if it beats the flat IRT/PFA baseline on held-out score prediction — already the documented rule).
+- Faded-step self-explanation grading (LLM-graded free-text) — high effort, LLM-judge reliability risk.
+- Prerequisite blast-radius diagnosis (already a BrainLift flagship below).
+
 ## Stretch / bonus ideas (only if core is rock-solid; §13 + BrainLift flagships)
 - Knowledge-graph readiness model as a **v2 experiment that must beat the flat baseline** on held-out score prediction.
 - Real-time sync (<1s), 100k-card perf w/ profiling, signed+notarized installers for mac/Win/Linux.

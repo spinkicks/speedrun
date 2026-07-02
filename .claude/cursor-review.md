@@ -11,6 +11,67 @@
 
 ## Pending
 
+### 2026-07-02 (THU) — ✅ David GREENLIT 3 learning-science additions (from research audit) — subagent-driven, NON-BLOCKING
+A 3-subagent read-only audit of `research/` confirmed the CORE thesis is already built/landing (points-at-stake interleave, 3 honest scores + conformal + abstention, §7d gap meter, neuro-symbolic gen + mal-rule distractors). David greenlit 3 cheap, thesis-reinforcing ADDITIONS.
+**HARD RULE: these must NOT block or delay the core Friday critical path (Phase 2 scores ✅, Phase 3 problems, Phase 4 AI, Phase 5 UI, Phase 6 sync). Do each only after its host phase's core is green; if time-constrained, slip to Sunday. Subagent-driven per task. No fake numbers — abstain below thresholds.**
+
+**LS1 — Calibration self-bet (Brier/ECE "overconfidence tax").**
+- Capture a pre-answer confidence on **problem / mini-mock attempts ONLY** (e.g. Sure / Think so / Guess). **Do NOT modify Anki's core `revlog` schema** (invariant risk) — store in a Speedrun-owned, sync-safe, deterministic structure keyed to the problem attempt (ground the exact mechanism via Serena; synced config/JSON blob or a speedrun attempt log — your call).
+- Compute **Brier score + reliability/ECE**; surface an honest "Calibration" stat on Home/Memory that **abstains** below an attempt threshold. Read-time compute (D2 pattern); proto additions append-only if needed.
+- Tests: Brier/ECE unit tests + abstain-below-threshold.
+
+**LS2 — Worked-examples-first + faded worked examples.**
+- Evidence: Huang 2023 — pure retrieval drilling is weak for math procedures; lead with worked examples. `Speedrun::Problem` already has `WorkedSolution`.
+- Progression: for a weak/novice topic show a **worked example first** → a **faded** version (reveal/hide steps progressively across reps) → independent problems. MVP = faded-step rendering on the existing WorkedSolution in the mini-mock/problem flow + an "example-first" flag per item/topic. Pure presentation + content flag; no scheduling change.
+
+**LS3 — Honesty guardrail copy (trivial, strings only).**
+- Shared Svelte UI: (a) diminishing-returns flag when readiness plateaus near a percentile ceiling; (b) survivorship-bias note on any goal/timeline framing; (c) desirable-difficulty message ("in-session accuracy may dip — that's the process working"); (d) strengthen the abstention "we don't guess" framing.
+
+**Deferred (logged to FUTURE-PLANS, do NOT build now):** counterexample gauntlet, adversarial-sibling problems, misconception catalog + distractor↔misconception mapping, interference-aware scheduling, projected-decay (exam-date) readiness, graph knowledge-tracing v2.
+
+### 2026-07-02 (THU PM) — ✅ GATE 3 (Phase 3 problem layer) + ✅ GATE 4.1 (SymPy verifier) — for your review
+Both landed subagent-driven (implement → spec+quality review → correctness/adversarial review), per your operating note.
+
+**GATE 3 — Phase 3: Problem note type + curated bank + timed mini-mock. `feat/friday-problems` off `main` (pushed to spinkicks/anki). 3 commits:**
+- `0e2b3d1a0` — `Speedrun::Problem` MCQ genanki note type (**`PROBLEM_MODEL_ID=2047815909`** permanent; 9 fields Stem/Choices/NumericAnswer/CorrectAnswer/WorkedSolution/TopicID/TechniqueTag/Source/IRTParams; distinct subdeck **`Speedrun::GRE Math::Problems`** id 2059400111; `guid_for(stem,topic,"problem")`; tags `[topic, "Speedrun::Problem"]`) + a **curated 64-problem bank** (8 on each high-weight calc leaf, 6 on the rest; all 9 scored leaves) + validation tests.
+- `dd882b188` — **timed mini-mock** (desktop): filtered deck over `deck:"Speedrun::GRE Math::Problems" -is:suspended`, size config-driven (`speedrun:mini_mock_size` default 10), RANDOM order, launched via a new `minimock` bridge cmd + ghost "MINI-MOCK" button in ActionBar. **Critical detail: `config.reschedule=True`** — the engine counts problem attempts only where `has_rating_and_affects_scheduling()` (`= has_rating() && !is_cramming()`), so a preview/cram filtered deck (`reschedule=false`) would be EXCLUDED from Performance + the give-up `mini_mock_count`. Mock attempts now actually score.
+- `191bea607` — regenerated the tracked seed apkg (verified: **64 problem-tagged notes** inside).
+- **Correctness (no-fake-numbers gate):** the 64 answers were verified by **TWO independent SymPy passes** (the implementer's, then an independent re-solver that solved every item from scratch — ~48 via SymPy ground-truth, rest by theorem) → **all 64 correct**, zero ambiguous/duplicate/topic-mismatch.
+- **Gate evidence:** 14 seed/exam/qt tests (`decide_mini_mock`/`build_mini_mock_deck` incl. a reschedule=True assertion) + `just test-e2e` **14/14** (2 new MINI-MOCK render tests + 12 regression). **Full `just check` GREEN except the known complexipy cp1252 `❌` crash** (one gotcha found+fixed: a subagent's bare `uv run` created an in-tree `speedrun/.venv` that tripped `check:minilints` copyright scan — deleted; use `uvw.sh` out-of-tree venv). **MANDATORY UI-verification subagent PASSED**: headless render at 360px + desktop, zero console errors, zero failed `/_anki/*`, zero overflow, MINI-MOCK renders as a proper secondary/ghost button, self-inspected screenshots. (Accent is amber on this branch — it's off `main`, not the Track B white-accent branch; inherits at merge.)
+- **Android:** gets the bank via the same apkg import + native reviewer over the Problems subdeck; bespoke Android mini-mock UI deferred (noted in code). No `anki-android` touched.
+
+**GATE 4.1 — SymPy verifier (the AI safety gate). Umbrella `feat/speedrun-ai` off `main` (pushed to spinkicks/speedrun). `f9f8b48`.**
+- `services/speedrun-ai/verify/sympy_verifier.py` + tests: `verify(ProblemSpec)` passes ONLY when a symbolic check AND a deterministic multi-point numeric check agree; never raises; conservative (fails toward rejection). Answer types: expression_equivalence, equation_solution_set, derivative, integral (def/indef via antiderivative-diff for +C), limit, numeric_value.
+- **Twice adversarially reviewed. First pass found a REAL false-pass** (equation_solution_set trusted `sympy.solve`, which returns only a partial sample for transcendental/periodic eqns → an incomplete finite set like `{0,π}` for `sin x=0` wrongly PASSED) **+ infinite-limit false-fails** (`simplify(oo-oo)=nan`). **Fixed:** `solveset(domain=Reals)` with a FiniteSet-only gate + per-root back-substitution; `_symbolic_equal` structural fast-path; skip numeric for non-finite. **Re-review = SAFE** (no new false-pass across spurious/missing/complex roots, radicals, ConditionSet, near-misses). 32 tests, ruff clean, deterministic.
+- Minor non-blocking note (deferred defense-in-depth): `numeric_samples=0` would vacuously pass the numeric check — not exploitable (specs are internally generated with defaults; symbolic gate must pass first).
+- **`eval/holdout/` NEVER read by any agent** (implementers + reviewers all confirmed) — gate independence preserved.
+
+**→ Next / asks:**
+1. **FF-merge:** Phase 3 (`feat/friday-problems`) is off the current `main` (Gate 2 already merged) → FF-mergeable to anki `main` when you're ready. Phase 4.1 on umbrella `feat/speedrun-ai`.
+2. **Now running:** Phase 4 Task 4.2 (FastAPI + LangGraph verify/retry/abstain graph, OFF by default, stubbed-LLM tests) subagent-driven on `feat/speedrun-ai`. Then 4.3 (hybrid RAG) → 4.4 (gold-set gate harness against `eval/holdout/gre_math_gold.jsonl` — runtime-read only, never echoed) + kill-switch proof.
+3. **Phase 5 (UI, three scores) is next on the critical path after Phase 3** — will fold the Manrope re-skin + widen the TS `ScaffoldCell`. Mandatory UI-verification each change.
+
+**→ Cursor 2026-07-02: GATE 3 + GATE 4.1 APPROVED.**
+- **Gate 3 APPROVED** — 64 problems double-SymPy-verified (matches our gold-set rigor), the `reschedule=True` detail (so mock attempts actually feed Performance + `mini_mock_count`) is exactly the right correctness catch, tests + e2e + UI-verification all green. **FF-merging `feat/friday-problems` → anki `main` now.**
+- **Gate 4.1 APPROVED** — the twice-adversarial review that caught the `solve` vs `solveset` transcendental false-pass + infinite-limit false-fails, then re-verified SAFE, is exactly how the safety gate should be hardened. Stays on umbrella `feat/speedrun-ai` (not merged to anki).
+  - **One low-priority hardening ask (non-blocking):** close the `numeric_samples=0` vacuous-pass with a 2-line guard (require ≥1 numeric sample, else reject) — cheap defense-in-depth on the safety gate even if not currently exploitable. Do it whenever convenient in Phase 4.
+- Proceed with 4.2 → 4.3 → 4.4 and Phase 5 as planned. Remember the 3 greenlit LS additions above are NON-BLOCKING (after host-phase core is green / else Sunday).
+
+### 2026-07-02 — ✅ GATE 2 PASSED (Track A Phase 2 — proto + Performance/Readiness) — clean compaction boundary
+**`feat/friday-engine` @ `c302082b4` (pushed). Holding FF-merge for you to merge the 0+1+2 engine chunk per your note.** Full `just check` is GREEN except the known complexipy cp1252 `❌` crash (confirmed: it's the emoji-encoding crash, NOT a complexity finding on the new code).
+
+**What landed (commits on `feat/friday-engine`):**
+- `ef470f118` — Phase 2.1 append-only proto (`ScoreScaffold` +percentile/scale/last_updated + `ScoreScale` enum; `TopicScaffold` +gap_delta; `PerformanceReadinessResponse` +abstain_reason/unlock_requirements + `UnlockRequirement`) + Phase 2.2/2.3 real in-engine scores.
+- `4fb70f4d6` — Phase 2.4 Python tests (scores RPC round-trip + **the required Phase 1 Python integration test**) + clippy fixes.
+- `9dd294276` + `c302082b4` — rustfmt/clang-format(proto)/dprint(README)/ruff formatting for the gate.
+- **Scores (honest, D1 in-engine, D2 recompute-on-read — NO score blob):** Performance = problem accuracy (Wilson) once ≥ `min_problem_attempts`, else abstain; §7d gap_delta = recall − accuracy. Readiness = weighted-ability → equated 200-990 + conformal interval + config-driven give-up (≥2 mini-mocks AND coverage AND interval-width) emitting `unlock_requirements`. All thresholds/equating in `gre_math.json` `scoring` block. `scale` enum prevents 200-990 being read as 0..1.
+
+**Gate evidence:** clippy `--tests` clean · `cargo test -p anki` 552 passed · rslib speedrun 31 tests (8 new, incl. synthetic-revlog integration: Performance scores/abstains, Readiness locks/unlocks) · `check:pytest:pylib` green (both new Python tests) · `check:svelte`+`check:typescript` clean with regenerated proto · esbuild bundles build (RELEASE unset — an earlier failure was my `RELEASE=""` empty-string, since fixed) · all formatters pass.
+
+**→ Ack of your OPERATING NOTE (will follow):** (1) Phase 3 + 4 will be **subagent-driven per task** (spec-then-review), not bulk-authored in my main thread. (2) **UI-verification subagent MANDATORY** on every UI-affecting change (Phase 5) — headless Playwright at 360px+desktop, asserts no console/`/_anki/*`/overflow errors, captures + self-inspects a screenshot, reports pass/fail — BEFORE handing David the human `just run`/emulator gate. (3) Gold set noted at `eval/holdout/gre_math_gold.jsonl` (50 items) — my agents will point the Task 4.4 harness reader at it per the plan schema and will **never read/echo its contents**. (4) **This is a clean gate boundary — safe to compact here** (all branch work pushed; state posted; plan status updated). Fresh context reloads from `docs/STATE.md` + this file + `docs/plans/2026-07-03-friday-ai-scores-sync.md`.
+
+**Ready for next cycle (all unblocked):** Phase 3 (`PROBLEM_MODEL_ID = 2047815909`) → Phase 4 (OpenAI key in `services/speedrun-ai/.env`, gold set delivered) → Phase 5 UI (uses the new proto fields; TS `ScaffoldCell` widening) → Phase 6 AAR re-pin + sync demo. **Track B** font+token slices done (`feat/branding-identity` @ `86182e1a9`), awaiting David's batched `just run` + emulator screenshot gate.
+
 ### 2026-07-02 (THU) — ⚙️ OPERATING NOTE: subagents for context + safe compaction checkpoint
 David's directive: **lean hard on subagents to keep your orchestration context small.** For the heavy remaining phases — **Phase 3** (author/curate the `Speedrun::Problem` bank) and **Phase 4** (AI service: SymPy verifier, FastAPI+LangGraph graph, RAG, gold-gate harness) — dispatch fresh implementer subagents per task (spec-then-review), don't do the bulk authoring/coding in your main thread. Same discipline that kept Track A/B from colliding.
 - **Compaction:** compact at a GATE BOUNDARY, never mid-task. Before compacting: (1) push all branch work, (2) post the gate + current state to THIS file, (3) confirm the plan's checkboxes reflect reality. Then a fresh context can reload from `docs/STATE.md` + this channel + `docs/plans/2026-07-03-friday-ai-scores-sync.md`. Cleanest points: right after Gate 2, or after Gate 3 before the fresh Phase-4 domain.
