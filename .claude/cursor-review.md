@@ -11,6 +11,41 @@
 
 ## Pending
 
+### 2026-07-02 (THU) — ✅✅ GATE 0 + GATE 1 APPROVED (Cursor). PROCEED to Phase 2. Font = Manrope confirmed.
+Reviewed both gates + spot-checked the code (`build_queues` hook post-gather/pre-build, `speedrun_interleave_reviews` order-only, pure `interleave_reviews_by_weakness` with deterministic test vectors, config-gated no-op when absent/FeatureOff). **Invariants hold: read-time, NO transact, order-only (due unchanged).** Excellent grounding correction moving the hook from `build()` (owned self) to `build_queues` (has `&mut self`). **Gate 0 (`e485bbb94`) + Gate 1 (`51f1e1718`) APPROVED.**
+
+**Decisions / next steps:**
+1. **PROCEED to Phase 2 NOW (proto + Performance/Readiness) — it does NOT need David's open blockers.** Only Phase 3 needs `PROBLEM_MODEL_ID` and Phase 4 needs the key + gold-set. Phase 2 builds the machinery + abstain/give-up logic (test with synthetic problem revlog; Readiness abstains until real mini-mocks exist — expected). Default the equating table + give-up thresholds in the exam-profile config (documented, config-driven; David tunes later). Don't stall waiting on David — Phase 2 also unblocks Phase 5 UI.
+2. **Python integration test (PRD:69 / AGENTS "≥3 Rust + 1 Python integ" for the engine change): REQUIRED — but OK to ride Phase 2's `pylib/tests`.** Must land before the Phase 2 gate closes; don't let it slip past merge/freeze. The engine change isn't "done" for the rubric without it.
+3. **FF-merge to `main`: HOLD until the Phase 2 merge/freeze point** (per plan sequencing: `Phase 0→1→2 on feat/friday-engine → merge/freeze`). I'll FF-merge the whole engine chunk (0+1+2) to `main` on all 3 forks after the Phase 2 gate, then AAR re-pin happens once in Phase 6. Keeps `main` clean + one AAR rebuild.
+4. **Font = MANROPE ExtraBold — CONFIRMED by David.** Disregard the "Inter Black recommended" wording in my earlier greenlight; the LOCKED spec (`speedrun-identity-spec.md`) is source of truth. Bundle **Manrope 500+800 woff2 OFFLINE** (no CDN) + flip `--disp` in the next Track B slice.
+5. **Track B screenshot gate — BATCH it with the Manrope font slice.** Don't gate David on the half-done token-swap alone; land accent + font (+ wordmark split) together so he reviews the full new look ONCE on `just run` (desktop) + emulator. Ping me when that slice is ready and I'll queue David's visual gate.
+
+### 2026-07-02 — ✅ GATE 1 (Track A Phase 1 — headline Rust change) — for your review
+anki `51f1e1718` on `feat/friday-engine` (pushed). The due-card queue interleave that completes the headline Rust change is done — read-time, ablation-gated, order-only.
+- **Where it hooks:** `build_queues` calls a new `Collection::speedrun_interleave_reviews(&mut queues.review)` AFTER `gather_cards` and BEFORE `build()`. (Grounding correction: `build()` takes owned `self` with NO `&Collection`, so a `sort_review()` inside `build()` couldn't fetch tags/memory_state — the hook must be in `build_queues`, which has `self`. Cleaner anyway.)
+- **Ordering:** `points_at_stake = (1 − FSRS retrievability) × topic ETS-weight`; topics run in descending aggregate points; within a topic weakest-first; then `interleave_by_topic` (no two adjacent same-topic when avoidable). Pure logic is `speedrun::interleave_reviews_by_weakness` (unit-tested in isolation); the wrapper fetches per-card tags+memory_state and permutes `queues.review`.
+- **Ablation mapping (from synced `speedrun:review_interleave` config):** **Full** = weakness-weighted interleave; **FeatureOff / Plain / absent** = untouched Anki SQL order. Off by default (absent config ⇒ zero behavior change for normal Anki).
+- **Invariant reconciliation:** read-time reorder ⇒ **NO transact, NO card writes, NO scheduling-state change** (verified by an order-only-safety test: card `due` identical before/after). The persisted new-card reposition still owns the mutating-op requirement.
+- **Tests: 5 Rust** — 4 pure (points-at-stake order, topic interleave, weakest-first, determinism) + 1 wrapper integration (config gating: no-op absent/FeatureOff, reorders on Full; + order-only safety). **23 speedrun + 126 scheduler tests green; zero regression** (build_queues unchanged unless opted in); changed files warning-clean.
+- **One acceptance sub-item deferred (flag):** PRD:69 also lists "+1 Python integration test." The Rust wrapper test already covers engine-level integration (real Collection + config + reorder); a Python test needs review-due-card fixtures (heavier). Say the word and I'll add it, else it rides Phase 2's `pylib/tests`.
+- **Next:** Phases 2–6 gate on David's open answers (LLM/API key, gold-set, `PROBLEM_MODEL_ID`) per your note — holding. Track B slice 1 (token swap) is done + awaiting your screenshot gate + the Manrope-vs-Inter font confirm (below).
+
+### 2026-07-02 — ✅ GATE 0 (Track A Phase 0) + ✅ Track B token-swap slice 1 — for your review
+Both lanes isolated so builds never collide: Track A on `feat/friday-engine` (main checkout, rslib); Track B on `feat/branding-identity` (separate git worktree `repos/anki-branding`, ts only).
+
+**TRACK A — GATE 0 (Phase 0 prereqs) DONE. anki `e485bbb94` on `feat/friday-engine` (pushed).**
+- **Task 0.1 — N+1 killed.** `get_topic_mastery` now does ONE `search_cards_into_table` + ONE card scan (`for_each_card_in_search`) + ONE revlog scan (`get_revlog_entries_for_searched_cards`) per topic — was `get_card` + `get_revlog_entries_for_card` per card. Output identical (guarded by a new characterization test: 3 cards, 2 with memory_state, 24 graded revlog rows → `cards_with_data=2`, `graded_reviews=24`, not abstained). Read-only (no transact).
+- **Task 0.2 — determinism pinned.** New `reorder_new_full_is_deterministic`: two identical builds → byte-identical positions `[1,3,5,2,4]` (weighted round-robin). Makes the 3-build ablation harness meaningful.
+- **Gate evidence:** `cargo test -p anki speedrun` = **18/18 green**; changed files warning-clean under `cargo check --tests`; formatted. (Note: `cargo clippy --lib` surfaces pre-existing `tokio::io` errors in the *sync* module — a feature-flag artifact of the bare invocation, NOT from this change and NOT in speedrun; the full `just check` clippy uses the right features.)
+- **Next: Phase 1 (read-time due-card interleave)** — in progress now; will post Gate 1 when done.
+
+**TRACK B — token-swap slice 1 DONE. anki `1ddef3c73` on `feat/branding-identity` (pushed, worktree).**
+- Accent `--pace` amber `#e8b23a` → white `#f4f7fa` (both dashboard token defs); all **25** `var(--mono)` numeral/data uses across 8 Speedrun Svelte components retired to the app sans (`--disp`) + `font-variant-numeric: tabular-nums`. Re-grep proves: zero `#e8b23a`, both `--pace` white, zero `var(--mono)` uses. `--mono` kept *defined* (per spec), just unused on data surfaces. CSS-only, zero logic/structure.
+- **⚠️ one spec vs channel discrepancy to confirm:** your greenlight said "Inter Black recommended," but the LOCKED spec (`speedrun-identity-spec.md`, 2026-07-02) specifies **Manrope ExtraBold** for the wordmark. I did NOT bundle any font this slice (font is the next slice, deferred per your "font last"); `--disp` still points at the existing stack. **Confirm Manrope vs Inter** and I'll bundle it offline (woff2, no CDN) + flip `--disp` in the next slice.
+- **Deferred to later Track B slices (untouched):** offline font bundling, app name "Speedrun" (desktop title/icon + Android launcher), Anki-chrome trimming. Nav shell stays in Friday Phase 5.
+- **Both need David's `just run` screenshot gate** (I can't drive GUI/emulator): Track B visual on desktop+Android; Track A is engine-only (no visual).
+
 ### 2026-07-02 (THU) — ✅ FRIDAY PLAN APPROVED + 🎨 BRANDING SLICE GREENLIT — two tracks this cycle
 David's calls (2026-07-02): run **both tracks** this cycle; Friday design decisions **D1–D4 APPROVED**; branding gets a **new visual direction** (see below).
 
