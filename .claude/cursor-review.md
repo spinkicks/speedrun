@@ -11,6 +11,32 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — 🐞 BUG SWEEP RESULTS (6 read-only subagents) — prioritized fix list
+Core invariants held (interleave order-only + set-preserving + ablation-gated; Wilson/conformal/give-up-AND math sound; proto append-only; abstain guards mostly correct; AI OFF-by-default + kill-switch + holdout-never-echoed verified). But several **honesty/correctness bugs** found. Fix P0 before David's demo recording; P1 before AI is demoed enabled; P2/P3 = Sunday. Subagent-driven per fix; UI-verification on UI changes.
+
+**P0 — HONESTY / USER-FACING (fix before merge+demo).** Engine/qt bugs are already on `main` → fix on a branch off `main`; UI bugs fold into `feat/friday-combined`.
+1. **Memory contaminated by problem cards.** `get_topic_mastery` (`rslib/src/speedrun/service.rs:132-156`) searches `("tag:{t}" OR "tag:{t}::*")` with NO `-"tag:Speedrun::Problem"` filter, but `topic_recall` (`:419`) DOES exclude them → Memory recall/Wilson driven by MCQ cards. FIX: add the same `-"tag:Speedrun::Problem"` exclusion (+ consider graded_reviews declarative-only).
+2. **Readiness "percentile" is fake** (`service.rs:381-383`): `percentile = ability*100`, but Home labels it "·N%ile" (`StatRow.svelte:79-80`). No-fake-numbers violation when unlocked. FIX: abstain the percentile (0 + "—") until a real ETS norm table exists, or relabel (not "%ile").
+3. **GAP Δ shows fake "+0.00"** when only problem cards exist (`service.rs:296-301` sets gap_delta=0 when recall_n==0; `TopicRow.svelte:26-27` renders it). FIX: sentinel/abstain gap when recall_n==0; UI shows "—".
+4. **Readiness give-up "coverage" counts declarative study, not problems** (`service.rs:269-271`: `if recall_n>0 || attempts>0 {covered+=1}`). Coverage gate can pass with flashcard study alone. FIX: count coverage only when `attempts >= min_problem_attempts` (problem-based, per PRD §5.78).
+5. **Memory range band mixes two metrics** (`service.rs:158-168` Wilson on *mastered-proportion*; `TopicRow.svelte:46` plots *avg_recall* as the point on the same 0-1 axis) → incoherent band. FIX: put Wilson + point on the SAME quantity, or split columns.
+6. **Mini-mock recreates a filtered deck every launch** (`qt/aqt/speedrun_logic.py:105-117` always `get_or_create_filtered_deck(DeckId(0))`) → orphan `Speedrun Mini-Mock+`, `++`… decks; cards stranded. FIX: resolve existing `"Speedrun Mini-Mock"` first, update in place; regression test 2× launch = 1 deck.
+7. **Memory "‹ HOME" back affordance** (= FIX-1 below; `MemoryDashboard.svelte:69-89` header has Refresh only). Desktop bridge `open:home` mirroring `open:memory`; Android nav-up.
+8. **Android `minimock` bridge = silent no-op** (`anki-android …/SpeedrunHomeFragment.kt:30` registers only `startrun`) → shared UI shows MINI-MOCK, Android taps do nothing, Readiness never unlocks on Android. FIX: implement Android mini-mock OR hide/disable the button on Android until wired.
+9. **Android banner actions dead** — `SpeedrunHome.svelte:33-35` `fire()` calls `pycmd` only (ActionBar correctly uses `(g.pycmd ?? g.bridgeCommand)`). Import/Custom-Study banner buttons no-op on Android. FIX: same nullish-coalescing. + Android import path has no action (snackbar text only) — add `startrun:import` action.
+
+**P1 — AI SAFETY GATE (on `feat/speedrun-ai`; fix before demoing AI enabled).**
+- **CRITICAL: verify vs emit answer divergence.** Verifier gates `spec.claimed_answer` (`graph.py:184-203`) but the emitted problem uses `candidate.correct` (`graph.py:240-264`) with NO cross-check → a wrong answer can ship. FIX: after verify passes, require normalized equality of `candidate.correct` == `spec.claimed_answer` (or derive `correct` only from the verified spec); else abstain.
+- **LLM can neuter the numeric gate:** `numeric_samples=0` → vacuous PASS (`sympy_verifier.py:272-306`); `numeric_eps` LLM-overridable. FIX: server-side clamp (`samples>=1`, fixed eps); strip LLM tuning fields.
+- **Leakage gate fail-OPEN** when study corpus empty (`eval/gate.py:351-356` returns True). FIX: fail-closed (empty corpus ⇒ gate always False / refuse to start enabled).
+- Minor: leak scan omits `choices` (`gate.py:327-332`); RAG `min_score=0.01` too low; limit-verifier exception → num_ok=True.
+
+**P2 — MEDIUM (Sunday).** mini_mock_size=0 → uncaught `FilteredDeckError` crash (`speedrun.py:120-128`, clamp+try/except); all-suspended-problems shows "Import deck" banner (add `noActiveProblems` state); `mini_mock_count` is a day-proxy not session-scoped (same-day 2 mocks=1) (`service.rs:463-477`); Performance "correct" = self-rated Good/Easy, NOT auto-graded vs the MCQ key (`service.rs:452-456`) — honesty-relevant, decide if acceptable; interleave: imbalanced-topic adjacency is best-effort (fix docstring/tests), empty/zero-weight Full still reorders, build-time N+1 (batch like get_topic_mastery), parent-tag→weight-0 mismatch.
+
+**P3 — LOW/NITS (defer).** Performance percentile tooltip "0"; Home shows only first unlock hint; SplitRow abstained `▮` glyph; `--mono` on Readiness hint; no i18n; `last_updated` not threaded to UI; per-topic Readiness always "—" in Memory (by design — maybe hide the column); reorder_new invalid-mode→Full defaults; NaN-in-sort.
+
+**Routing:** P0 #1-6 (engine/qt) → branch off `main`; P0 #7-9 (UI/Android) → fold into `feat/friday-combined` + `anki-android`. Ping me per fix; I FF-merge. **The combined branch merge waits on P0 #7 (back button) at minimum; I recommend P0 #1-9 before David records the demo** (they're honesty-visible).
+
 ### 2026-07-02 (THU PM) — ✅ David's combined visual gate PASSED — 2 follow-ups on `feat/friday-combined` before merge
 David ran `just run` on `feat/friday-combined`: **new identity confirmed** (Manrope wordmark, white/light accent — no amber, pro-sans numerals, honest abstention, GAP Δ column). APPROVED visually **except one fix**. Do BOTH on `feat/friday-combined` (so they merge with the rest); mandatory UI-verification subagent on the UI change; then ping me to FF-merge.
 
