@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from config import load_settings
-from graph import run_generation
+from graph import make_hybrid_retriever, run_generation
 
 app = FastAPI(title="Speedrun AI generation service", version="0.1.0")
 
@@ -76,14 +76,20 @@ def _make_openai_propose(settings):
 
 
 def generate_problem(topic: str, technique: str) -> dict[str, Any]:
-    """Run the generation graph with the real OpenAI proposer.
+    """Run the generation graph with the real OpenAI proposer AND the real
+    hybrid RAG retriever (Task 4.3) for source grounding.
 
     Only called from the enabled path. Tests monkeypatch this symbol so they
-    never construct an OpenAI client or hit the network.
+    never construct an OpenAI client, build a RAG index, or hit the network.
+    The retriever is the drop-if-unverifiable gate: a candidate whose top hit
+    scores below the grounding threshold takes the graph's abstain path.
     """
     settings = load_settings()
     llm_propose = _make_openai_propose(settings)
-    return run_generation(topic, technique, llm_propose=llm_propose)
+    retriever = make_hybrid_retriever()
+    return run_generation(
+        topic, technique, llm_propose=llm_propose, retriever=retriever
+    )
 
 
 # ---------------------------------------------------------------------------

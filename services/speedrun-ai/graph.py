@@ -75,12 +75,45 @@ class GraphState(TypedDict, total=False):
 
 
 def default_retriever(candidate: dict) -> Optional[str]:
-    """STUB retriever (real hybrid retriever arrives in Task 4.3).
+    """STUB retriever (kept for tests and the offline default).
 
     Returns a placeholder citation so the offline pipeline is grounded. A real
     retriever returning ``None``/``""`` signals "ungrounded" and forces abstain.
+    The REAL hybrid retriever (Task 4.3) is available via
+    :func:`make_hybrid_retriever`; it is injected by the caller (``app.py``)
+    while this stub remains the default so the graph/app unit tests never build
+    an index.
     """
     return "PLACEHOLDER-CITATION (stub retriever; real grounding in Task 4.3)"
+
+
+# The default grounding threshold. RRF scores are on the order of 1/(k+rank)
+# summed over two arms (~0.01-0.033 for a strong top hit with k=60); a small
+# positive floor keeps genuinely relevant hits while still allowing the
+# ungrounded/abstain path when nothing scores. Tunable by the caller.
+DEFAULT_MIN_GROUND_SCORE = 0.01
+
+
+def make_hybrid_retriever(
+    *,
+    corpus: Optional[list[dict]] = None,
+    min_score: float = DEFAULT_MIN_GROUND_SCORE,
+) -> Retriever:
+    """Build the REAL hybrid-retriever grounding function for injection.
+
+    Returns a ``Retriever`` closure ``candidate -> citation | None`` backed by
+    :class:`rag.retriever.HybridRetriever`. Imported lazily so importing this
+    module (and running the stubbed graph/app tests) never constructs an index
+    or pulls in the RAG dependencies. If ``corpus`` is omitted, the vendored
+    ``rag/corpus/gre_math_sources.jsonl`` is loaded.
+
+    A top hit below ``min_score`` yields ``None`` → the graph's "no source
+    grounding" abstain path (the drop-if-unverifiable gate).
+    """
+    from rag.retriever import HybridRetriever, load_corpus
+
+    rows = corpus if corpus is not None else load_corpus()
+    return HybridRetriever(rows).as_graph_retriever(min_score=min_score)
 
 
 def default_make_distractors(candidate: dict) -> list:
