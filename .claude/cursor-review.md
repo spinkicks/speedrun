@@ -11,6 +11,19 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — ✅ PHASE 4 COMPLETE (AI generate/verify service). `feat/speedrun-ai` @ `991886c` (pushed to spinkicks/speedrun; umbrella worktree)
+Full OFF-by-default AI problem generator, subagent-driven (each task implement → review → adversarial/independent check). 86 tests, ruff clean, HERMETIC (no network in CI). Parallel-safe: umbrella `services/` only, never imported by rslib/rsdroid — NOT on the AAR/critical path; merge to `main` whenever.
+- **4.1 verifier** (`f9f8b48`): SymPy safety gate; twice adversarially reviewed (real transcendental false-pass found+fixed) → SAFE.
+- **4.2 graph** (`1f43b8e`): FastAPI + LangGraph propose→verify→rag→distractors→gate→emit/abstain, OFF by default (`/generate`→503), real verify node, DI-stubbed tests.
+- **4.3 RAG** (`ff13d4f`): hybrid BM25 + dense → RRF(k=60); 56-passage vendored corpus (all 9 leaves, real OpenStax/Hefferon citations); `ground()` = drop-if-unverifiable. **Dense arm = TF-IDF fallback** (sentence-transformers needs a network model download → would break hermetic tests; the retriever still *prefers* a bi-encoder at runtime if cached — documented).
+- **4.4 §7f gate** (`991886c`): honest pre-registered results —
+  - **wrong-answer rate 0%** (by construction: the verify node gates every emit; 0/6 wrong specs survive).
+  - **leakage-0 scanner** (13-gram OR TF-IDF cos ≥0.85) validated + **wired into the graph gate** (`make_gold_gate` loads 99 real study texts in `app.py`'s enabled path; any leak = auto-fail).
+  - **Recall@10 on the 50 gold pairs** (read at runtime, raw pairs NEVER echoed): hybrid ≥ BM25 & dense = **TRUE** (hard-asserted). BUT the **≥5pt margin is NOT met** — honest: (a) metric saturates (small corpus → all methods hit the coverage ceiling; the fusion's edge shows on the in-house paraphrase eval instead), (b) **20% coverage gap** — 10/50 gold items cite canonical LA sources (Lay / Strang / MIT OCW 18.06) absent from the corpus. **Reported honestly; corpus NOT gold-fit.**
+  - **useful ≥80% / bad-teaching ≤15%:** pending an LLM-judge (scaffold built, cutoffs pre-registered, stubbed in CI; measured at demo with the key).
+  - **Kill-switch:** structural proof (service OFF→503; `services/` never imported by the engine; app scores from the curated bank independently) — LIVE cross-app demo lands in Phase 6.
+- **OPTION for you to decide (not auto-done, to keep gate independence clean):** a **topic-driven** corpus expansion adding the canonical LA references (Lay/Strang/MIT 18.06) would lift coverage >80% and let the hybrid margin actually show. It's legit corpus completeness, but since the *need* was surfaced by the coverage diagnostic I'm flagging it rather than silently doing it. Say the word and I'll add them on topic grounds.
+
 ### 2026-07-02 (THU PM) — 🎨 COMBINED BRANCH READY for David's SINGLE visual gate (scores + Manrope/white)
 Per your directive, integrated Phase-5 scores + Manrope/white branding into ONE branch off current `main`: **`feat/friday-combined` @ `fdc634b91` (pushed to spinkicks/anki).** `main..HEAD` touches ONLY `ts/` (17 files) — engine/content/qt identical to `main` (verified diff empty).
 - **Merge safety (all verified):** engine/proto/pylib/qt/seed diff vs `main` EMPTY (nothing reverted by branding's stale base); Phase-5 scores logic intact; Phase-3 MINI-MOCK button intact; branding applied (`#F4F7FA` present, `#e8b23a` absent from source, Manrope @font-face + woff2 committed, SPEED/RUN wordmark). One real conflict (a dead `.scaffolding-note` rule) resolved correctly; RunHeader wordmark gap fixed via `inline-flex`.
