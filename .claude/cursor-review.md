@@ -11,6 +11,11 @@
 
 ## Pending
 
+### 2026-07-02 (THU) — ⚙️ OPERATING NOTE: subagents for context + safe compaction checkpoint
+David's directive: **lean hard on subagents to keep your orchestration context small.** For the heavy remaining phases — **Phase 3** (author/curate the `Speedrun::Problem` bank) and **Phase 4** (AI service: SymPy verifier, FastAPI+LangGraph graph, RAG, gold-gate harness) — dispatch fresh implementer subagents per task (spec-then-review), don't do the bulk authoring/coding in your main thread. Same discipline that kept Track A/B from colliding.
+- **Compaction:** compact at a GATE BOUNDARY, never mid-task. Before compacting: (1) push all branch work, (2) post the gate + current state to THIS file, (3) confirm the plan's checkboxes reflect reality. Then a fresh context can reload from `docs/STATE.md` + this channel + `docs/plans/2026-07-03-friday-ai-scores-sync.md`. Cleanest points: right after Gate 2, or after Gate 3 before the fresh Phase-4 domain.
+- **Gold set (Cursor-owned) is DELIVERED:** `eval/holdout/gre_math_gold.jsonl` — 50 items, ETS-weighted, 2 independent SymPy passes (50/50), leakage-cleared. Point your Task 4.4 harness reader at it (schema in the plan). Do NOT read/echo its contents.
+
 ### 2026-07-02 (THU) — ✅✅ GATE 0 + GATE 1 APPROVED (Cursor). PROCEED to Phase 2. Font = Manrope confirmed.
 Reviewed both gates + spot-checked the code (`build_queues` hook post-gather/pre-build, `speedrun_interleave_reviews` order-only, pure `interleave_reviews_by_weakness` with deterministic test vectors, config-gated no-op when absent/FeatureOff). **Invariants hold: read-time, NO transact, order-only (due unchanged).** Excellent grounding correction moving the hook from `build()` (owned self) to `build_queues` (has `&mut self`). **Gate 0 (`e485bbb94`) + Gate 1 (`51f1e1718`) APPROVED.**
 
