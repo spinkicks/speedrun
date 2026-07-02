@@ -220,3 +220,28 @@ def test_real_retriever_abstains_when_below_threshold():
     )
     assert state["status"] == "abstain"
     assert "ground" in state["abstain_reason"].lower()
+
+
+# ---------------------------------------------------------------------------
+# BUG 4b (SAFETY): the default grounding threshold must be strict enough that a
+# near-zero-similarity passage does NOT count as grounding. With RRF (k=60), a
+# hit that ranks #1 in only ONE arm scores ~0.0167; a real top hit (near-top in
+# BOTH arms) scores ~0.032-0.033. The old default (0.01) let the weak,
+# single-arm hit through. The default must sit above the single-arm score.
+# ---------------------------------------------------------------------------
+
+
+def test_default_min_ground_score_rejects_single_arm_weak_hit():
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    k = 60  # HybridRetriever.rrf_k default
+    single_arm_top = 1.0 / (k + 0)  # ~0.0167: #1 in one arm, absent in other
+    both_arms_top = 1.0 / (k + 0) + 1.0 / (k + 0)  # ~0.0333: #1 in both
+    # A weak, single-arm-only hit must NOT clear the default threshold.
+    assert DEFAULT_MIN_GROUND_SCORE > single_arm_top, (
+        "default grounding threshold must reject a single-arm-only (~0.0167) hit"
+    )
+    # ...but a genuine top hit present near the top of both arms must still pass.
+    assert DEFAULT_MIN_GROUND_SCORE < both_arms_top, (
+        "default grounding threshold must still admit a genuine top hit"
+    )

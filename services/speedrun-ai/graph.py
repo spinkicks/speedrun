@@ -35,7 +35,7 @@ from typing import Any, Callable, Optional, TypedDict
 
 from langgraph.graph import END, StateGraph
 
-from verify.sympy_verifier import ProblemSpec, verify
+from verify.sympy_verifier import ProblemSpec, answers_equivalent, verify
 
 # ---------------------------------------------------------------------------
 # Types
@@ -87,11 +87,15 @@ def default_retriever(candidate: dict) -> Optional[str]:
     return "PLACEHOLDER-CITATION (stub retriever; real grounding in Task 4.3)"
 
 
-# The default grounding threshold. RRF scores are on the order of 1/(k+rank)
-# summed over two arms (~0.01-0.033 for a strong top hit with k=60); a small
-# positive floor keeps genuinely relevant hits while still allowing the
-# ungrounded/abstain path when nothing scores. Tunable by the caller.
-DEFAULT_MIN_GROUND_SCORE = 0.01
+# The default grounding threshold. RRF scores are ~1/(k+rank) summed over the
+# two arms (k=60). With a small corpus the top-ranked doc in a single arm always
+# scores ~1/60 (~0.0167) regardless of relevance, so the old 0.01 floor admitted
+# essentially ANY hit — near-zero-similarity passages counted as "grounding",
+# neutering the drop-if-unverifiable gate. A genuine top hit ranks near the top
+# of BOTH arms (~1/60 + 1/60 ≈ 0.0333, and ~0.031 even at rank ~1+10). We set
+# the floor to 0.03: above the single-arm-only score (~0.0167, rejected) yet
+# below a real both-arms top hit (~0.031-0.033, admitted). Tunable by the caller.
+DEFAULT_MIN_GROUND_SCORE = 0.03
 
 
 def make_hybrid_retriever(
@@ -182,14 +186,42 @@ def _make_propose_node(llm_propose: LLMPropose):
 
 
 def verify_node(state: GraphState) -> dict:
-    """Run the REAL SymPy verifier on the proposed spec."""
+    """Run the REAL SymPy verifier on the proposed spec.
+
+    Safety cross-check (BUG 1 — verify/emit divergence): the verifier validates
+    ``spec.claimed_answer``, but the emit path ships ``candidate.correct``. If
+    those two DIVERGE, the shipped answer was never the one that passed
+    verification — a wrong answer could ship on a "verify passed". So after a
+    successful verify we REQUIRE that the shipped ``candidate.correct`` is
+    equivalent to the verified ``claimed_answer`` (using the verifier's own
+    conservative equivalence). Any divergence downgrades the result to a FAIL
+    (→ retry/abstain), so the pipeline fails closed and never ships an unverified
+    answer.
+    """
     spec_dict = state.get("spec") or {}
+    candidate = state.get("candidate") or {}
     try:
         spec = _spec_from_dict(spec_dict)
         result = verify(spec)
+        passed = bool(result.passed)
+        reason = result.reason
+        if passed:
+            shipped = str(candidate.get("correct", ""))
+            claimed = str(spec_dict.get("claimed_answer", ""))
+            extra = spec_dict.get("extra_symbols") or None
+            if not answers_equivalent(shipped, claimed, extra_symbols=extra):
+                # The verifier proved ``claimed`` correct, but the problem would
+                # ship ``shipped`` — refuse (fail closed) rather than emit an
+                # answer that was never verified.
+                passed = False
+                reason = (
+                    "shipped answer diverges from the verified answer "
+                    f"(candidate.correct={shipped!r} != verified "
+                    f"claimed_answer={claimed!r})"
+                )
         verification = {
-            "passed": bool(result.passed),
-            "reason": result.reason,
+            "passed": passed,
+            "reason": reason,
             "symbolic_ran": result.symbolic_ran,
             "numeric_ran": result.numeric_ran,
         }

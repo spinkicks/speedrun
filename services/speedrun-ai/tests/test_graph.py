@@ -212,6 +212,76 @@ def test_gold_gate_fail_abstains():
 # ---------------------------------------------------------------------------
 
 
+def test_verified_answer_diverges_from_emitted_correct_abstains():
+    """BUG 1 (verify/emit divergence): the verifier validates
+    ``spec.claimed_answer`` but the emit path builds the shipped ``correct``
+    from ``candidate.correct``. If the two disagree, the SHIPPED answer was
+    never the one that passed verification — a wrong answer could ship even
+    though "verify passed". The pipeline MUST abstain on that divergence.
+    """
+
+    def _divergent_proposal():
+        return {
+            "candidate": {
+                "stem": "Find the derivative of f(x) = x**2.",
+                # candidate.correct is WRONG (3*x) ...
+                "correct": "3*x",
+                "choices": ["3*x"],
+                "worked_solution": "(candidate ships a different answer)",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                # ... but the verifier only ever sees the CORRECT claimed_answer.
+                "claimed_answer": "2*x",
+            },
+        }
+
+    llm = _counting_llm([_divergent_proposal])
+    state = run_generation(
+        "calculus", "power_rule", llm_propose=llm, max_retries=0
+    )
+
+    # verify() passes (2*x is the true derivative), but the emitted correct
+    # answer (3*x) was NOT the verified one → must NOT emit.
+    assert state["status"] == "abstain", (
+        "a candidate whose emitted correct answer diverges from the verified "
+        "claimed_answer must abstain, not ship the unverified answer"
+    )
+    assert state["problem"] is None
+
+
+def test_verified_answer_matches_emitted_correct_still_emits():
+    """Guard against over-tightening BUG 1's fix: when candidate.correct and
+    the verified claimed_answer agree (modulo formatting), the happy path must
+    still emit."""
+
+    def _agreeing_proposal():
+        return {
+            "candidate": {
+                "stem": "Find the derivative of f(x) = x**2.",
+                # equal to claimed_answer up to whitespace/formatting only
+                "correct": "2 * x",
+                "choices": ["2 * x"],
+                "worked_solution": "power rule",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    llm = _counting_llm([_agreeing_proposal])
+    state = run_generation(
+        "calculus", "power_rule", llm_propose=llm, max_retries=0
+    )
+    assert state["status"] == "emit"
+    assert state["problem"] is not None
+
+
 def test_verify_node_uses_real_sympy_verifier():
     # Claimed antiderivative missing a factor — only the real verifier catches it.
     def _wrong_integral():
