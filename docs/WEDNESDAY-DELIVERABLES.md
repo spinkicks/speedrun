@@ -9,7 +9,7 @@
 | Rust change e2e (diff + 3 Rust unit + 1 Python) | ✅ exceeded | — | 5 RPCs incl. mutating reorder; ~15 Rust + Python tests |
 | Review loop on exam deck | ✅ | — | seed deck imports; START RUN launches reviewer |
 | Memory model honest score (range + give-up) | ✅ | — | Wilson 95% + abstain, in Home + Memory |
-| **Installer runs on a clean machine** | ⚠️ | Claude+David | (1) Claude: `build_installer.py … build` then `… package` → produce the `.exe`/`.msi` artifact; (2) David: install on a clean env + record |
+| **Installer runs on a clean machine** | ⚠️→ artifact ✅ | David | ✅ Claude packaged the release MSI: `repos/anki/out/installer/dist/anki-26.05-win-x64.msi` (627,602,302 B ≈599 MiB, release engine, built offline from `main` @ `af1138428`, `test_installer.py` 27/27). ⬜ David: install on the `CleanTest` account + record. |
 
 ## Mobile
 | Requirement | Status | Owner | Action |
@@ -25,6 +25,9 @@
 | Test results | ✅ producible | `cargo test -p anki speedrun::` + `just check` output |
 | Clean-machine install recording | ⬜ (blocked) | needs the packaged installer first; use **Windows Sandbox** (fast) or a VM |
 | Phone review-session recording | ⬜ | pairs with the demo video |
+
+## Correct installer rebuild command (grounded 2026-07-01)
+The single `uv run python qt/tools/build_installer.py … build` line is **wrong** — it omits our fork wheels and pulls upstream Anki from PyPI (needs network). Canonical, offline path (from `repos/anki`, Windows): set `RELEASE=1`, run the `installer:build` ninja target, then `build_installer.py … package`. Artifact lands at `out/installer/dist/anki-26.05-win-x64.msi`. (~599 MiB: WiX LZX compresses the Qt6+Chromium payload poorly; slimming to ~150 MiB via symbol-strip/prune is a separate optional task.)
 
 ## Installer / .dmg decision (2026-07-01)
 - **Decision:** ship + record the **Windows installer** — satisfies "an installer that runs on a clean machine." No `.dmg` this cycle.

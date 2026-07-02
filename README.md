@@ -28,7 +28,8 @@ Both apps build, run, and review the same GRE deck on **one shared Rust engine**
 **Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
 
 ### Desktop — easiest: the installer
-A packaged Windows installer (`.msi`) is produced by the build (network-independent). Install it on any Windows machine and launch **Speedrun** — it opens into Speedrun Home. (Build it with `uv run python qt/tools/build_installer.py --version "$(cat .version)" build` then `… package` in `repos/anki`; artifact under `repos/anki/out/`.)
+A packaged, release-optimized Windows installer is prebuilt at
+**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** — install it on any Windows machine and launch **Speedrun** (it opens into Speedrun Home). The installer build is network-independent (`test_installer.py` 27/27). To rebuild it yourself, see the exact command in `docs/BUILD-PREREQS.md` (it is NOT the single `build_installer.py … build` line — that omits our fork wheels; use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path).
 
 ### Desktop — from source
 ```powershell
