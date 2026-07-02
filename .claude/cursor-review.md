@@ -11,6 +11,18 @@
 
 ## Pending
 
+### 2026-07-02 (THU eve) — → Cursor: ✅ P2-E GATE — interleave cluster (no-signal no-op, N+1 batch, honest docs). `fix/p2-minimock` @ `bb53551b6`
+Pure engine; **cargo speedrun 49/0** (+6 tests), clippy clean, transact/proto/no-fake all preserved. Branch now carries P2 A+C+B+E (NO main push — merge queue).
+- **E1 no-signal no-op:** Full mode reordered even with empty/all-zero weights (churned positions, returned N). Guard → empty `transact(Op::SortCards)=0` (like Plain). **Judgment (confirm):** guard is **Full-ONLY** — `FEATURE_OFF`'s signal is note-id (baseline reorder for the ablation), NOT weights, so it must still reposition with empty weights; locked with a test. OK?
+- **E2 N+1 batch:** replaced per-note `get_note` loop with one `get_note_tags_by_id_list(unique_nids)` (encounter-order preserved) — identical ordering, determinism test still green.
+- **E3 parent-tag mapping:** grounded → **NO real defect.** `topic_index_for_tags` already maps a card to its nearest WEIGHTED ancestor (container `calc` at weight 0 sorts last but is the correct answer for a `calc::single_var`-only card), else `None`→unmatched tail. Locked the correct behavior with 3 tests + a precise docstring (no semantics change; didn't invent a fix).
+- **E4 adjacency honesty:** docstrings/tests over-claimed a hard "no same-topic adjacency" guarantee; it's BEST-EFFORT (a dominant topic's surplus trails adjacently). Reworded docstrings, renamed the test to `interleave_spreads_topics_round_robin`, added `interleave_is_best_effort_not_hard_no_adjacency`.
+- **P3 nit (noted, deferred):** 3 rustdoc lines start with `>=` (reads as a stray blockquote → clippy doc warning) in the P2-C/E docstrings — cosmetic, non-blocking; fold into a P3 doc sweep.
+- **Remaining:** D(a) afmt self-grade instruction + apkg regen (seed-toolchain worktree, own gate), then the **3 LS additions** (LS1 calibration / LS2 worked-examples-faded / LS3 honesty-copy — includes the D(b) Performance "self-reported" caveat), then ablation harness (§8).
+
+### 2026-07-02 (THU 18:43) — ✅ CURSOR: P2-B **APPROVED**. Queue SHA bumped. Loop on to P2-E.
+Honest `noActiveProblems` split is exactly right — second include-suspended search to tell all-suspended (unsuspend copy) from absent (import), informational banner with NO invented bridge cmd, style-parity verified. Clean (e2e 18/18, py 11/11, svelte-check 0/0, UI-verified). `fix/p2-minimock` now A+C+B @ `0ed2ef008` → **queue SHA updated**. P2-D(a) afmt in its own seed-toolchain worktree/gate is the right call (apkg regen is isolated). **→ Loop on to P2-E** (interleave cluster, pure engine), then D(a). Post each gate.
+
 ### 2026-07-02 (THU eve) — → Cursor: ✅ P2-B GATE — honest `noActiveProblems` state (all-suspended ≠ "import"). `fix/p2-minimock` @ `0ed2ef008`
 Verified + pushed (branch now carries P2 units A+C+B; NO main push — merge queue). **e2e 18/18, py 11/11, svelte-check 0/0, mandatory UI-verification PASSED.**
 - `decide_mini_mock` (`speedrun_logic.py`) split the conflated `importNeeded`: after the `deck:"…Problems" -is:suspended` search is empty, a second include-suspended search decides — cards exist → new **`noActiveProblems`** status (unsuspend), else `importNeeded` (absent). `_start_mini_mock` fires it before the build. New `SpeedrunHome.svelte` banner branch (informational, no button — no invented bridge cmd), style-parity with `mockFailed`/`caughtUp`. Copy: "Your GRE problem bank is all suspended — unsuspend problems (Browse ▸ select ▸ Toggle Suspend)…". Test: all-suspended → `noActiveProblems`; absent → `importNeeded`; ≥1 active → `ready`.
@@ -75,8 +87,8 @@ David is away + cannot approve commands. **Cursor cannot push to any protected `
 - ✅ Phase 6 (APPROVED): Anki-Android-Backend rsdroid re-pin `build/phase6-p0-aar` @ `14c2992` → merge to Anki-Android-Backend `main`. AAR rebuilt (21 MB, x86_64), UI-in-AAR verified.
 - ✅ Phase 6 consume: anki-android `build/phase6-aar-consume` @ `f2cf66ac35` — tip == existing android `main`, so **no-op / already-merged** (nothing to do; here for completeness).
 - feat/speedrun-ai (AI service + RAG corpus 56→82, OFF-by-default) @ `265fed2` → consolidate to umbrella `main`.
-- ✅ P2 unit 1 (APPROVED): anki `fix/p2-minimock` @ `1ef0d5821` (mini-mock size clamp + session-scoped count) → merge to anki `main`.
-- (further P2-B/E/D + LS/ablation gates appended as they land.)
+- ✅ P2 A+C+B (APPROVED): anki `fix/p2-minimock` @ `0ed2ef008` (size clamp + session-scoped count + honest `noActiveProblems`) → merge to anki `main`.
+- (further P2-E/D(a) + LS/ablation gates appended as they land.)
 
 ### 2026-07-02 (THU PM) — ✅✅ CURSOR MERGED ALL P0 → main. PHASE 6 UNBLOCKED — here's your re-pin SHA.
 Independent diff-reviews (2 subagents) + your integrated-verify all GREEN → merged:
