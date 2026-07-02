@@ -3,7 +3,8 @@
 > **Deliverable:** the "Speedrun MVP Demo Video" (target 3–5 min). Scene-by-scene: **[SHOW]** = on-screen action, **[SAY]** = narration. Content is grounded in `docs/WHAT-WE-BUILT.md`; **honesty rules from there apply — never claim scaffolding/planned items as done.** Draft 2026-07-01 — **record after** the mobile-first + START RUN work lands (scenes flagged ⏳ depend on it).
 
 ## Before recording (setup)
-- Desktop: `just run` (Anki in **dark mode**; Speedrun Home auto-opens). Import the seed deck `speedrun/out/gre_math_seed.apkg` in a throwaway profile; do ~a few reviews on 1–2 topics beforehand so at least one topic shows a **real recall % + range** (not all-abstaining) — this makes the honesty story land.
+- Desktop: `just run` (Anki in **dark mode**; Speedrun Home auto-opens). Import the seed deck `speedrun/out/gre_math_seed.apkg` in a throwaway profile.
+- **Honest reality — lean into it:** a fresh deck **abstains on every topic** (a topic unlocks a range only after **20 graded reviews**, and each topic has ~3–5 cards — you cannot get there in one session, and we do NOT fake it). So the on-camera story is: **real coverage number (9/9 topics) + honest abstention everywhere** ("review N more to unlock"). That abstention IS the differentiator — do not try to force a populated range. (If you ever want to *show* a filled range later, it comes from real accumulated study over days, not a config tweak for the camera.)
 - Android: emulator (`Pixel_10`) with the app installed (`installPlayDebug`), same seed deck.
 - Have both windows ready to alt-tab / screen-record.
 
@@ -17,8 +18,8 @@
 - **[SAY]** "This is Speedrun — an honest study trainer for the GRE Math Subject Test. It's built **on top of Anki's** proven spaced-repetition engine, but it's its own app: our own front door, our own scores, running the same engine on desktop and phone. The theme of the whole thing is honesty — it never shows you a number it can't back up."
 
 ### Scene 2 — The honest measurement (~60s) — the differentiator
-- **[SHOW]** Point at the splits: a topic with a real recall % and its **95% range bracket**; then an abstaining row ("🔒 20 more to unlock").
-- **[SAY]** "Each topic is a split. For topics you've studied enough, we show your recalled memory with a **95% confidence range** — not a single fake number. For topics without enough data, we **abstain**: 'review 20 more to unlock.' Most study apps invent a confident score; we refuse to until the data earns it."
+- **[SHOW]** The coverage header (**9/9 topics**), then the splits — every topic **abstaining** ("🔒 20 more to unlock"), and the "Memory · verified 0 timed" stat.
+- **[SAY]** "Each topic is a split. On a fresh deck, notice what it does NOT do — it doesn't invent a score. Every topic says 'review 20 more to unlock.' It refuses to guess until it has the data. Once you've studied enough, each split fills in with your recalled memory as a **95% confidence range** — never a single fake number. Most study apps show you a confident number on day one; this one earns it first." *(Honest: fresh deck = all abstaining; that's the point — don't imply a filled range is on screen unless it actually is.)*
 - **[SHOW]** Open the **Memory dashboard** (Tools → Speedrun: Memory, or the Home link); coverage header + per-topic ranges.
 - **[SAY]** "The Memory dashboard is the same idea in depth — coverage against the real exam blueprint, and per-topic mastery with ranges and abstention."
 

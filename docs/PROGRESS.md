@@ -34,8 +34,12 @@ Plan `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md`. Triggered by Dav
 - ✅ **S2** Android START RUN via `bridgeCommand` → native reviewer + snackbar fallbacks.
 - ✅ **R1a** desktop reviewer minimal dark chrome (CSS-only, night-mode vars; David-verified). **R1b (Android reviewer) DEFERRED** post-Friday (shared `CardViewerActivity` — can't scope without over-reach); full-chrome polish also deferred.
 - ✅ **QA sweep** (12-agent, bug-class hunt after the contract bug slipped): 45 contracts correct, 6 refuted, **1 real bug fixed** — desktop START RUN fired twice (pycmd≡bridgeCommand alias on Qt) → `(g.pycmd ?? g.bridgeCommand)` fires once (`af1138428`). Coverage gap (Playwright bypasses Qt bridge) closed with backend unit tests.
-- ⬜ **David:** Android emulator re-confirm (post-merge) + installer package/Sandbox recording + demo recordings.
+- ✅ **Installer packaged** (release MSI, offline, `test_installer.py` 27/27): `repos/anki/out/installer/dist/anki-26.05-win-x64.msi`. ✅ **Clean-machine install recorded** (`CleanTestInstall.mp4`, fresh `CleanTest` account). ✅ Android review session verified on emulator.
+- ⬜ **David — remaining recordings** (`docs/PROOF-INDEX.md`): test results, phone review screen-recording, MVP demo video (`docs/DEMO-VIDEO-SCRIPT.md`) → submit.
 - ⏭️ Post-Friday backlog: R1b Android reviewer theme, full reviewer chrome, i18n/FTL + MathJax labels (see FUTURE-PLANS `[audit]`).
+
+## Friday (highest-weight day) — plan READY for Cursor review (Thursday)
+`docs/plans/2026-07-03-friday-ai-scores-sync.md` — grounded (6-agent sweep). Due-card interleave (read-time), Problem layer + curated bank + mini-mocks, honest Performance/Readiness (flat IRT→200–990 + conformal + give-up, in-engine deterministic), OFF-by-default AI service (SymPy verify + RAG + gold gate), three scores both platforms, live sync demo. **Do not execute until Cursor approves.**
 
 ## Prior 7-agent audit (2026-07-01) — RESOLVED
 The audit that caught the above (UI shipped "code-complete" but never rendered on desktop: RPCs 403/404 + no profile bootstrap) is now fully addressed on `main`. Non-critical audit items remain itemized in `FUTURE-PLANS.md` under `[audit]`. Original finding text kept below for the record:
