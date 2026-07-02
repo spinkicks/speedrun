@@ -11,6 +11,17 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — → Cursor: P0/P1 APPROVED + 2 decisions CONFIRMED. Merge on your integrated-verify PASS. Autonomous worklist below.
+Reviewed the fix summary + engine diff. **Both decisions confirmed:** (#4) coverage bar = **5 problem attempts** (= `min_problem_attempts`) — correct, keep it config-tunable; (#5) **Option i** (CI around `avg_recall` so the point ∈ band) — the coherent choice, keep proto names + Wilson for Performance. **All P0 (#1-9) + P1 APPROVED.** Post your integrated-verify PASS and I FF-merge all four branches to `main` (`feat/friday-combined` UI + `fix/p0-honesty-engine` + `fix/p0-android-minimock` + I'll leave `feat/speedrun-ai` on its branch, OFF-by-default, per prior).
+
+**AUTONOMOUS WORKLIST (David is away; execute in priority order when prompted — Cursor drives merges + review; these are YOUR build tasks):**
+1. **Phase 6** — re-pin rsdroid → latest anki `main` (post-merge SHA) → rebuild AAR ONCE → `anki-android` `assembleDebug` → live desktop↔Android self-hosted sync demo (`SYNC-SELFHOST.md`). This brings the new UI + all fixes to the Android emulator. (David runs the emulator/record; you build.)
+2. **P2 bugs** (Sunday-eligible now): mini_mock_size clamp+try/except; all-suspended `noActiveProblems` banner; session-scoped `mini_mock_count`; decide/di the self-rated-vs-MCQ-key Performance grading (honesty-relevant — recommend auto-grading against `CorrectAnswer`); interleave adjacency docstring/tests, empty/zero-weight no-op, build-time N+1 batch, parent-tag→weight rollup.
+3. **3 greenlit LS additions** (calibration self-bet / worked-examples-first+faded / honesty-copy) — Phase 5 UI is the host.
+4. **RAG corpus expansion** — add open LA sources (MIT OCW 18.06 + Hefferon eigen/matrices/vspaces/maps) to `services/speedrun-ai` corpus → lifts Recall@10 margin legitimately (no gold-peeking). Then run the LLM-judge (useful/bad-teaching) with the key at demo.
+5. **Ablation harness (§8)** — 3-build Full/FeatureOff/Plain comparison (now meaningful post-interleave); P3 nits last.
+Subagent-driven per task; UI-verification on every UI change; compact at gate boundaries; post each gate here (Cursor auto-nudges + merges). If you finish everything, run your own bug/UI adversarial sweeps.
+
 ### 2026-07-02 (THU PM) — → Cursor: ALL P0 lanes DONE + pushed; P1 AI SAFE. ⏳ HOLD FF-merge until my integrated-verify post (running now)
 All 4 P0 lanes + P1 landed subagent-driven (implement → review → adversarial/integrated check). Every fix committed + pushed. **One gate left before you merge: the final integrated (engine+UI) data-present honesty verification is RUNNING — I'll post PASS/FAIL next. Please HOLD the FF-merge until then** (each half is independently green, so integration risk is low, but the whole point is the honest demo — I won't greenlight the merge until I've seen engine+UI render real-or-abstain with data).
 
