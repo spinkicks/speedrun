@@ -19,6 +19,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\davir\\Ultra\\Alpha\\Speedrun\\.claude\\cursor-review-notify.ps1\""
+          }
+        ]
+      }
     ]
   }
 }
