@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speedrun Identity — mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Manrope:wght@500;800&family=Archivo:wght@700;900&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0B0E12; --panel:#12161C; --line:#232A33;
+    --fg:#E6EAEF; --muted:#7C8794;
+    --pace-v1:#E8B23A;      /* old amber */
+    --pace:#F4F7FA;         /* new: near-white accent */
+    --sans:"Inter","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#05070a;color:var(--fg);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;line-height:1.4}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+  h2.section{font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--muted);margin:56px 0 18px;border-bottom:1px solid var(--line);padding-bottom:10px}
+  .note{color:var(--muted);font-size:13px;max-width:70ch;margin:0 0 8px}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--line);padding:3px 8px;margin-left:8px;vertical-align:middle}
+
+  /* wordmark options */
+  .marks{display:grid;grid-template-columns:1fr;gap:14px}
+  .mark{background:var(--ink);border:1px solid var(--line);padding:26px 28px;display:flex;
+    align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  .mark .wm{font-size:46px;line-height:1;color:#fff;letter-spacing:-.01em}
+  .mark .meta{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .wm-inter{font-family:"Inter";font-weight:900}
+  .wm-manrope{font-family:"Manrope";font-weight:800}
+  .wm-archivo{font-family:"Archivo";font-weight:900}
+  .wm-old{font-family:"Space Grotesk";font-weight:700}
+  .wm .run{color:var(--pace)}
+  .wm-old .run{color:var(--pace-v1)}
+  .sub{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    font-family:var(--sans);margin-top:6px}
+
+  /* icon marks */
+  .icons{display:flex;gap:20px;flex-wrap:wrap}
+  .ic{width:88px;height:88px;background:var(--ink);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center}
+  .ic .glyph{font-family:"Inter";font-weight:900;font-size:44px;color:#fff}
+  .ic.solid{background:#fff}
+  .ic.solid .glyph{color:var(--ink)}
+  .ic .chev{font-weight:900;font-size:40px;color:var(--pace)}
+
+  /* home preview */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:820px){.compare{grid-template-columns:1fr}}
+  .home{background:var(--ink);border-left:1px solid var(--line);border-right:1px solid var(--line);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .home .hd{display:flex;justify-content:space-between;align-items:flex-start;
+    padding:22px 22px 18px;border-bottom:1px solid var(--line)}
+  .home .brand{font-family:"Inter";font-weight:900;font-size:30px;color:#fff;letter-spacing:-.01em}
+  .home.v1 .brand{font-family:"Space Grotesk";font-weight:700}
+  .home .brand .run{color:var(--pace)}
+  .home.v1 .brand .run{color:var(--pace-v1)}
+  .home .status{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:right}
+  .home.v1 .status{font-family:"IBM Plex Mono"}
+  .home .brand-sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .home.v1 .brand-sub{font-family:"IBM Plex Mono"}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+  .stat{padding:16px 18px;border-right:1px solid var(--line)}
+  .stat:last-child{border-right:0}
+  .stat .lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .home.v1 .stat .lab{font-family:"IBM Plex Mono"}
+  .stat .val{font-size:26px;margin-top:6px;font-variant-numeric:tabular-nums;font-weight:700}
+  .home.v1 .stat .val{font-family:"IBM Plex Mono";font-weight:500}
+  .meter{height:4px;background:var(--line);margin-top:10px}
+  .meter i{display:block;height:100%;background:var(--pace)}
+  .home.v1 .meter i{background:var(--pace-v1)}
+
+  .splits{padding:8px 0}
+  .seg{display:flex;justify-content:space-between;padding:12px 18px;background:var(--panel);
+    border-bottom:1px solid var(--line);border-left:3px solid var(--pace)}
+  .home.v1 .seg{border-left-color:var(--pace-v1)}
+  .seg .name{font-weight:700;letter-spacing:.02em}
+  .home.v1 .seg .name{font-family:"Space Grotesk"}
+  .seg .wt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-variant-numeric:tabular-nums}
+  .home.v1 .seg .wt{font-family:"IBM Plex Mono"}
+  .row{display:grid;grid-template-columns:1.4fr 46px 1fr 44px 18px;gap:10px;align-items:center;
+    padding:11px 18px;border-bottom:1px solid var(--line)}
+  .row .t{color:var(--fg)}
+  .row .pct{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+  .home.v1 .row .pct{font-family:"IBM Plex Mono";font-weight:500}
+  .home.v1 .row .t{font-family:"IBM Plex Mono";color:var(--muted);font-size:13px}
+  /* error bracket */
+  .bracket{position:relative;height:14px}
+  .bracket .bar{position:absolute;top:6px;height:2px;background:var(--line)}
+  .bracket .cap{position:absolute;top:2px;width:2px;height:10px;background:var(--muted)}
+  .bracket .tick{position:absolute;top:0;width:2px;height:14px;background:var(--pace)}
+  .home.v1 .bracket .tick{background:var(--pace-v1)}
+  .row .ck{color:var(--pace);text-align:center;font-weight:700}
+  .home.v1 .row .ck{color:var(--pace-v1)}
+  .abst{grid-column:1 / -1;color:var(--muted);font-size:12px;letter-spacing:.04em}
+  .home.v1 .abst{font-family:"IBM Plex Mono"}
+
+  .bar-actions{display:flex;gap:12px;padding:18px;border-top:1px solid var(--line);align-items:center}
+  .btn{background:var(--pace);color:var(--ink);border:0;padding:12px 20px;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;font-size:13px;font-family:var(--sans);cursor:default}
+  .home.v1 .btn{background:var(--pace-v1);font-family:"IBM Plex Mono";font-weight:500}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600}
+  .cap-lab{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;margin:10px 0 -6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="font-family:Inter;font-weight:900;font-size:20px">Speedrun — visual identity mockup</div>
+  <p class="note">David's direction (2026-07-02): bolder, professional typeface (drop the "code" look) + a professional white/light accent instead of amber. Dark base kept. Pick a wordmark font + confirm the white accent; I'll lock the spec and Claude builds it. Fonts here load from a CDN for the mockup only — the real app bundles them offline.</p>
+
+  <h2 class="section">1 · Wordmark — pick a font <span class="tag">white accent, no amber</span></h2>
+  <div class="marks">
+    <div class="mark"><span class="wm wm-inter">SPEED<span class="run">RUN</span></span><span class="meta">Inter Black · recommended</span></div>
+    <div class="mark"><span class="wm wm-manrope">SPEED<span class="run">RUN</span></span><span class="meta">Manrope ExtraBold · geometric</span></div>
+    <div class="mark"><span class="wm wm-archivo">SPEED<span class="run">RUN</span></span><span class="meta">Archivo Black · heaviest / most character</span></div>
+    <div class="mark" style="opacity:.6"><span class="wm wm-old">SPEED<span class="run">RUN</span></span><span class="meta">v1 (current) · Space Grotesk + amber — the "too AI" look</span></div>
+  </div>
+  <p class="cap-lab">the accent could also be a solid single-color wordmark (all white) — say the word and I'll add that variant</p>
+
+  <h2 class="section">2 · App / launcher icon — direction</h2>
+  <p class="note">Monogram options (final asset TBD). A speedrun "timer chevron" ► or a bold S. On dark tile and on a white tile (adaptive icon needs both).</p>
+  <div class="icons">
+    <div class="ic"><span class="glyph">S</span></div>
+    <div class="ic solid"><span class="glyph">S</span></div>
+    <div class="ic"><span class="chev">►</span></div>
+    <div class="ic solid"><span class="chev" style="color:var(--ink)">►</span></div>
+    <div class="ic"><span class="glyph" style="font-size:30px">S►</span></div>
+  </div>
+
+  <h2 class="section">3 · Home — new (white) vs current (amber)</h2>
+  <div class="compare">
+    <!-- NEW -->
+    <div>
+      <p class="cap-lab" style="margin-bottom:10px">NEW · Inter + white accent</p>
+      <div class="home v2">
+        <div class="hd">
+          <div>
+            <div class="brand">SPEED<span class="run">RUN</span></div>
+            <div class="brand-sub">GRE MATHEMATICS · SUBJECT TEST</div>
+          </div>
+          <div class="status">RUN ACTIVE<br/>SESSION 3 · PB PACE</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="lab">Coverage</div><div class="val">9/9</div><div class="meter"><i style="width:100%"></i></div></div>
+          <div class="stat"><div class="lab">Memory · verified</div><div class="val">6/9</div><div class="meter"><i style="width:66%"></i></div></div>
+          <div class="stat"><div class="lab">Readiness</div><div class="val" style="color:var(--muted)">—</div><div class="meter"></div></div>
+        </div>
+        <div class="splits">
+          <div class="seg"><span class="name">01 · Calculus</span><span class="wt">ETS WEIGHT 50%</span></div>
+          <div class="row"><span class="t">Single-variable</span><span class="pct">82%</span>
+            <span class="bracket"><span class="bar" style="left:10%;right:22%"></span><span class="cap" style="left:10%"></span><span class="cap" style="right:22%"></span><span class="tick" style="left:64%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+          <div class="row"><span class="t">Multivariable</span><span class="pct">71%</span>
+            <span class="bracket"><span class="bar" style="left:18%;right:30%"></span><span class="cap" style="left:18%"></span><span class="cap" style="right:30%"></span><span class="tick" style="left:52%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+          <div class="row"><span class="abst">Sequences &amp; series — NOT TIMED · review 14 more to unlock a split</span></div>
+          <div class="seg"><span class="name">02 · Algebra</span><span class="wt">ETS WEIGHT 25%</span></div>
+          <div class="row"><span class="t">Linear algebra</span><span class="pct">64%</span>
+            <span class="bracket"><span class="bar" style="left:22%;right:34%"></span><span class="cap" style="left:22%"></span><span class="cap" style="right:34%"></span><span class="tick" style="left:46%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+        </div>
+        <div class="bar-actions">
+          <button class="btn">► Start run</button>
+          <button class="btn ghost">Next segment · Multivariable</button>
+        </div>
+      </div>
+    </div>
+    <!-- CURRENT -->
+    <div>
+      <p class="cap-lab" style="margin-bottom:10px">CURRENT · Space Grotesk + amber</p>
+      <div class="home v1">
+        <div class="hd">
+          <div>
+            <div class="brand">SPEED<span class="run">RUN</span></div>
+            <div class="brand-sub">GRE MATHEMATICS · SUBJECT TEST</div>
+          </div>
+          <div class="status">RUN ACTIVE<br/>SESSION 3 · PB PACE</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="lab">Coverage</div><div class="val">9/9</div><div class="meter"><i style="width:100%"></i></div></div>
+          <div class="stat"><div class="lab">Memory · verified</div><div class="val">6/9</div><div class="meter"><i style="width:66%"></i></div></div>
+          <div class="stat"><div class="lab">Readiness</div><div class="val" style="color:var(--muted)">—</div><div class="meter"></div></div>
+        </div>
+        <div class="splits">
+          <div class="seg"><span class="name">01 · Calculus</span><span class="wt">ETS WEIGHT 50%</span></div>
+          <div class="row"><span class="t">Single-variable</span><span class="pct">82%</span>
+            <span class="bracket"><span class="bar" style="left:10%;right:22%"></span><span class="cap" style="left:10%"></span><span class="cap" style="right:22%"></span><span class="tick" style="left:64%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+          <div class="row"><span class="t">Multivariable</span><span class="pct">71%</span>
+            <span class="bracket"><span class="bar" style="left:18%;right:30%"></span><span class="cap" style="left:18%"></span><span class="cap" style="right:30%"></span><span class="tick" style="left:52%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+          <div class="row"><span class="abst">Sequences &amp; series — NOT TIMED · review 14 more to unlock a split</span></div>
+          <div class="seg"><span class="name">02 · Algebra</span><span class="wt">ETS WEIGHT 25%</span></div>
+          <div class="row"><span class="t">Linear algebra</span><span class="pct">64%</span>
+            <span class="bracket"><span class="bar" style="left:22%;right:34%"></span><span class="cap" style="left:22%"></span><span class="cap" style="right:34%"></span><span class="tick" style="left:46%"></span></span>
+            <span class="pct">—</span><span class="ck">✓</span></div>
+        </div>
+        <div class="bar-actions">
+          <button class="btn">► Start run</button>
+          <button class="btn ghost">Next segment · Multivariable</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:40px">Tell me: (a) which wordmark font, (b) white accent OK or a different light tint, (c) all-white wordmark vs the subtle split. I'll lock <code>speedrun-identity-spec.md</code> and hand it to Claude.</p>
+</div>
+</body>
+</html>

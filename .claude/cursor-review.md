@@ -11,6 +11,26 @@
 
 ## Pending
 
+### 2026-07-02 (THU) — ✅ FRIDAY PLAN APPROVED + 🎨 BRANDING SLICE GREENLIT — two tracks this cycle
+David's calls (2026-07-02): run **both tracks** this cycle; Friday design decisions **D1–D4 APPROVED**; branding gets a **new visual direction** (see below).
+
+**TRACK A — Friday plan `docs/plans/2026-07-03-friday-ai-scores-sync.md`: APPROVED — START NOW.**
+- **D1–D4 confirmed** (in-engine deterministic Performance; recompute-on-read scores, NO separate synced blob; extend `GetPerformanceReadiness` append-only; filtered-deck mini-mock). D2's deviation from the brief (recompute-on-read vs persist) is accepted — it's the more honest + deterministic choice; do NOT add the score blob.
+- **Start immediately with Phase 0 → Phase 1** (they have ZERO open-question blockers: N+1 batch, determinism pin, then the due-card interleave that completes the headline Rust change). Cursor gate-reviews at Gate 0 and Gate 1 as specified.
+- **Phases 2–6 gating on David's open answers (do NOT block Phase 0/1 on these):**
+  - **#3 mini-mock length → DECIDED: 10 problems @ 2.5 min/q** (Decision 13 default). Wire this as the config default in Task 3.2; still config-driven.
+  - **#1 problem-bank floor → interim default ≥8 scorable problems per leaf** to enable a 10-item mini-mock; abstain below it (honest). David curates the real content Thu-night/Fri; treat the seed set as a starter, keep everything abstaining until the floor is met. (David to confirm/raise the floor.)
+  - **STILL BLOCKING their phases (David owes, not blocking today):** #2 LLM/API + key (blocks Task 4.2 AI service), #4 gold-set 50 pairs authored by David/Cursor in `eval/holdout/` (blocks Task 4.4 gate; agents must NOT read/write it), #5 permanent `PROBLEM_MODEL_ID` (blocks Task 3.1 — David picks a fixed id, never reuse `1607392319`).
+- Sequence so Phase 4 (AI service, umbrella `services/`) runs parallel-safe; don't build `repos/anki` while Track B builds `ts/qt`.
+
+**TRACK B — Branding / de-Anki-fication identity slice: GREENLIT, spec ready.** `docs/design/speedrun-identity-spec.md` (+ mockup `docs/design/mockups/speedrun-identity.html`). **New visual direction (David):** the v1 "The Run" look read too AI/code — so:
+  - **Typography:** drop Space Grotesk display + the all-monospace numerals; use a **bold professional sans (Inter Black recommended)** for wordmark/headings and the SAME sans with `tabular-nums` for numerals (kills the "code" look while keeping column alignment). Retire `--mono` from these surfaces. **Bundle fonts OFFLINE** (no CDN — offline is a hard req like the installer).
+  - **Accent:** replace amber `--pace #e8b23a` → **near-white `--pace #F4F7FA`**. White primary CTA on dark; white point-estimate tick; hierarchy via weight/size, not color. Dark base unchanged. (David is picking the exact wordmark font from the mockup — treat the SPEC as source of truth once he confirms; if you start before he confirms the font, do the accent/token swap first, font last.)
+  - **Deliverables:** re-skin Home+Memory tokens (change token DEFINITIONS in `SpeedrunHome.svelte` ~L133-143; grep every `--pace`/`var(--mono)`); **app name "Speedrun"** on desktop window title+icon and Android launcher label+icon; **Anki-chrome trimming** (default path Home→Study→Memory/Scores; deck picker/menus demoted, not deleted). Pure presentation/shell; ZERO engine/proto. Screenshot-gate BOTH platforms.
+  - **Nav shell is NOT this slice** — it folds into Friday Phase 5 (same Svelte surface as scores). This slice = font/accent/branding/chrome only, so we don't restyle nav twice.
+
+**Folds in the Memory "back to Home" gap** (below) → handled by the nav-shell slice in Friday Phase 5, not separately.
+
 ### 2026-07-01 — 🐞 UX gap (desktop): Memory dashboard has no "back to Home"
 David caught this while recording. Desktop Memory opens as its own `SpeedrunMemory` QDialog (`aqt.dialogs.open("SpeedrunMemory")`), so there's no in-page way back to Home — Home links INTO Memory ("MEMORY ▸" in `SpeedrunHome.svelte`) but Memory has no return path. One-way trip.
 **Fix (small, low priority — schedule with Friday UI or as a quick standalone):** add a "‹ HOME" / back affordance on the Memory page that returns to Home. Options: (a) a bridge cmd `open:home` mirroring Home's `open:memory` (desktop `_on_bridge_cmd` in `qt/aqt/speedrun.py` opens `SpeedrunHome`; Android nav back); or (b) simplest — since Memory is a separate desktop dialog, a "‹ HOME" link that closes Memory (returns focus to the still-open Home) + on Android navigates up. Keep it in the shared Svelte page so both platforms get it. Screenshot-gate. NOT blocking the Wednesday submission — desktop demo just uses Home's link into Memory, not back.
