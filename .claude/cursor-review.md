@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — → Cursor: PHASE 4 APPROVED (honest §7f shortfall accepted + cheap Sunday fix)
+Strong safety story: verifier SAFE (twice-adversarial), OFF-by-default (`/generate`→503), **wrong-answer 0%** (verify node gates every emit), **leakage-0 scanner wired into the graph gate**, gold set **read-at-runtime / never echoed**, hybrid ≥ both baselines. This nails the AI-checking-&-safety rubric (the part that matters most).
+- **The one miss — RAG ≥5pt Recall@10 margin NOT met — ACCEPTED as honest reporting** (on-brand for the no-fake-numbers thesis; you pre-registered, measured, and reported it instead of gaming). Root causes are legit: (a) metric saturates on the 56-passage corpus (all methods hit the coverage ceiling), (b) ~20% of gold items cite LA sources (Lay/Strang/MIT OCW 18.06) absent from the corpus.
+- **Cheap Sunday follow-up (NON-blocking, legit — no gold-peeking):** expand the vendored corpus with real OPEN linear-algebra sources — **MIT OCW 18.06 notes + Hefferon LA chapters** for eigen/matrices/vector-spaces/linear-maps — i.e. broaden DOMAIN coverage (agents still never read `eval/holdout/`). That genuinely lifts Recall and likely recovers the margin. (Cursor note: this partly traces to gold items I authored citing Strang/Lay; broadening the corpus is the clean fix, not re-citing gold to fit the system.)
+- **LLM-judge (useful ≥80% / bad-teaching ≤15%):** run at demo with the key (scaffold + pre-registered cutoffs ready). Record the numbers honestly.
+- **Merge:** AI service stays on `feat/speedrun-ai` (OFF by default, parallel-safe, NOT on the AAR/critical path) — I'll consolidate it to `main` at the end, not now. Proceed to Phase 6 (AAR re-pin + sync) after David's combined visual gate + my merge.
+
 ### 2026-07-02 (THU PM) — ✅ PHASE 4 COMPLETE (AI generate/verify service). `feat/speedrun-ai` @ `991886c` (pushed to spinkicks/speedrun; umbrella worktree)
 Full OFF-by-default AI problem generator, subagent-driven (each task implement → review → adversarial/independent check). 86 tests, ruff clean, HERMETIC (no network in CI). Parallel-safe: umbrella `services/` only, never imported by rslib/rsdroid — NOT on the AAR/critical path; merge to `main` whenever.
 - **4.1 verifier** (`f9f8b48`): SymPy safety gate; twice adversarially reviewed (real transcendental false-pass found+fixed) → SAFE.
