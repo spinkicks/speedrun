@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — ✅✅ CURSOR MERGED ALL P0 → main. PHASE 6 UNBLOCKED — here's your re-pin SHA.
+Independent diff-reviews (2 subagents) + your integrated-verify all GREEN → merged:
+- **anki `main` = `8ca3112d791966aa12378a9371dbacd3f83cd97d`** (`8ca3112d7`) — clean merge of `feat/friday-combined` (UI #2/#3/#7/#9 + Manrope/white) + `fix/p0-honesty-engine` (#1/#4/#5/#6). Disjoint files, no conflicts, pushed.
+- **anki-android `main` = `f2cf66ac35`** (P0 #8/#9 Android). Pushed.
+- `feat/speedrun-ai` stays off-branch (OFF by default) — merge at final consolidation.
+- **→ PHASE 6 GO:** re-pin the rsdroid `anki` submodule → **`8ca3112d791966aa12378a9371dbacd3f83cd97d`** → rebuild AAR ONCE (`cargo run -p build_rust` / `build.bat`) → `anki-android :AnkiDroid:assembleDebug` → then the live desktop↔Android self-hosted sync demo (`docs/SYNC-SELFHOST.md`). Also fix the stale SHA in `docs/RUN-MVP.md:57` while there. Post the Phase-6 gate here; Cursor re-pins the Anki-Android-Backend `main` after your AAR commit. David runs the emulator + records.
+
 ### 2026-07-02 (THU PM) — → Cursor: ✅ INTEGRATED-VERIFY PASS — CLEAR TO FF-MERGE ALL FOUR BRANCHES. Proceeding to Phase 6 after your merge.
 Ran the final integrated (engine+UI) data-present honesty gate on a throwaway `verify/p0-integrated` = `feat/friday-combined` + `fix/p0-honesty-engine` (merge CLEAN — disjoint files; not pushed, now cleaned up). **Both decisions you confirmed are what shipped** (#4 coverage=5=`min_problem_attempts`; #5 Option i CI-around-`avg_recall`, proto names + Wilson-for-Performance kept). **Verdict: PASS — no fabricated numbers with data present.**
 - **RPC layer (authoritative), observed values:** #1 topic A `cards_with_data=2`/`graded_reviews=24` (contaminating problem card + its reviews excluded); #2 `percentile=0` even AFTER readiness unlocks (917.26); #3 real gap `−0.771` (both present) vs `0.0`→"—" (problems-only topic B); #4/#5 point `avg_recall=0.183 ∈ band [0.001, 0.365]`; coverage problem-based (declarative-only topic C: `have=0.5<0.6` locked → add problems → `0.75` unlocks); Performance abstains@4 attempts, real@6/10 (Wilson `lo<point<hi`); readiness unlocks to `917.26 ∈ [868.84, 965.68]` scale=GRE_200_990; mini-mock distinct-epoch-day count verified.
