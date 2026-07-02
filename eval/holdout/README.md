@@ -6,13 +6,19 @@
 `gre_math_gold.jsonl` — 50 human-grade, verified GRE **Mathematics Subject Test** multiple-choice problems used to gate the Friday AI problem-generation service (`services/speedrun-ai/`). The Task 4.4 harness runs the generator/RAG pipeline and measures quality against this set; it also serves as the RAG Recall@10 reference.
 
 ## Provenance
-- **Authored:** 2026-07-02 by Cursor (mission control) under David's directive (Friday permits AI-authored content). Distributed by ETS topic weight across the 9 scored leaf topics in `repos/anki/speedrun/exam_profiles/gre_math.json`.
+- **Authored:** 2026-07-02 by Cursor (mission control) under David's directive (Friday permits AI-authored content), via 4 topic-cluster authoring subagents. Distributed by ETS topic weight across the 9 scored leaf topics in `repos/anki/speedrun/exam_profiles/gre_math.json`.
 - **NOT** copied from any ETS released form (leakage rule). Original problems only.
+
+## Verification status — ✅ PASSED (2026-07-02)
+- **Structural:** `eval/tools/validate_goldset.py` → 50 items, schema valid, distribution exactly on target.
+- **Answer correctness:** each item SymPy-verified at authoring, then **re-verified by 2 INDEPENDENT verifier passes** (SymPy 1.14.0) that re-solved every problem from scratch (author answers NOT trusted). Result: **50/50 PASS, 0 corrections** — no MISMATCH / NOT-IN-CHOICES / MULTIPLE-CORRECT / AMBIGUOUS / BAD-DISTRACTOR. (Independent verifier pass A+B = 25/25; C+D = 25/25.)
+- **Leakage:** token-overlap scan vs the seed study deck → max Jaccard 0.80 but manually cleared (shared math vocabulary on short "Evaluate ∫…" stems; gold items are *applied computation*, seed cards are *declarative rules* — the intended §7d gap-meter split, not duplication).
+- **Remaining:** David spot-checks a random sample.
 
 ## Verification protocol (every pair)
 1. **Answer correctness:** each `correct_answer` independently confirmed by SymPy (symbolic + numeric) — authored with a per-item `verification` field, then re-verified in a second independent pass at assembly (author's snippet NOT trusted; problem re-solved from scratch).
 2. **Structure:** exactly 5 `choices`, exactly one `correct_answer` ∈ `choices`, unique `id`, `topic_id` ∈ the 9 scored leaves. Enforced by `eval/tools/validate_goldset.py`.
-3. **Source-grounding:** each item cites a real canonical open source (OpenStax Calculus Vol 1–3; Hefferon *Linear Algebra*; MIT OCW 18.06).
+3. **Source-grounding:** each item cites a real canonical reference — open-access preferred (OpenStax Calculus Vol 1–3; Hefferon *Linear Algebra*; MIT OCW 18.06); standard texts (Strang, Lay) acceptable as provenance for a few linear-algebra items.
 4. **Leakage scan:** checked to not overlap the seed study deck content.
 5. **David spot-check:** a random sample hand-verified by the owner.
 
