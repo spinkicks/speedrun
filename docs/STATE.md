@@ -28,7 +28,7 @@ Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki**
 
 ## CRITICAL PATH — rest of Thursday → Friday deliverable (focus here; ignore side-quests)
 Longest dependency chain = **Gate 2 → merge → Phase 3 → Phase 5 → Phase 6**. Phase 4 (AI) runs PARALLEL (umbrella `services/`, gold set ready). Branding merges anytime (presentation-only).
-1. **[imminent] Gate 2** — Track A Phase 2 (proto + honest Performance/Readiness). `just check` green + push → Cursor review → **Cursor FF-merges engine 0+1+2 to `main`** (all 3 forks). → **David: compact Claude here** (clean gate boundary).
+1. **✅ Gate 2 DONE (2026-07-02)** — Track A Phase 2 (proto + honest Performance/Readiness) reviewed + APPROVED (proto append-only verified; scores abstain-honest; 552 cargo + 31 speedrun + 2 py tests green). **FF-merged to anki `main` @ `c302082b4`** (`7ce0681c9..c302082b4`, pushed). NOTE: engine is anki-only — **Android forks (anki-android, Anki-Android-Backend) re-pin ONCE at Phase 6** (AAR rebuild). → **David: SAFE TO COMPACT Claude now** (clean gate boundary; all state in commits + channel + plan).
 2. **Phase 3** — `Speedrun::Problem` note type (`PROBLEM_MODEL_ID=2047815909`) + curated bank + mini-mock (10@2.5min). Claude via subagents. *No David gate (content/engine).* 
 3. **Phase 4 (parallel)** — AI service: SymPy verifier → FastAPI/LangGraph → RAG → gold-gate harness against the delivered gold set. Kill-switch proof. *David: none (key already in `.env`).* 
 4. **Phase 5** — 3 scores (Memory/Performance/Readiness) on the shared Svelte surface, both platforms; folds in nav shell + the Manrope re-skin. **David gate: desktop `just run` + Android emulator screenshots** (UI-verification subagent renders first).
