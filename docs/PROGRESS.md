@@ -25,12 +25,17 @@ Branded auto-open landing on BOTH platforms, per `docs/design/speedrun-home-spec
 - ✅ **All 4 audit gate-blockers fixed + code-verified** (commit `6341b6f61` + `52bcefa7e`): desktop data path (`AnkiWebViewKind.SPEEDRUN` API access + 4 methods in `exposed_backend_list` — fixed Home AND Memory), exam-profile bootstrap (`include_str!` default, both platforms), `closeWithCallback` on both dialogs, auto-open moved into post-sync `_onsuccess` + safeMode guard. 15/15 Rust tests, Python data-proof test, adversarial review (couldn't refute), Playwright e2e (RPCs 200 + render).
 - ✅ **Android emulator smoke DONE (2026-07-01):** `installPlayDebug` on `Pixel_10`; Speedrun Home renders identically to desktop (same shared page + engine — two-platform parity proven visually). One cosmetic follow-up: Android shell toolbar + system bars render white vs the dark page (theming slice; see FUTURE-PLANS — fix before recording). ⬜ David's recordings remain.
 
-## 🔄 Mobile-first UX + START RUN + reviewer (branch `feat/speedrun-mobile-first`) — in progress
-Plan APPROVED (`docs/plans/2026-07-01-mobile-first-and-startrun-plan.md`). David's on-device testing found START RUN bugs + mobile layout wrapping.
-- ✅ **M0 — mobile-first responsive Home + Memory** (merged to anki `main` `0c5112957`): base ~360px stacked cards + `@media(min-width:768px)` desktop restore; compact abstain copy; e2e no-overflow gate 4/4; desktop unchanged. Cursor-reviewed diff + merged.
-- 🔄 **M1** Android dark shell · **S1** desktop START RUN (real study + honest "import"/"caught up" + Custom Study) · **S2** Android START RUN (`bridgeCommand`) · **R1** full reviewer chrome restyle (both platforms, presentation-only). M1/S1/S2/R1 need David's GUI/emulator visual gates.
-- ➕ Folded in: re-theme Memory page dark to match "The Run" (was light; resolves the audit's RangeBand-token finding).
-- ⚠️ **R1 watch:** full-chrome reviewer is the timeline risk — descope/split if it threatens Friday's scoring work.
+## ✅ Mobile-first UX + START RUN + reviewer — MERGED to `main` (2026-07-01)
+Plan `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md`. Triggered by David's on-device testing. Per-repo `main`: anki **`af1138428`** · Anki-Android-Backend **`9aa21ec`** (rsdroid pin `eb4f5a3ff` — behind anki tip only by Android-irrelevant commits; re-pin at next AAR rebuild) · anki-android **`fdfd086031`**.
+- ✅ **M0** mobile-first responsive Home + Memory (stacked ≤768px → desktop columns; e2e no-overflow gate).
+- ✅ **Memory-dark** re-theme (was light; live-probe verified dark; resolves the audit RangeBand-token finding).
+- ✅ **M1** Android dark shell (scoped, no global theme change).
+- ✅ **S1** desktop START RUN — real study + honest import/caught-up banners + Custom Study; **David-verified** (launches real review). Bug caught in smoke (false "caught up" — `deck_tree()` has no counts) → fixed via `sched.deck_due_tree()` (`f0a06ce68`) + Qt-free `decide_start_run` + characterization test.
+- ✅ **S2** Android START RUN via `bridgeCommand` → native reviewer + snackbar fallbacks.
+- ✅ **R1a** desktop reviewer minimal dark chrome (CSS-only, night-mode vars; David-verified). **R1b (Android reviewer) DEFERRED** post-Friday (shared `CardViewerActivity` — can't scope without over-reach); full-chrome polish also deferred.
+- ✅ **QA sweep** (12-agent, bug-class hunt after the contract bug slipped): 45 contracts correct, 6 refuted, **1 real bug fixed** — desktop START RUN fired twice (pycmd≡bridgeCommand alias on Qt) → `(g.pycmd ?? g.bridgeCommand)` fires once (`af1138428`). Coverage gap (Playwright bypasses Qt bridge) closed with backend unit tests.
+- ⬜ **David:** Android emulator re-confirm (post-merge) + installer package/Sandbox recording + demo recordings.
+- ⏭️ Post-Friday backlog: R1b Android reviewer theme, full reviewer chrome, i18n/FTL + MathJax labels (see FUTURE-PLANS `[audit]`).
 
 ## Prior 7-agent audit (2026-07-01) — RESOLVED
 The audit that caught the above (UI shipped "code-complete" but never rendered on desktop: RPCs 403/404 + no profile bootstrap) is now fully addressed on `main`. Non-critical audit items remain itemized in `FUTURE-PLANS.md` under `[audit]`. Original finding text kept below for the record:
