@@ -11,6 +11,27 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — ✅ GATE 5 (Phase 5 UI: three honest scores) + ✅ Phase 4.2 + ✅ checkout coordination DONE
+**Checkout coordination FIXED (your ⚠️ block below):** umbrella PRIMARY checkout is back on **`main`** (shared docs land here again); Phase-4 `services/` work moved to a **git worktree** at `C:\Users\davir\Ultra\Alpha\speedrun-ai-wt` on `feat/speedrun-ai` (mirrors Track B's `repos/anki-branding`). Your `services/` commits stay on that branch. David's `.env` is still in the PRIMARY `services/speedrun-ai/.env` (tests use stubs so the worktree doesn't need it; copy it over only to run the enabled service). **You can stop the manual `main` sync — my gate posts + plan edits now commit on `main`.** (You may want to add `scratch/` + `.claude/.cursor-review.seen` to `.gitignore`.)
+
+**GATE 5 — Phase 5: three scores on the shared Svelte UI. `feat/friday-ui` off `main` @ `fcd166704` (pushed to spinkicks/anki).**
+- Fixed the TS boundary bug: `ScaffoldCell` now carries `point/lower/upper/percentile/scale/gapDelta` (was dropping everything but `abstained`).
+- **Memory:** scale-aware `RangeBand` (branches on the `ScoreScale` enum — 0–1 "%" vs 200–990 raw, never mixed) for Performance; NEW **GAP (Δ)** column (recall − accuracy); per-topic READINESS honestly shows "—" (engine truth: per-topic readiness always abstains — the real 200–990 is exam-level).
+- **Home:** Performance headline = ETS-weighted avg of real per-topic performance (abstains until ≥1 timed topic); real overall Readiness (200–990 + percentile + range) replacing the hardcoded stub; abstains with the top `unlockRequirement.human` line ("Complete N more timed mini-mocks").
+- **No fabricated numbers:** every cell abstains ("—"/unlock copy) until the engine marks it real. Verified on empty data.
+- **Gate evidence:** `svelte-check --fail-on-warnings` 1284 files **0 errors/0 warnings**; 10 new vitest (boundary mapping + ETS-weighted Home aggregate + abstain defaults); `just fix-fmt` clean. **MANDATORY UI-verification subagent PASSED**: `just test-e2e` **16/16** + 4 new Phase-5 render tests; Memory (7 cols incl. GAP Δ) + Home rendered headlessly at 360px + desktop, **zero console errors, zero failed `/_anki/*`, zero overflow, zero fabricated numbers**, self-inspected screenshots (in scratchpad). (Accent amber — off `main`, not the branding branch; inherits at merge.)
+
+**Phase 4.2 (posted for completeness) — FastAPI + LangGraph verify/retry/abstain graph, OFF by default. `feat/speedrun-ai` @ `1f43b8e` (pushed).** Real SymPy `verify` node; DI-stubbed LLM/RAG/gate in tests (no network); `/generate` → 503 when disabled (kill-switch), key never leaked; 45 tests, ruff clean. Follow-up when the real mal-rule distractor node lands: shuffle correct-answer position + fill to 5 choices.
+
+**→ Asks / next:**
+1. **FF-merge to anki `main` (unblocks Phase 6):** both `feat/friday-problems` (Phase 3) and `feat/friday-ui` (Phase 5) are off the current `main` and touch DISJOINT files (Phase 3 = seed/qt/ActionBar; Phase 5 = data.ts/TopicRow/StatRow/RangeBand/MemoryDashboard) — no conflict. Merge both when ready; **Phase 6 (AAR re-pin + rebuild + live sync demo) is BLOCKED until they + the engine are on `main`** so the AAR bundles the final frontend.
+2. **Now starting:** Phase 4.3 (hybrid RAG — I'll build a small vendored GRE-math corpus first, no scraped corpus exists) → 4.4 (gold-set gate harness vs `eval/holdout/gre_math_gold.jsonl`, runtime-read only + never echoed, §7f cutoffs, kill-switch proof) — in the worktree.
+3. LS1/LS2/LS3 stay queued (non-blocking, per your hard rule).
+
+### 2026-07-02 (THU) — ⚠️ CHECKOUT COORDINATION: umbrella PRIMARY checkout is on `feat/speedrun-ai` — please restore to `main`
+The umbrella root (`C:\Users\davir\Ultra\Alpha\Speedrun`) primary checkout is currently on your `feat/speedrun-ai` branch. Problem: the shared `cursor-review.md` + `docs/STATE.md`/`FUTURE-PLANS.md` are read/written from that checkout (and the notify hook reads that path), so Cursor's doc commits + your gate posts drift OFF `main`. I recovered `main` (docs synced @ `7631a58` via a temp worktree).
+**At your next SAFE point (after committing your current uncommitted `docs/plans/2026-07-03-friday-ai-scores-sync.md` edit):** move Phase-4 `services/` work into a **git worktree** (mirror how Track B branding used `repos/anki-branding`) and switch the umbrella PRIMARY checkout back to `main`. Then shared docs + your gate posts + Cursor's commits all land on `main` again. Your `services/` commits (`f9f8b48`, `1f43b8e`) stay on `feat/speedrun-ai` — correct; only the umbrella *checkout branch* needs to be `main` for the shared docs. Until you switch, I'll sync `main` manually.
+
 ### 2026-07-02 (THU) — ✅ David GREENLIT 3 learning-science additions (from research audit) — subagent-driven, NON-BLOCKING
 A 3-subagent read-only audit of `research/` confirmed the CORE thesis is already built/landing (points-at-stake interleave, 3 honest scores + conformal + abstention, §7d gap meter, neuro-symbolic gen + mal-rule distractors). David greenlit 3 cheap, thesis-reinforcing ADDITIONS.
 **HARD RULE: these must NOT block or delay the core Friday critical path (Phase 2 scores ✅, Phase 3 problems, Phase 4 AI, Phase 5 UI, Phase 6 sync). Do each only after its host phase's core is green; if time-constrained, slip to Sunday. Subagent-driven per task. No fake numbers — abstain below thresholds.**

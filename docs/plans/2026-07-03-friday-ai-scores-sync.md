@@ -12,6 +12,20 @@
 
 ---
 
+## EXECUTION STATUS (updated 2026-07-02 PM)
+- **Phase 0 — DONE** (Gate 0 `e485bbb94`): N+1 batch + Full-mode determinism.
+- **Phase 1 — DONE** (Gate 1 `51f1e1718`): read-time due-card interleave (ablation-gated, order-only).
+- **Phase 2 — DONE** (Gate 2; FF-merged to anki `main` @ `c302082b4`): append-only proto + honest in-engine Performance/Readiness + Python tests.
+- **Phase 3 — DONE** (Gate 3; `feat/friday-problems` @ `191bea607`, pushed): `Speedrun::Problem` note type (`PROBLEM_MODEL_ID=2047815909`) + 64-problem curated bank (twice SymPy-verified, all correct) + timed mini-mock (filtered deck, `reschedule=true` so attempts score) + regenerated apkg. `just check` green mod. complexipy. UI-verify PASS.
+- **Phase 4.1 — DONE** (Gate 4.1; `feat/speedrun-ai` @ `f9f8b48`, pushed): SymPy verifier safety gate; twice adversarially reviewed (false-pass found+fixed) → SAFE; 32 tests.
+- **Phase 4.2 — DONE** (`feat/speedrun-ai` @ `1f43b8e`, pushed): FastAPI + LangGraph verify/retry/abstain graph, OFF by default, real verify node, stubbed-LLM tests (45 tests).
+- **Phase 5 — DONE** (Gate 5; `feat/friday-ui` @ `fcd166704`, pushed): three honest scores on the shared UI — widened TS `ScaffoldCell`, scale-aware range bands + gap-Δ column on Memory, real Perf/Readiness (200–990) on Home, all abstain-honest (no fabricated numbers). svelte-check 0/0, 10 vitest, UI-verify PASS (Memory+Home @ 360px+desktop). Per-topic readiness always abstains (engine truth) → real Readiness is exam-level `overallReadiness` on Home.
+- **Track B (branding)** — token-swap + Manrope + SPEED/RUN wordmark DONE on `feat/branding-identity` (`86182e1a9`); awaiting David's screenshot gate.
+- **Phase 4 lives in a worktree** now: umbrella primary checkout = `main` (shared docs); Phase-4 `services/` work on `feat/speedrun-ai` in worktree `..\speedrun-ai-wt`.
+- **REMAINING:** Phase 4.3 (hybrid RAG — needs a corpus built first) → Phase 4.4 (gold-set gate harness vs `eval/holdout/gre_math_gold.jsonl` [runtime-read only] + §7f cutoffs + kill-switch proof) → **Phase 6 (AAR re-pin + rebuild + live sync demo — BLOCKED on Cursor FF-merging Phase 3 + Phase 5 to anki `main` first)**. Non-blocking learning-science adds LS1/LS2/LS3 queued (do after host phase; slip to Sunday if tight). Real mal-rule distractor node (shuffle + 5 choices) folds into 4.3/4.4.
+
+---
+
 ## Hard invariants (carry through every task)
 - **Mutations** go through `Collection::transact(Op::X)` returning `OpChanges`; **read-only RPCs need no transact**. The due-card interleave is **read-time ordering → NO transact** (only the already-shipped new-card reposition mutates, via `Op::SortCards`).
 - **`proto/anki/speedrun.proto` is FROZEN append-only** @ `20dd7a2ea`: new fields/messages get NEW numbers, never renumber/reuse. Verified next-free numbers: `ScoreScaffold`=5, `TopicScaffold`=4, `PerformanceReadinessResponse`=4, `GetPerformanceReadinessRequest`=2, `TopicMastery`=9, `CoverageResponse`=5, `ExamProfileResponse`=3.
