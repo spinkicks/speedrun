@@ -480,3 +480,153 @@ def test_limit_infinite_wrong_still_fails():
     except Exception as exc:  # pragma: no cover
         pytest.fail(f"verify() raised on infinite-vs-finite limit: {exc}")
     assert result.passed is False, f"Expected FAIL got PASS: {result.reason}"
+
+
+# ===========================================================================
+# REGRESSION — BUG 2 (SAFETY): the numeric gate must not be neuterable by the
+# LLM-controlled spec. numeric_samples=0 makes the numeric loop run zero times
+# and pass VACUOUSLY; numeric_eps is LLM-overridable so a huge eps swallows any
+# error. The numeric check is what catches "coincidence traps" (expressions
+# that pass the symbolic arm's fast-paths but disagree numerically), so a
+# neutered numeric arm can let a wrong answer through. The verifier must clamp
+# numeric_samples >= 1 and use a FIXED server-side eps.
+#
+# BUG 2 lives in ``_numeric_check`` (the symbolic arm masks it for the specific
+# Abs(x)-vs-x example at the ``verify()`` level), so these tests exercise that
+# unit directly to prove the hole is closed, plus verify()-level guards.
+# ===========================================================================
+def _num_spec(**over):
+    """A throwaway ProblemSpec carrying only the numeric tuning fields."""
+    return ProblemSpec(
+        answer_type="expression_equivalence",
+        expression="",
+        variable="x",
+        claimed_answer="",
+        **over,
+    )
+
+
+def test_numeric_check_samples_zero_does_not_vacuously_pass():
+    """numeric_samples=0 must NOT return a free pass over a numerically-unequal
+    pair — the loop must run with a clamped sample count and FAIL."""
+    from sympy import Abs, Symbol
+
+    from verify.sympy_verifier import _numeric_check
+
+    x = Symbol("x")
+    ok, reason = _numeric_check(Abs(x), x, [x], _num_spec(numeric_samples=0))
+    assert ok is False, (
+        f"numeric_samples=0 vacuously passed the numeric check: {reason}"
+    )
+
+
+def test_numeric_check_samples_negative_clamped():
+    """A negative numeric_samples must be clamped, not skip the check."""
+    from sympy import Abs, Symbol
+
+    from verify.sympy_verifier import _numeric_check
+
+    x = Symbol("x")
+    ok, _ = _numeric_check(Abs(x), x, [x], _num_spec(numeric_samples=-5))
+    assert ok is False
+
+
+def test_numeric_check_huge_eps_ignored():
+    """A crafted huge numeric_eps (1e9) would make |lhs-rhs| < eps trivially
+    true. The check must use a FIXED server-side eps and still FAIL a pair whose
+    values differ by O(1)."""
+    from sympy import Abs, Symbol
+
+    from verify.sympy_verifier import _numeric_check
+
+    x = Symbol("x")
+    ok, reason = _numeric_check(Abs(x), x, [x], _num_spec(numeric_eps=1e9))
+    assert ok is False, (
+        f"a huge LLM-supplied numeric_eps neutered the numeric check: {reason}"
+    )
+
+
+def test_numeric_check_huge_eps_ignored_no_free_symbols():
+    """The no-free-symbols branch must also ignore a huge spec eps: 4 vs 5 with
+    eps=1e9 must still FAIL."""
+    from sympy import Integer
+
+    from verify.sympy_verifier import _numeric_check
+
+    ok, reason = _numeric_check(Integer(4), Integer(5), [], _num_spec(numeric_eps=1e9))
+    assert ok is False, f"huge eps let 4==5 pass (no free symbols): {reason}"
+
+
+def test_numeric_check_samples_zero_still_passes_correct_pair():
+    """Guard against over-tightening: a genuinely-equal pair must still PASS the
+    numeric check even when the spec (harmlessly) requests numeric_samples=0."""
+    from sympy import Symbol
+
+    from verify.sympy_verifier import _numeric_check
+
+    x = Symbol("x")
+    ok, reason = _numeric_check(2 * x, x + x, [x], _num_spec(numeric_samples=0))
+    assert ok is True, f"clamp wrongly failed an equal pair: {reason}"
+
+
+def test_verify_numeric_samples_zero_does_not_break_correct_answers():
+    """End-to-end guard: a correct derivative must still PASS with
+    numeric_samples=0 in the spec."""
+    spec = ProblemSpec(
+        answer_type="derivative",
+        expression="x**2",
+        variable="x",
+        claimed_answer="2*x",
+        numeric_samples=0,
+    )
+    result = verify(spec)
+    assert result.passed is True, f"Expected PASS got FAIL: {result.reason}"
+
+
+# ===========================================================================
+# REGRESSION — BUG 4c (SAFETY): the limit verifier's numeric-guard exception
+# path set num_ok = True (fail-OPEN). If evaluating the finiteness guard raises,
+# a wrong limit could pass on the symbolic arm alone via a swallowed error.
+# Exceptions in the guard must fail CLOSED (num_ok = False).
+# ===========================================================================
+def test_limit_numeric_guard_exception_fails_closed(monkeypatch):
+    """Force the finite-number guard to raise; the verifier must NOT emit a PASS
+    off the back of a swallowed exception (fail closed)."""
+    import verify.sympy_verifier as sv
+
+    real_symbolic_equal = sv._symbolic_equal
+
+    def _boom_symbolic_equal(lhs, rhs):
+        # Let symbolic equality say "equal" so the ONLY thing standing between
+        # us and a spurious PASS is the numeric guard — which we then break.
+        return True
+
+    # Make the numeric guard blow up so we exercise the exception path.
+    class _Exploding:
+        def __getattr__(self, name):
+            raise RuntimeError("boom in finiteness guard")
+
+    monkeypatch.setattr(sv, "_symbolic_equal", _boom_symbolic_equal)
+
+    orig_limit = sv.limit
+
+    def _fake_limit(*args, **kwargs):
+        # Return an object whose attribute access raises, forcing the guard's
+        # try-block to throw and hit the exception path.
+        return _Exploding()
+
+    monkeypatch.setattr(sv, "limit", _fake_limit)
+
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="sin(x)/x",
+        variable="x",
+        limit_point="0",
+        claimed_answer="1",
+    )
+    result = sv.verify(spec)
+    monkeypatch.setattr(sv, "_symbolic_equal", real_symbolic_equal)
+    monkeypatch.setattr(sv, "limit", orig_limit)
+    assert result.passed is False, (
+        "an exception in the limit numeric guard must fail CLOSED, not pass"
+    )

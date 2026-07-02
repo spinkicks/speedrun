@@ -71,6 +71,19 @@ ANSWER_TYPES = frozenset(
 
 TRANSFORMATIONS = standard_transformations + (implicit_multiplication_application,)
 
+# ---------------------------------------------------------------------------
+# FIXED server-side numeric-gate parameters (NOT LLM/spec overridable).
+#
+# The numeric agreement check is a hard safety gate. Its tolerance and sample
+# count must be controlled by the server, never by the (LLM-authored) spec:
+# otherwise a crafted spec could set numeric_eps huge (swallowing any error) or
+# numeric_samples=0 (making the numeric loop run zero times and pass vacuously),
+# neutering the check. We clamp both here and ignore the spec's tuning fields.
+# ProblemSpec still carries numeric_eps / numeric_samples for backward compat,
+# but the verifier deliberately does not honor them.
+_FIXED_NUMERIC_EPS = 1e-9
+_MIN_NUMERIC_SAMPLES = 8
+
 
 @dataclass
 class ProblemSpec:
@@ -240,6 +253,76 @@ def _free_symbols_names(expr) -> set[str]:
         return set()
 
 
+def _normalize_answer_string(text: str) -> str:
+    """Conservative, whitespace-insensitive string normalization fallback.
+
+    Used only when symbolic parsing/comparison cannot decide. Lowercasing is
+    deliberately NOT applied (case can be meaningful in some answers); we only
+    collapse whitespace so trivial formatting differences do not cause a false
+    ``abstain`` while never masking a genuine value difference.
+    """
+    return " ".join(str(text or "").split())
+
+
+def answers_equivalent(
+    a: str, b: str, *, extra_symbols: Optional[list[str]] = None
+) -> bool:
+    """Return True iff answer strings ``a`` and ``b`` denote the SAME answer.
+
+    This is the cross-check used by the generation graph (BUG 1): the answer
+    that gets SHIPPED (``candidate.correct``) must be the SAME one that the
+    verifier actually validated (``spec.claimed_answer``). It is deliberately
+    CONSERVATIVE — it returns True only when it can positively establish
+    equivalence; ANY doubt (parse failure, ambiguity) yields False so the caller
+    fails closed (abstains).
+
+    Strategy, in order:
+      1. Exact / whitespace-collapsed string match → True (cheap, unambiguous).
+      2. Both parse as set literals ``{...}`` → compare as simplified finite
+         sets (order-insensitive).
+      3. Both parse as SymPy expressions with no *new* undeclared symbols →
+         :func:`_symbolic_equal`.
+      4. Otherwise → False (cannot confirm; caller abstains).
+    """
+    a_raw, b_raw = str(a or ""), str(b or "")
+    if _normalize_answer_string(a_raw) == _normalize_answer_string(b_raw):
+        return True
+
+    syms = ["x", "y", "z", "t", "n", "k"]
+    if extra_symbols:
+        syms = list(dict.fromkeys(syms + list(extra_symbols)))
+    local_dict = _build_local_dict(syms)
+    local_dict["oo"] = oo
+    local_dict["pi"] = pi
+    local_dict["I"] = I
+
+    a_is_set = a_raw.strip().startswith("{")
+    b_is_set = b_raw.strip().startswith("{")
+    try:
+        if a_is_set or b_is_set:
+            if not (a_is_set and b_is_set):
+                return False  # one is a set, the other is not → not equivalent
+            set_a, err_a = _parse_set(a_raw, local_dict)
+            set_b, err_b = _parse_set(b_raw, local_dict)
+            if err_a or err_b:
+                return False
+            try:
+                norm_a = frozenset(simplify(e) for e in set_a)
+                norm_b = frozenset(simplify(e) for e in set_b)
+            except Exception:
+                return set_a == set_b
+            return (set_a == set_b) or (norm_a == norm_b)
+
+        expr_a, err_a = _parse(a_raw, local_dict)
+        expr_b, err_b = _parse(b_raw, local_dict)
+        if err_a or err_b:
+            return False
+        return _symbolic_equal(expr_a, expr_b)
+    except Exception:
+        # Any failure to positively establish equivalence → conservative False.
+        return False
+
+
 def _numeric_check(lhs, rhs, symbols: list[Symbol], spec: ProblemSpec) -> tuple[bool, str]:
     """
     Numeric random-point check: substitute pseudo-random rational values and
@@ -247,11 +330,18 @@ def _numeric_check(lhs, rhs, symbols: list[Symbol], spec: ProblemSpec) -> tuple[
 
     Returns (passed, reason).
     """
+    # Server-side clamps: the numeric gate's tolerance and sample count are
+    # FIXED here and NOT taken from the (LLM-authored) spec — see the module
+    # constants. This closes the "neuter the numeric gate" hole (a spec setting
+    # numeric_eps huge or numeric_samples=0 must not weaken/skip this check).
+    eps = _FIXED_NUMERIC_EPS
+    needed = max(_MIN_NUMERIC_SAMPLES, int(spec.numeric_samples or 0))
+
     if not symbols:
         # No free symbols — try a direct numeric evaluation
         try:
             val = complex(lhs - rhs)
-            if abs(val) < spec.numeric_eps:
+            if abs(val) < eps:
                 return True, "numeric check passed (no free symbols)"
             return False, f"numeric check failed (no free symbols): |diff| = {abs(val)}"
         except Exception as exc:
@@ -269,7 +359,8 @@ def _numeric_check(lhs, rhs, symbols: list[Symbol], spec: ProblemSpec) -> tuple[
 
     success_count = 0
     skip_count = 0
-    needed = spec.numeric_samples
+    # ``needed`` is the server-clamped sample count computed above (>= the safe
+    # minimum); the spec cannot drive it to 0.
     pool_idx = 0
 
     while success_count < needed and pool_idx + len(symbols) <= len(sample_values_pool) + 1:
@@ -287,7 +378,7 @@ def _numeric_check(lhs, rhs, symbols: list[Symbol], spec: ProblemSpec) -> tuple[
         try:
             lhs_val = complex(lhs.subs(subs))
             rhs_val = complex(rhs.subs(subs))
-            if abs(lhs_val - rhs_val) < spec.numeric_eps:
+            if abs(lhs_val - rhs_val) < eps:
                 success_count += 1
             else:
                 return (
@@ -499,8 +590,10 @@ def _verify_limit(spec: ProblemSpec) -> VerificationResult:
             numeric_ran = True
         else:
             num_ok, num_reason = True, "numeric check skipped (non-finite or non-numeric limit)"
-    except Exception:
-        num_ok, num_reason = True, "numeric check skipped for limit"
+    except Exception as exc:
+        # Fail CLOSED: an error while deciding/running the numeric guard must not
+        # grant a free PASS off the symbolic arm alone. Any doubt → reject.
+        num_ok, num_reason = False, f"limit numeric guard errored (failing closed): {exc}"
 
     if sym_ok and num_ok:
         detail = "both checks" if numeric_ran else "symbolic check; numeric skipped (infinite/non-numeric)"
@@ -597,7 +690,10 @@ def _verify_equation_solution_set(spec: ProblemSpec) -> VerificationResult:
                 residual_val = complex(residual)
             except (TypeError, ValueError):
                 residual_val = complex(simplify(residual))
-            if abs(residual_val) >= spec.numeric_eps:
+            # FIXED server-side eps (not spec-overridable) — same rationale as
+            # _numeric_check: an LLM-supplied huge eps must not admit a spurious
+            # root whose residual is large.
+            if abs(residual_val) >= _FIXED_NUMERIC_EPS:
                 return _fail(
                     f"claimed root {root} does not satisfy the equation "
                     f"(residual {abs(residual_val):.2e})",
