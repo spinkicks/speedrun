@@ -325,11 +325,23 @@ def wrong_answer_batch_result() -> dict[str, Any]:
 
 
 def _candidate_text(candidate: dict) -> str:
-    """Concatenate the human-readable fields of a candidate for leak-checking."""
-    return " ".join(
+    """Concatenate the human-readable fields of a candidate for leak-checking.
+
+    Includes the answer ``choices``/distractors (BUG 4a): a leak buried only in
+    a distractor must still be caught, so every human-visible field is scanned.
+    """
+    parts = [
         str(candidate.get(key, ""))
         for key in ("stem", "worked_solution", "correct")
-    ).strip()
+    ]
+    # Answer choices / distractors are human-visible too — scan them for leaks.
+    for key in ("choices", "distractors"):
+        value = candidate.get(key)
+        if isinstance(value, (list, tuple, set)):
+            parts.extend(str(item) for item in value)
+        elif value:
+            parts.append(str(value))
+    return " ".join(parts).strip()
 
 
 def make_gold_gate(
@@ -349,11 +361,18 @@ def make_gold_gate(
     texts = [t for t in texts if t and t.strip()]
 
     def gate(candidate: dict) -> bool:
+        # BUG 3 — FAIL CLOSED on an empty/missing study corpus. If there is no
+        # study content to compare against, the leakage check CANNOT run; the
+        # gate must refuse (return False) rather than silently disable itself and
+        # let potentially-leaked content ship. (The enabled service should never
+        # start with an empty corpus; if it does, it must never emit.)
+        if not texts:
+            return False
         text = _candidate_text(candidate)
-        if not text or not texts:
-            # No study content to compare against, or empty candidate: the
-            # leakage gate has nothing to reject on (verify/RAG gate elsewhere).
-            return True
+        if not text:
+            # An empty candidate has no verifiable, leak-free content to ship —
+            # refuse conservatively rather than emit a blank problem.
+            return False
         return not leaks(text, texts, ngram=ngram, sim_threshold=sim_threshold)
 
     return gate

@@ -143,6 +143,62 @@ def test_gold_gate_checks_worked_solution_too():
 
 
 # ---------------------------------------------------------------------------
+# 4b. BUG 3 (SAFETY): empty study corpus must FAIL CLOSED
+# ---------------------------------------------------------------------------
+
+
+def test_gold_gate_empty_corpus_fails_closed():
+    """If the study corpus is empty/missing, the leakage check cannot run. The
+    gate must then REFUSE (return False) — never silently disable the leakage
+    guard and pass everything (fail-open)."""
+    gate = make_gold_gate([])  # empty study corpus
+    candidate = {
+        "stem": "Compute the derivative of x**3.",
+        "correct": "3*x**2",
+        "worked_solution": "power rule",
+    }
+    assert gate(candidate) is False, (
+        "an empty study corpus must fail CLOSED (leakage check cannot run)"
+    )
+
+
+def test_gold_gate_corpus_of_blanks_fails_closed():
+    """A corpus that is only blank/whitespace strings is effectively empty and
+    must also fail closed."""
+    gate = make_gold_gate(["", "   ", "\n"])
+    candidate = {"stem": "Compute the limit of sin(x)/x.", "correct": "1"}
+    assert gate(candidate) is False
+
+
+# ---------------------------------------------------------------------------
+# 4c. BUG 4a (SAFETY): the leak scan must include the choices/distractor text
+# ---------------------------------------------------------------------------
+
+
+def test_gold_gate_scans_choices_for_leaks():
+    """A leak hidden ONLY in the answer choices (not the stem/solution/correct)
+    must still be caught. Previously the leak scan omitted the choices text."""
+    study = [
+        "A square matrix is invertible if and only if its determinant is nonzero."
+    ]
+    gate = make_gold_gate(study)
+    candidate = {
+        "stem": "Pick the true statement about this 3x3 matrix.",
+        "correct": "42",
+        "worked_solution": "See options.",
+        # the leak is buried in a distractor / choice, not the other fields
+        "choices": [
+            "42",
+            "A square matrix is invertible if and only if its determinant "
+            "is nonzero, hence it is singular.",
+        ],
+    }
+    assert gate(candidate) is False, (
+        "a leak present only in the answer choices must still fail the gate"
+    )
+
+
+# ---------------------------------------------------------------------------
 # 5. LLM-judge scaffold: never calls the network in tests
 # ---------------------------------------------------------------------------
 
