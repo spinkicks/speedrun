@@ -206,6 +206,8 @@ Grounding found **4 of 5 carry-in fixes already merged** (desktop data path, exa
 - [ ] Wire `loadHome` to fetch scaffold; add a Performance headline stat + feed real Readiness (200–990 + percentile + range); keep abstain honesty copy.
 - [ ] Commit: `feat(ui): render Memory/Performance/Readiness with range+abstain on Home+Memory (both platforms)`.
 
+**UI-verification subagent (MANDATORY, every UI-affecting task in this phase):** before marking any UI task done, dispatch a fast dedicated subagent that renders the affected shared Svelte page headlessly (Playwright / `just test-e2e`) at **~360px AND desktop**, asserts zero console errors + zero failed `/_anki/*` POSTs + no horizontal overflow, **captures a screenshot and visually inspects it**, and reports pass/fail + screenshot path. Independent automated render proof (keeps main context lean) — must pass BEFORE David's human `just run`/emulator gate; does NOT replace it (a subagent can't observe the native Qt/Android window).
+
 > Gate 5 → Cursor review + David desktop `just run` visual gate.
 
 ---

@@ -41,6 +41,7 @@ Design-first → build → **screenshot-gate on both platforms**. Pure shell/pre
 - Android launcher shows "Speedrun" + our icon; app launches into Home; toolbar/system bars dark (already done).
 - Same shared Svelte page renders on both platforms after AAR rebuild; `just check` green (mod. known complexipy). AGPL/GPL headers on any new files. No AI.
 - Screenshot proof on BOTH platforms at the gate (visual-verification protocol).
+- **UI-verification subagent (mandatory, every UI change):** a dedicated fast subagent renders the affected page headlessly (Playwright, ~360px + desktop), asserts zero console errors / zero failed `/_anki/*` POSTs / no horizontal overflow, captures + visually inspects a screenshot, and reports pass/fail BEFORE David's human `just run`/emulator gate. Independent automated render check; does not replace the human gate.
 
 ## Grounding notes for the implementer (Claude)
 - Current tokens live in `ts/routes/speedrun-home/SpeedrunHome.svelte` (`--disp`/`--mono`/`--pace` defined ~L133-143) and are consumed across `speedrun-home/*` + `speedrun-memory/*`. Change the token DEFINITIONS in one place; consumers inherit. Grep `--pace` and `var(--mono)` to catch every use.
