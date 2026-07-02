@@ -58,9 +58,11 @@ Self-hosted sync demo: `docs/SYNC-SELFHOST.md`.
 ---
 
 ## Architecture: two apps, one engine
-- **Desktop + shared engine:** `repos/anki` — fork of [`ankitects/anki`](https://github.com/ankitects/anki). The engine change lives in `rslib/src/speedrun/`; desktop UI in `ts/routes/speedrun-*` (Svelte) + `qt/aqt/speedrun.py`.
-- **Phone:** `repos/anki-android` — fork of [`ankidroid/Anki-Android`](https://github.com/ankidroid/Anki-Android); renders the same shared Svelte pages via `PageFragment`.
-- **Engine → Android bridge:** `repos/Anki-Android-Backend` — fork of `rsdroid`; cross-compiles `rslib` into the JNI AAR (with `local_backend=true`).
+Our code lives in three public forks (linked below); this umbrella repo holds docs, the plan, and proof.
+- **Desktop + shared engine:** **[`spinkicks/anki`](https://github.com/spinkicks/anki)** (fork of [`ankitects/anki`](https://github.com/ankitects/anki)) — the Rust engine change lives in **`rslib/src/speedrun/`** + `proto/anki/speedrun.proto`; desktop UI in `ts/routes/speedrun-*` (Svelte) + `qt/aqt/speedrun.py`. **← the headline engine change.**
+- **Phone:** **[`spinkicks/Anki-Android`](https://github.com/spinkicks/Anki-Android)** (fork of [`ankidroid/Anki-Android`](https://github.com/ankidroid/Anki-Android)) — renders the same shared Svelte pages via `PageFragment`.
+- **Engine → Android bridge:** **[`spinkicks/Anki-Android-Backend`](https://github.com/spinkicks/Anki-Android-Backend)** (fork of rsdroid) — cross-compiles `rslib` into the JNI AAR (with `local_backend=true`).
+- Current `main` pins: anki `af1138428` · Anki-Android-Backend `9aa21ec` · Anki-Android `fdfd086031`.
 - The external AI/RAG service (Friday) lives **outside** all native libs.
 
 ## Repository layout
