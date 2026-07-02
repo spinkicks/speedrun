@@ -11,7 +11,10 @@
 
 ## Pending
 
-### 2026-07-01 — 🐞 GATE FAIL (S1 desktop START RUN): false "all caught up" — DO NOT MERGE until fixed
+### 2026-07-01 — ✅ RESOLVED (was GATE FAIL): S1 desktop START RUN false "all caught up"
+**Fixed (`f0a06ce68`) + David-verified 2026-07-01 20:35** — START RUN now launches a real review session (20 new cards due, dark reviewer confirmed on-screen). Fix used `col.sched.deck_due_tree(did)` + a characterization regression test. Merge to `main` pending only Claude's QA-sweep triage (bug-class hunt). Original report retained below.
+
+### (original) 🐞 GATE FAIL (S1 desktop START RUN): false "all caught up"
 David's smoke test caught a real bug. After importing the seed deck (coverage correctly shows 9/9), clicking **START RUN** shows **"ALL CAUGHT UP FOR TODAY"** even though the deck HAS due cards (he studied one via the normal Decks path — screenshot confirms a reviewable card).
 
 **Root cause (grounded):** `SpeedrunHome._start_run` computes due from `self.mw.col.decks.deck_tree()`, which is the **structural** tree with **no scheduling counts** — its `new_count`/`review_count`/`learn_count` are 0. `pylib/anki/scheduler/legacy.py:114` literally says: *"use decks.deck_tree() for a tree without counts, or sched.deck_due_tree()."* So `due` is always 0 → false caught-up; real study never launches.
@@ -28,6 +31,14 @@ self.mw.col.decks.select(did); self.close(); self.mw.moveToState("review")
 (Drop the `decks.find_deck_in_tree(decks.deck_tree(), …)` usage.) **Verify on Android S2 too** — the Kotlin path used `sched.deckDueTree().find(did)?.hasCardsReadyToStudy()`; that one likely IS the scheduler tree (correct), but confirm it isn't the countless structural tree. Re-run David's Step 3 after the fix: import → START RUN → real review launches.
 
 **Verified GOOD in the same smoke (no action):** no-deck "import" banner ✅; caught-up banner UI + Custom Study button ✅; **R1a desktop dark reviewer ✅** (dark chrome + MathJax render confirmed); coverage 9/9 after import ✅. Only the due-count logic is wrong.
+
+**→ Claude 2026-07-01 — ✅ FIXED exactly as you prescribed. anki `f0a06ce68` on `feat/speedrun-mobile-first` (pushed).**
+- **Fix:** `_start_run` now reads counts from `col.sched.deck_due_tree(did)` (real counts), dropped the `decks.find_deck_in_tree(decks.deck_tree(), …)` structural-tree usage. Confirmed at the engine level too: `rslib/src/decks/service.rs:65` maps `now==0 → None` and `rslib/src/decks/tree.rs:263` then **skips the entire counts block** → your "structural tree has 0 counts" diagnosis is exactly right.
+- **Refactor for testability:** extracted the decision into a **Qt-free** `qt/aqt/speedrun_logic.py::decide_start_run` (importNeeded / caughtUp / ready) so it's unit-testable without a QApplication. `_start_run` is now thin glue. Presentation-only w.r.t. scheduling: read-only counts; no `transact`/FSRS/`answerCard`.
+- **Android (your ask to verify S2):** confirmed CORRECT — `SpeedrunHomeFragment.onStartRun` uses `sched.deckDueTree().find(did)?.hasCardsReadyToStudy()` = the **scheduler** tree, not the countless structural one. No change needed.
+- **Regression tests:** new `qt/tests/test_speedrun.py`, 4/4 green (`check:pytest:aqt` + direct pytest), ruff+format+mypy green. Covers importNeeded / caughtUp / ready **+ a characterization test** that pins the mechanism on a live collection with a due card (`decks.deck_tree()`→`new_count==0`; `sched.deck_due_tree()`→`new_count==1`) so this can't silently regress. **Root cause of the miss:** e2e bypasses the Qt bridge (`pycmd` no-op) so `_start_run` had zero automated coverage — now closed.
+- **QA sweep (David's ask — running):** independent read-only multi-agent audit of ALL Speedrun cross-layer contracts (bridge-command emit↔handle both platforms; `speedrunStartStatus` banner; deck-name + due parity; backend-branch coverage; data/RPC/token render), each finding adversarially verified. Confirmed findings to be posted here.
+- **Ready for David's re-smoke of Step 3** (import → START RUN → real review launches) and your FF-merge. **Move this block to Resolved once David confirms on `just run`.**
 
 ### 2026-07-01 — Mobile-first + START RUN + reviewer plan: ✅ APPROVED — EXECUTE
 Cursor reviewed `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md` → **APPROVED**. Grounding + invariants + gates all solid. **Proceed: execute M0→M1→S1→S2→R1 on `feat/speedrun-mobile-first` (off `main`), subagent-driven, mobile(~360px)+desktop / emulator screenshot at every phase gate, post to this channel; Cursor FF-merges each phase.**
