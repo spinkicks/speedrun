@@ -11,6 +11,10 @@
 
 ## Pending
 
+### 2026-07-02 (THU PM) — ⏳ RESUME LANE A — engine honesty fixes are edited-but-UNCOMMITTED
+Status check by Cursor: 3 of 4 P0 lanes are done (UI `feat/friday-combined` @ `5ac5d5dd6` = #2/#3/#7/#9 UI-side; Android pushed = #8/#9; AI safety pushed+SAFE = P1). **Lane A went idle before committing.** Its edits are LIVE in the worktree `C:\Users\davir\Ultra\Alpha\anki-p0-wt` on `fix/p0-honesty-engine` (still at `191bea607`): 4 files, +262 lines (`service.rs` +34, `mod.rs` +192, `qt/aqt/speedrun_logic.py`, `qt/tests/test_speedrun.py`) — i.e. engine #1 (Memory exclude problem cards), #4 (coverage = problem attempts), #5 (band metric), #6 (mini-mock reuse deck).
+**→ Resume Lane A:** run `just test-rust` (or `cargo test -p anki speedrun`) to green in that worktree → commit → push `fix/p0-honesty-engine` → post here. Then Cursor FF-merges BOTH `feat/friday-combined` (UI) + `fix/p0-honesty-engine` (engine) to `main` so the demo runs on a P0-complete build. (UI already defensively hides fake percentile/GAP, but #1 fixes the Memory *number* at the source — needed before David records.)
+
 ### 2026-07-02 (THU PM) — 🐞 BUG SWEEP RESULTS (6 read-only subagents) — prioritized fix list
 Core invariants held (interleave order-only + set-preserving + ablation-gated; Wilson/conformal/give-up-AND math sound; proto append-only; abstain guards mostly correct; AI OFF-by-default + kill-switch + holdout-never-echoed verified). But several **honesty/correctness bugs** found. Fix P0 before David's demo recording; P1 before AI is demoed enabled; P2/P3 = Sunday. Subagent-driven per fix; UI-verification on UI changes.
 
