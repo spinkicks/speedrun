@@ -18,6 +18,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from config import load_settings
+from eval.gate import make_gold_gate
+from eval.leakage import load_study_texts
 from graph import make_hybrid_retriever, run_generation
 
 app = FastAPI(title="Speedrun AI generation service", version="0.1.0")
@@ -76,19 +78,28 @@ def _make_openai_propose(settings):
 
 
 def generate_problem(topic: str, technique: str) -> dict[str, Any]:
-    """Run the generation graph with the real OpenAI proposer AND the real
-    hybrid RAG retriever (Task 4.3) for source grounding.
+    """Run the generation graph with the real OpenAI proposer, the real hybrid
+    RAG retriever (Task 4.3) for source grounding, AND the real §7f gold gate
+    (Task 4.4) for leakage checking.
 
     Only called from the enabled path. Tests monkeypatch this symbol so they
     never construct an OpenAI client, build a RAG index, or hit the network.
     The retriever is the drop-if-unverifiable gate: a candidate whose top hit
-    scores below the grounding threshold takes the graph's abstain path.
+    scores below the grounding threshold takes the graph's abstain path. The
+    gold gate is the leakage guard: a candidate that duplicates the curated
+    study content fails the gate → the graph abstains ("failed gold-set gate").
     """
     settings = load_settings()
     llm_propose = _make_openai_propose(settings)
     retriever = make_hybrid_retriever()
+    # Real §7f gold gate = leakage-free check against the curated study content.
+    gate = make_gold_gate(load_study_texts())
     return run_generation(
-        topic, technique, llm_propose=llm_propose, retriever=retriever
+        topic,
+        technique,
+        llm_propose=llm_propose,
+        retriever=retriever,
+        gate=gate,
     )
 
 

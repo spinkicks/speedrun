@@ -118,16 +118,32 @@ state = run_generation("calculus", "power_rule", llm_propose=llm)
 assert state["status"] == "emit"
 ```
 
-## Pre-registration — §7f gold-set gate cutoffs
+## §7f gold-set gate (Task 4.4)
 
-The gold-set gate (`gate`) is a **stub returning `True`** in this task. The real
-§7f gate arrives in **Task 4.4**, together with its pre-registered acceptance
-cutoffs. Pre-register the thresholds **before** running against the held-out
-set, and record them here:
+The real §7f gate now lives in [`eval/`](eval/README.md): a Recall@10 retrieval
+eval + corpus coverage, a wrong-answer-by-construction proof, the leakage
+scanner (`eval/leakage.py`), and the LLM-judge scaffold. The graph's default
+`gate` remains the offline stub (so graph/app unit tests stay hermetic); the
+**real** leakage-free gate is built by `eval.gate.make_gold_gate(study_texts)`
+and injected in `app.py`'s enabled path.
 
-| Metric                         | Cutoff | Notes                     |
-| ------------------------------ | ------ | ------------------------- |
-| *(to be filled in Task 4.4)*   | TBD    | pre-registered before eval |
+Pre-registered cutoffs (fixed **before** results — see
+[`eval/README.md`](eval/README.md) for the full pre-registration + honest
+numbers):
+
+| Metric               | Cutoff                          | Measured                    |
+| -------------------- | ------------------------------- | --------------------------- |
+| Wrong-answer rate    | ≤ 2 % (target 0)                | hermetic (0 by construction)|
+| Useful               | ≥ 80 %                          | LLM-judge / human (at demo) |
+| Bad-teaching         | ≤ 15 %                          | LLM-judge / human (at demo) |
+| Leakage              | 0                               | hermetic (scanner)          |
+| Hybrid RAG margin    | ≥ 5 pts Recall@10 over baseline | hermetic (reported)         |
 
 Do not tune these against the held-out set after the fact — pre-registration is
 what keeps the honest-score claim honest.
+
+Reproduce the aggregate numbers (never echoes raw gold pairs):
+
+```bash
+PYTHONIOENCODING=utf-8 uv run python -m eval.gate
+```
