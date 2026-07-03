@@ -9,6 +9,8 @@ The verify node uses the REAL SymPy verifier from ``verify/sympy_verifier.py``.
 
 from __future__ import annotations
 
+import pytest
+
 from graph import run_generation
 
 # ---------------------------------------------------------------------------
@@ -413,3 +415,99 @@ def test_gold_gate_still_emits_when_distractors_are_clean():
     assert state["problem"] is not None
     # the clean distractors made it into the emitted choices
     assert "3*x" in state["problem"]["choices"]
+
+
+# ---------------------------------------------------------------------------
+# AI bug #3 (SAFETY): FAIL-CLOSED syllabus scoping.
+#
+# The corpus covers exactly nine leaf topics. A GENUINE math question on an
+# UNCOVERED topic (ODEs, arc length, partial-fraction integration, PCA) grounds
+# to a near-neighbour-but-unsupporting passage → a misleading citation the
+# semantic cosine gate cannot separate. Fail-closed scoping fixes it in normal
+# operation: when ``covered_topics`` is supplied, the graph refuses to even
+# PROPOSE for a topic the corpus does not cover — it abstains up front.
+#
+# ``covered_topics`` is OPT-IN (default None = current behaviour) so every
+# existing test above stays green.
+# ---------------------------------------------------------------------------
+
+# The nine covered leaf topic_ids (as the corpus reports them).
+_COVERED = {
+    "calc::limits",
+    "calc::single_var::differentiation",
+    "calc::single_var::integration",
+    "calc::sequences_series",
+    "calc::multivar",
+    "linear_algebra::vector_spaces",
+    "linear_algebra::matrices",
+    "linear_algebra::eigen",
+    "linear_algebra::linear_maps",
+}
+
+
+def _tracking_llm():
+    """A proposer that records whether it was ever called. Used to prove the
+    scoping guard fires BEFORE proposing on an uncovered topic."""
+    calls = {"n": 0}
+
+    def _llm(topic, technique):
+        calls["n"] += 1
+        return _correct_derivative_proposal()
+
+    _llm.calls = calls
+    return _llm
+
+
+def test_scoping_guard_default_none_is_current_behavior():
+    # Opt-in: with covered_topics unset, an arbitrary free-text topic still
+    # reaches the normal path and emits (no guard, backward compatible).
+    llm = _counting_llm([_correct_derivative_proposal])
+    state = run_generation("anything at all", "power_rule", llm_propose=llm)
+    assert state["status"] == "emit"
+
+
+@pytest.mark.parametrize(
+    "topic",
+    [
+        "calc::limits",  # exact topic_id
+        "calculus limits",
+        "eigenvalues",
+        "row reduce the matrix",
+    ],
+)
+def test_covered_topic_reaches_normal_path(topic):
+    # A covered topic must NOT be abstained by the scoping guard: the proposer
+    # is reached and the problem emits normally.
+    llm = _tracking_llm()
+    state = run_generation(
+        topic, "power_rule", llm_propose=llm, covered_topics=_COVERED
+    )
+    assert llm.calls["n"] >= 1, "covered topic must reach the proposer"
+    assert state["status"] == "emit"
+    assert (state.get("abstain_reason") or "") == ""
+
+
+@pytest.mark.parametrize(
+    "topic",
+    [
+        "solve the differential equation dy/dx=y",
+        "compute the arc length of the curve",
+        "integrate the rational function by partial fractions",
+        "principal component analysis",
+    ],
+)
+def test_uncovered_topic_abstains_before_proposing(topic):
+    # A genuine question on an UNCOVERED topic must abstain with the
+    # topic-not-covered reason, and the guard must fire BEFORE the proposer runs
+    # (no propose, no mis-citation).
+    llm = _tracking_llm()
+    state = run_generation(
+        topic, "power_rule", llm_propose=llm, covered_topics=_COVERED
+    )
+    assert state["status"] == "abstain"
+    assert state["problem"] is None
+    assert "topic" in state["abstain_reason"].lower()
+    assert "corpus" in state["abstain_reason"].lower()
+    assert llm.calls["n"] == 0, (
+        "the scoping guard must abstain BEFORE proposing on an uncovered topic"
+    )

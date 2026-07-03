@@ -25,6 +25,7 @@ from eval.gate import make_gold_gate
 from eval.leakage import load_study_texts
 from graph import make_hybrid_retriever, run_generation
 from rag.embeddings import make_openai_embedder_if_key
+from rag.retriever import covered_topic_ids
 
 
 def _autoload_dotenv() -> None:
@@ -135,12 +136,17 @@ def generate_problem(topic: str, technique: str) -> dict[str, Any]:
     retriever = make_hybrid_retriever(embedder=embedder)
     # Real §7f gold gate = leakage-free check against the curated study content.
     gate = make_gold_gate(load_study_texts())
+    # FAIL-CLOSED syllabus scoping (AI bug #3): pass the corpus's covered leaf
+    # topics so a request for a topic the corpus does not cover ABSTAINS before
+    # proposing (no near-neighbour mis-citation), rather than grounding to an
+    # unsupporting passage. See graph.topic_is_covered / rag.covered_topic_ids.
     return run_generation(
         topic,
         technique,
         llm_propose=llm_propose,
         retriever=retriever,
         gate=gate,
+        covered_topics=covered_topic_ids(),
     )
 
 

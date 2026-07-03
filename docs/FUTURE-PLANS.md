@@ -89,6 +89,7 @@ Everything we deliberately deferred, so nothing gets lost. Grouped by when it na
 - Graph knowledge-tracing v2 (ONLY if it beats the flat IRT/PFA baseline on held-out score prediction — already the documented rule).
 - Faded-step self-explanation grading (LLM-graded free-text) — high effort, LLM-judge reliability risk.
 - Prerequisite blast-radius diagnosis (already a BrainLift flagship below).
+- **AI grounding: LLM entailment/support check** ("does this passage actually support this problem?") to close the coverage-gap mis-citation residual beyond the fail-closed syllabus scoping now in place. The semantic cosine gate can't separate a genuine covered stem from a near-neighbour-but-unsupporting passage when the true source is simply absent (a *similarity ≠ entailment* problem); an NLI / LLM-judge entailment call would. The fail-closed scoping (refuse to generate for a topic outside the corpus's 9 leaves) already fixes this in normal operation — see `services/speedrun-ai/rag/README.md` (known-limitation) + `graph.topic_is_covered` / `rag.covered_topic_ids`.
 
 ## Stretch / bonus ideas (only if core is rock-solid; §13 + BrainLift flagships)
 - Knowledge-graph readiness model as a **v2 experiment that must beat the flat baseline** on held-out score prediction.

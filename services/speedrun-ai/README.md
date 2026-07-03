@@ -84,6 +84,29 @@ Dependency injection is **required**: `llm_propose` must be supplied by the
 caller; `retriever` / `make_distractors` / `gate` default to offline stubs so
 tests never touch OpenAI or the network.
 
+## Grounding safety
+
+Two independent grounding guards protect every emission:
+
+1. **Semantic grounding gate** (in `rag/ground()`): a candidate must clear a
+   calibrated query-to-top-passage cosine threshold or the pipeline abstains
+   ("no source grounding"). See
+   [`rag/README.md` → grounding gate](rag/README.md).
+2. **Fail-closed syllabus scoping** (AI bug #3): the corpus covers exactly nine
+   leaf topics (`rag.covered_topic_ids()`). A request for a topic the corpus
+   does **not** cover (ODEs, arc length, partial-fraction integration, PCA, …)
+   **abstains before proposing** (`abstain_reason = "topic not in grounding
+   corpus"`) instead of grounding to a near-neighbour-but-unsupporting passage —
+   a *misleading citation* the cosine gate cannot separate. `app.generate_problem`
+   passes the covered set so the running service is fail-closed by default; the
+   matcher is `graph.topic_is_covered` (exact `topic_id` match, or normalized
+   content-token / alias overlap).
+
+The **known coverage-gap mis-citation limitation** (why fail-closed scoping is
+needed, and the future entailment/support-check fix) is documented in
+[`rag/README.md` → *Known limitation: coverage-gap mis-citation*](rag/README.md)
+and tracked in `docs/FUTURE-PLANS.md`.
+
 ## Run
 
 ```bash

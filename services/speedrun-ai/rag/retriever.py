@@ -191,6 +191,22 @@ def load_corpus(path: Path | str | None = None) -> list[dict]:
     return rows
 
 
+def covered_topic_ids(corpus: list[dict] | None = None) -> set[str]:
+    """Return the SET of leaf ``topic_id``s the corpus actually covers.
+
+    Derived from the loaded rows (never hardcoded), so it stays honest if the
+    corpus changes. This is the source of truth for the fail-closed syllabus
+    scoping guard (AI bug #3): the generation graph refuses to emit for any topic
+    outside this set, so a genuine question on an UNCOVERED topic abstains instead
+    of grounding to a near-neighbour-but-unsupporting passage (a mis-citation).
+
+    With no argument the vendored corpus is loaded. Blank ``topic_id``s are
+    already dropped by :func:`load_corpus` (they fail the required-field check).
+    """
+    rows = corpus if corpus is not None else load_corpus()
+    return {str(row["topic_id"]).strip() for row in rows if str(row.get("topic_id", "")).strip()}
+
+
 # ---------------------------------------------------------------------------
 # Tokenization (shared by BM25 and used for query normalization)
 # ---------------------------------------------------------------------------

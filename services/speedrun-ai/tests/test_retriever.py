@@ -16,9 +16,24 @@ import pytest
 from rag.retriever import (
     DEFAULT_SEMANTIC_GROUND_THRESHOLD,
     HybridRetriever,
+    covered_topic_ids,
     load_corpus,
     reciprocal_rank_fusion,
 )
+
+# The exact set of leaf topics the vendored corpus covers. Fail-closed syllabus
+# scoping (AI bug #3) refuses to generate for anything outside this set.
+NINE_LEAF_TOPICS = {
+    "calc::limits",
+    "calc::single_var::differentiation",
+    "calc::single_var::integration",
+    "calc::sequences_series",
+    "calc::multivar",
+    "linear_algebra::vector_spaces",
+    "linear_algebra::matrices",
+    "linear_algebra::eigen",
+    "linear_algebra::linear_maps",
+}
 
 # ---------------------------------------------------------------------------
 # Corpus fixture
@@ -50,6 +65,17 @@ def test_corpus_loads_and_covers_all_nine_topics():
         "linear_algebra::linear_maps",
     }
     assert expected <= topics
+
+
+def test_covered_topic_ids_equals_the_nine_leaves():
+    # Task 1: the fail-closed guard's source of truth is DERIVED from the loaded
+    # corpus rows, not hardcoded. It must equal exactly the nine scored leaves.
+    assert covered_topic_ids(_corpus()) == NINE_LEAF_TOPICS
+
+
+def test_covered_topic_ids_defaults_to_vendored_corpus():
+    # With no argument it loads the vendored corpus and returns the same set.
+    assert covered_topic_ids() == NINE_LEAF_TOPICS
 
 
 def test_corpus_rows_have_required_fields_and_unique_ids():
