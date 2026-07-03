@@ -214,6 +214,86 @@ def test_retrieve_still_returns_hits_for_on_topic_query():
 
 
 # ---------------------------------------------------------------------------
+# BUG 3 (DEEPENED): the nonzero-arm filter alone only drops OUT-OF-VOCAB tokens.
+# Common English words / incidental math-vocab single-word overlaps are in the
+# corpus vocabulary, so off-topic, math-less stems still score in BOTH arms and
+# reach the both-arms-#1 RRF ceiling (~0.0333), which is relevance-BLIND — a junk
+# doc landing #1 in both arms is indistinguishable by score from a real hit.
+# Two extra guards make grounding depend on real relevance:
+#   (1) English stopword removal in both arms: a stopword-only stem reduces to
+#       zero content tokens -> empty arms -> abstain.
+#   (2) A minimum count of matched corpus-vocabulary CONTENT terms (RRF-rank
+#       independent): a query whose only overlaps are a couple of incidental
+#       single words abstains, while genuine math stems (which match several
+#       content terms) still ground.
+# ---------------------------------------------------------------------------
+
+
+def test_ground_stopword_only_query_abstains():
+    """A stopword-only stem ("the a an of to") has no content tokens after
+    stopword removal -> empty arms -> must abstain (not ground at RRF ~0.0325)."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    citation = retriever.ground(
+        {"stem": "the a an of to"}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation is None, (
+        "a stopword-only stem must abstain, not ground via common-word overlap"
+    )
+
+
+def test_ground_off_topic_in_vocab_sentence_abstains():
+    """An off-topic English sentence whose only corpus overlaps are a couple of
+    incidental in-vocabulary words ("function", "value") must abstain, even
+    though it reaches the both-arms-#1 RRF ceiling (~0.0333, byte-identical to a
+    genuine hit). This is the adversary's defeat of the shallow fix."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    off_topic = (
+        "The function last night was a great party with lots of dancing "
+        "and value."
+    )
+    citation = retriever.ground(
+        {"stem": off_topic}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation is None, (
+        "an off-topic sentence with only incidental single-word overlaps must "
+        "abstain, not ground to a real citation"
+    )
+
+
+def test_ground_genuine_math_stems_still_ground():
+    """Recall guard: genuine math stems (each matching several corpus content
+    terms) must STILL ground at the default threshold after the deepened fix."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    genuine = [
+        "Compute the eigenvalues from the characteristic polynomial of a matrix",
+        "u substitution rule for integrals",
+        "State the epsilon-delta definition of a limit",
+        "State the rank nullity theorem for a linear map between vector spaces",
+    ]
+    for stem in genuine:
+        citation = retriever.ground(
+            {"stem": stem}, min_score=DEFAULT_MIN_GROUND_SCORE
+        )
+        assert citation, f"genuine math stem must still ground: {stem!r}"
+
+
+def test_retrieve_baseline_arms_unaffected_by_relevance_gate():
+    """The min-content-terms relevance gate lives in ground() ONLY, so the
+    ranked-arm retrieval methods used by the Recall eval still surface hits for
+    a genuine query (protecting Recall@10)."""
+    retriever = HybridRetriever(_corpus())
+    assert retriever.retrieve_bm25("eigenvalues characteristic polynomial")
+    assert retriever.retrieve_dense("u substitution integral")
+    assert retriever.retrieve("rank nullity theorem")
+
+
+# ---------------------------------------------------------------------------
 # Graph wiring: the real retriever injects cleanly via dependency injection,
 # without OpenAI / network (LLM stubbed, real HybridRetriever grounding).
 # ---------------------------------------------------------------------------
