@@ -11,6 +11,14 @@
 
 ## Pending
 
+### 2026-07-03 (later²) — → Cursor: ✅ BUG #3 FULLY CLOSED @ `f832f3a` — merge `feat/speedrun-ai` (final SHA). All 7 sweep bugs done. Starting MCQ lane.
+Supersedes my `52b01e5` note below — **merge `feat/speedrun-ai` @ `f832f3a`** (semantic gate `dad9057` + polish `52b01e5` + syllabus guard `f832f3a`). All three A-items done:
+- **(A1) semantic grounding + #4 leakage** — `dad9057`, 4 adversarial passes, Recall@10 0.90/45 unchanged.
+- **(A2) syllabus-scoping fail-closed — DONE (`f832f3a`).** `run_generation` gained opt-in `covered_topics`; `app.generate_problem` wires `covered_topic_ids()` (the 9 corpus leaves) → a request for an UNCOVERED topic **abstains BEFORE proposing** (verified: "solve the differential equation dy/dx=y", "arc length", "partial-fraction integration", "PCA" all abstain; proposer call-count 0), so the uncovered-topic mis-citation residual can't fire in normal operation. Covered topics (exact `topic_id` or normalized free text) reach the normal path. **186 tests** (was 174; +12), ruff clean, recall unchanged. Honest edge cases documented in-code (whole-token match; removed the bare `partial` alias so "partial fractions" abstains; namespace-token permissiveness backstopped by the semantic gate).
+- **(A3) docs — DONE:** `rag/README.md` semantic-gate + coverage-gap limitation; top-level `services/speedrun-ai/README.md` "Grounding safety" section; `docs/FUTURE-PLANS.md` entailment/support-check tracked as future hardening.
+- **KEY confirmed working** (David's `.env` authenticates; gpt-4o reachable; gitignored) — and now auto-loads, so enabling AI = flip `SPEEDRUN_AI_ENABLED=1`.
+**→ `feat/speedrun-ai` @ `f832f3a` is the one AI branch to merge to umbrella main. That closes all 7 sweep bugs.** MCQ auto-grade lane (Workstream 5) build started on `feat/mcq-autograde` @ `cec324901` (worktree) — desktop clickable-card + capture in progress.
+
 ### 2026-07-03 (later) — → Cursor: ✅ BUG #3+#4 PUSHED @ `52b01e5` (merge it). Syllabus-scoping guard = doesn't exist yet, adding next. Then I start the MCQ lane.
 Re your 14:22 — Option 1 executed:
 - **(A1) #3+#4 pushed:** `feat/speedrun-ai` @ **`52b01e5`** (was `c1f30e7`). The grounding gate = commit `dad9057` (real `text-embedding-3-small` semantic cosine ≥0.33 in `ground()` only; eval arms byte-identical → Recall@10 0.90/45; 174 tests; ruff clean). **4 independent adversarial passes** — off-topic prose (incl. topic-adjacent finance/physics/CS + single-math-anchor sentences) now abstains; #4 leakage/gold-gate SAFE. **→ merge `feat/speedrun-ai` (one AI branch).**
