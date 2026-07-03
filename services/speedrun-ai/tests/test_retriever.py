@@ -159,6 +159,61 @@ def test_ground_handles_empty_candidate():
 
 
 # ---------------------------------------------------------------------------
+# BUG 3 (SAFETY): the grounding gate must depend on REAL similarity, not RRF
+# rank-presence. Previously every corpus doc appeared rank-0-eligible in both
+# arms (full-corpus argsort), so a zero-signal query still produced a top RRF
+# score of ~0.0333 >= the 0.03 default => gibberish "grounded" to a real
+# citation. The abstain decision must instead be driven by actual similarity:
+# a query with zero raw signal in BOTH arms must yield NO candidates -> None.
+# ---------------------------------------------------------------------------
+
+
+def test_ground_gibberish_query_abstains_at_default_threshold():
+    """A gibberish / off-topic stem with zero raw similarity in both arms must
+    NOT ground, even at the (permissive) default grounding threshold."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    candidate = {"stem": "zzzqqq foobarbaz nonsense wibble plugh xyzzy"}
+    citation = retriever.ground(candidate, min_score=DEFAULT_MIN_GROUND_SCORE)
+    assert citation is None, (
+        "a zero-signal gibberish query must abstain, not ground to a real "
+        "citation via RRF rank-presence"
+    )
+
+
+def test_ground_on_topic_query_still_grounds_at_default_threshold():
+    """Guard against over-tightening: a genuinely on-topic stem must still
+    ground to a relevant citation at the default threshold."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    candidate = {
+        "stem": "State the epsilon-delta definition of a limit and the "
+        "derivative of a polynomial.",
+    }
+    citation = retriever.ground(candidate, min_score=DEFAULT_MIN_GROUND_SCORE)
+    assert citation, "a genuinely on-topic stem must still ground"
+    assert "OpenStax" in citation or "Hefferon" in citation
+
+
+def test_retrieve_yields_no_candidates_for_zero_signal_query():
+    """The abstain decision hangs on candidacy: a query with zero raw signal in
+    both the BM25 and dense arms must produce NO ranked candidates at all (so
+    ground() has nothing to return), rather than surfacing an arbitrary doc via
+    full-corpus rank fusion."""
+    retriever = HybridRetriever(_corpus())
+    hits = retriever.retrieve("zzzqqq foobarbaz nonsense wibble plugh xyzzy")
+    assert hits == [], "a zero-signal query must yield no candidates"
+
+
+def test_retrieve_still_returns_hits_for_on_topic_query():
+    retriever = HybridRetriever(_corpus())
+    hits = retriever.retrieve("eigenvalues and the characteristic polynomial")
+    assert hits, "an on-topic query must still return candidates"
+
+
+# ---------------------------------------------------------------------------
 # Graph wiring: the real retriever injects cleanly via dependency injection,
 # without OpenAI / network (LLM stubbed, real HybridRetriever grounding).
 # ---------------------------------------------------------------------------
@@ -221,6 +276,39 @@ def test_real_retriever_abstains_when_below_threshold():
     )
     assert state["status"] == "abstain"
     assert "ground" in state["abstain_reason"].lower()
+
+
+def test_real_retriever_abstains_on_gibberish_stem_at_default_threshold():
+    """BUG 3 end-to-end: a candidate whose stem is gibberish (zero raw signal in
+    both arms) must drive the graph's "no source grounding" abstain path even at
+    the DEFAULT grounding threshold — not ground to a real citation."""
+    from graph import make_hybrid_retriever, run_generation
+
+    def _llm(topic, technique):
+        return {
+            "candidate": {
+                # a verifiably-correct answer, but a gibberish (ungroundable) stem
+                "stem": "zzzqqq foobarbaz nonsense wibble plugh xyzzy",
+                "correct": "2*x",
+                "worked_solution": "zzzqqq foobarbaz nonsense wibble",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    retriever = make_hybrid_retriever()  # default min_score
+    state = run_generation(
+        "zzz", "qqq", llm_propose=_llm, retriever=retriever
+    )
+    assert state["status"] == "abstain", (
+        "a gibberish, ungroundable stem must abstain, not ground"
+    )
+    assert "ground" in state["abstain_reason"].lower()
+    assert state["problem"] is None
 
 
 # ---------------------------------------------------------------------------

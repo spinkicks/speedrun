@@ -87,14 +87,18 @@ def default_retriever(candidate: dict) -> Optional[str]:
     return "PLACEHOLDER-CITATION (stub retriever; real grounding in Task 4.3)"
 
 
-# The default grounding threshold. RRF scores are ~1/(k+rank) summed over the
-# two arms (k=60). With a small corpus the top-ranked doc in a single arm always
-# scores ~1/60 (~0.0167) regardless of relevance, so the old 0.01 floor admitted
-# essentially ANY hit — near-zero-similarity passages counted as "grounding",
-# neutering the drop-if-unverifiable gate. A genuine top hit ranks near the top
-# of BOTH arms (~1/60 + 1/60 ≈ 0.0333, and ~0.031 even at rank ~1+10). We set
-# the floor to 0.03: above the single-arm-only score (~0.0167, rejected) yet
-# below a real both-arms top hit (~0.031-0.033, admitted). Tunable by the caller.
+# The default grounding threshold on the fused RRF score. This is the SECOND
+# line of defence for the drop-if-unverifiable gate; the FIRST is that each
+# retrieval arm now only ranks docs with real (nonzero) raw similarity (see
+# HybridRetriever._ranked_ids_from_scores — BUG 3 fix), so a zero-signal query
+# yields NO candidates and grounds nothing regardless of this threshold.
+#
+# For queries that DO match, RRF scores are ~1/(k+rank) summed over the two arms
+# (k=60). A doc ranked #1 in only ONE arm scores ~1/60 (~0.0167); a genuine top
+# hit near the top of BOTH arms scores ~1/60 + 1/60 ≈ 0.0333 (and ~0.031 even at
+# rank ~1+10). The floor is 0.03: above the single-arm-only score (~0.0167,
+# rejected) yet below a real both-arms top hit (~0.031-0.033, admitted). This
+# prunes weak, single-arm-only matches. Tunable by the caller.
 DEFAULT_MIN_GROUND_SCORE = 0.03
 
 
@@ -262,9 +266,44 @@ def _make_distractors_node(make_distractors: MakeDistractors):
     return distractors
 
 
+def _assemble_choices(correct: str, distractors: list) -> list[str]:
+    """Assemble the answer choices: correct answer + distractors, deduped, with
+    the correct answer appearing exactly once. Shared by the gold_gate node (so
+    the gate scans exactly what will ship) and :func:`emit_node`.
+    """
+    choices: list[str] = []
+    for option in [correct, *distractors]:
+        option = str(option).strip()
+        if option and option not in choices:
+            choices.append(option)
+    return choices
+
+
+def _candidate_for_gate(state: GraphState) -> dict:
+    """Build the candidate dict the gold gate should scan.
+
+    BUG 4: the raw proposed candidate carries only stem/correct/worked_solution.
+    The distractors live in a SEPARATE state key (from the distractors node) and
+    the answer choices are assembled only at emit time — both human-visible and
+    both AFTER the gate ran. If the gate only sees the raw candidate, a leak
+    buried solely in a distractor is never scanned and ships. So we enrich the
+    candidate with the distractors AND the assembled choices before gating, so
+    the gate scans every field that will actually be emitted.
+    """
+    candidate = dict(state.get("candidate", {}))
+    correct = str(candidate.get("correct", "")).strip()
+    distractors = list(state.get("distractors", []))
+    candidate["distractors"] = distractors
+    candidate["choices"] = _assemble_choices(correct, distractors)
+    return candidate
+
+
 def _make_gate_node(gate: Gate):
     def gold_gate(state: GraphState) -> dict:
-        return {"gate_result": bool(gate(state.get("candidate", {})))}
+        # Scan the ENRICHED candidate (stem/solution/correct + distractors +
+        # assembled choices) so a leak hidden only in a distractor/choice is
+        # caught before emit (BUG 4).
+        return {"gate_result": bool(gate(_candidate_for_gate(state)))}
 
     return gold_gate
 
@@ -276,10 +315,7 @@ def emit_node(state: GraphState) -> dict:
     distractors = list(state.get("distractors", []))
     # Assemble the answer choices: correct answer + distractors, deduped, with
     # the correct answer appearing exactly once.
-    choices: list[str] = []
-    for option in [correct, *distractors]:
-        if option and option not in choices:
-            choices.append(option)
+    choices = _assemble_choices(correct, distractors)
 
     problem = {
         "stem": candidate.get("stem", ""),

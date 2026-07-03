@@ -200,10 +200,30 @@ class HybridRetriever:
 
     # -- ranking helpers ----------------------------------------------------
 
-    def _bm25_ranked_ids(self, query: str) -> list[str]:
-        scores = self._bm25.get_scores(_tokenize(query))
+    # Raw-similarity floor below which a doc is treated as NO signal in an arm.
+    # BUG 3: a ranked arm must contain ONLY docs the query actually matches, so
+    # the abstain decision depends on real similarity — not on full-corpus rank
+    # fusion (which otherwise makes every doc rank-0-eligible in both arms and
+    # lets a zero-signal query "ground"). BM25 emits exact 0.0 for no term
+    # overlap; TF-IDF/dense cosine can be a tiny positive float, so we use a
+    # small epsilon rather than a strict > 0 test.
+    _MIN_ARM_SIM = 1e-9
+
+    def _ranked_ids_from_scores(self, scores: np.ndarray) -> list[str]:
+        """Rank docs by descending raw similarity, DROPPING any with no signal.
+
+        A doc whose raw score is at/below :data:`_MIN_ARM_SIM` did not match the
+        query in this arm and must not appear as a candidate — otherwise a
+        zero-signal query would still surface arbitrary docs via RRF.
+        """
         order = np.argsort(-scores, kind="stable")
-        return [self._ids[i] for i in order]
+        return [
+            self._ids[i] for i in order if scores[i] > self._MIN_ARM_SIM
+        ]
+
+    def _bm25_ranked_ids(self, query: str) -> list[str]:
+        scores = np.asarray(self._bm25.get_scores(_tokenize(query)), dtype=float)
+        return self._ranked_ids_from_scores(scores)
 
     def _dense_ranked_ids(self, query: str) -> list[str]:
         if self.dense_arm == "sentence-transformers":  # pragma: no cover
@@ -212,8 +232,7 @@ class HybridRetriever:
         else:
             q_vec = self._tfidf.transform([query])
             sims = cosine_similarity(q_vec, self._tfidf_matrix).ravel()
-        order = np.argsort(-sims, kind="stable")
-        return [self._ids[i] for i in order]
+        return self._ranked_ids_from_scores(np.asarray(sims, dtype=float))
 
     # -- public API ---------------------------------------------------------
 

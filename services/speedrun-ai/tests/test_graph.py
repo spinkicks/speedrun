@@ -307,3 +307,109 @@ def test_verify_node_uses_real_sympy_verifier():
     )
     assert state["status"] == "abstain"
     assert state["verification"]["passed"] is False
+
+
+# ---------------------------------------------------------------------------
+# BUG 4 (SAFETY): the gold_gate node must scan the DISTRACTORS / assembled
+# choices, not just the raw proposed candidate. Distractors live in a separate
+# state key (produced by the distractors node) and choices are assembled only in
+# emit_node — both AFTER the gate. If the gate only ever sees the raw candidate,
+# a leak buried solely in a distractor is never scanned and ships. Using the
+# REAL leakage gate, a clean stem/solution/correct with a leaking distractor
+# must FAIL the gate → abstain.
+# ---------------------------------------------------------------------------
+
+
+def test_gold_gate_scans_distractors_for_leaks():
+    from eval.gate import make_gold_gate
+
+    # A study passage; the leak is a verbatim >=13-word run copied into a
+    # distractor below. (Authored here — no gold-set content.)
+    study = [
+        "A square matrix is invertible if and only if its determinant is "
+        "nonzero and its columns are linearly independent vectors."
+    ]
+
+    def _clean_llm(topic, technique):
+        return {
+            "candidate": {
+                # stem / solution / correct are all CLEAN (no leak)
+                "stem": "Find the derivative of f(x) = x**2.",
+                "correct": "2*x",
+                "worked_solution": "By the power rule, d/dx(x^2) = 2x.",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    def _leaking_distractors(candidate):
+        # The leak is buried ONLY in a distractor (a verbatim >=13-gram run
+        # from the study passage), not in the stem/solution/correct.
+        return [
+            "A square matrix is invertible if and only if its determinant is "
+            "nonzero and its columns are linearly independent vectors.",
+            "1*x",
+        ]
+
+    gate = make_gold_gate(study)
+    state = run_generation(
+        "calculus",
+        "power_rule",
+        llm_propose=_clean_llm,
+        make_distractors=_leaking_distractors,
+        gate=gate,
+    )
+
+    assert state["status"] == "abstain", (
+        "a leak present only in a distractor must be scanned by the gold_gate "
+        "and abstain, not ship"
+    )
+    assert "gate" in state["abstain_reason"].lower()
+    assert state["problem"] is None
+
+
+def test_gold_gate_still_emits_when_distractors_are_clean():
+    """Guard against over-tightening BUG 4's fix: when the candidate AND the
+    distractors are all leak-free, the real gate must still let the problem
+    emit."""
+    from eval.gate import make_gold_gate
+
+    study = [
+        "A square matrix is invertible if and only if its determinant is "
+        "nonzero and its columns are linearly independent vectors."
+    ]
+
+    def _clean_llm(topic, technique):
+        return {
+            "candidate": {
+                "stem": "Find the derivative of f(x) = x**2.",
+                "correct": "2*x",
+                "worked_solution": "By the power rule, d/dx(x^2) = 2x.",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    def _clean_distractors(candidate):
+        return ["3*x", "x/2", "1"]
+
+    gate = make_gold_gate(study)
+    state = run_generation(
+        "calculus",
+        "power_rule",
+        llm_propose=_clean_llm,
+        make_distractors=_clean_distractors,
+        gate=gate,
+    )
+    assert state["status"] == "emit"
+    assert state["problem"] is not None
+    # the clean distractors made it into the emitted choices
+    assert "3*x" in state["problem"]["choices"]
