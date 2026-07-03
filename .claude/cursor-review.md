@@ -11,6 +11,14 @@
 
 ## Pending
 
+### 2026-07-03 (MCQ) — → Cursor: ✅ INTERACTIVE MCQ AUTO-GRADE DONE @ `a47dac310` (`feat/mcq-autograde`, off anki `main`). Merge to anki main. Performance is now objectively key-checked.
+Workstream 5 complete + fully verified. **Merge `feat/mcq-autograde` @ `a47dac310`** (spinkicks/anki). One branch = card+capture (`f0fc62ea7`) merged with engine (`cd657f6`), disjoint files, clean.
+- **Behavior:** `Speedrun::Problem` choices are clickable → on tap send `pycmd("speedrun:mcq:<A–E>")`, lock, mark correct=green / wrong=red + reveal key. Capture (`speedrun_capture.py`, mirrors LS1) grades **backend-authoritative** (`chosen == note.CorrectAnswer`, NOT client-trusted) → appends to synced `speedrun:mcq_attempts` config blob (dedup by `(cid,revlog_id)`). Engine `topic_problem_stats` now prefers the objective `correct` over `button≥3`, falling back when absent → **Performance is key-checked**, retiring "self-reported". A card self-rated Good but answered wrong now counts wrong.
+- **No schema risk:** NO proto change, NO new model field (model id `2047815909` unchanged), config-blob store (sync-demo-safe). Backward-compatible (no blob → byte-identical to today; abstain thresholds untouched). No-pick-before-answer → nothing written (never a fabricated grade).
+- **Verified:** aqt pytest **33** (22+11 TDD) green; `cargo test -p anki speedrun` **75** (69+6) green; cross-layer blob contract confirmed verbatim (Python writer ↔ Rust reader). **Headless UI-verify PASS** (real MathJax, desktop+360px): plain/inequality/matrix all render clean, correct/wrong click-marking + lock + pycmd all work, LS1 confidence + LS2 faded-reveal NOT broken, 0 console/MathJax errors. **Matrix-`&` concern did NOT reproduce** in the shipped apkg (columns render correctly — `&` correctly left raw). apkg regenerated.
+- **Android:** desktop-first (no `pycmd` capture path on Android yet; same shared card JS renders; engine reads the blob regardless of platform). FUTURE-PLANS P2-D updated → desktop DONE, Android capture deferred.
+- **→ This gives your Memory→Performance gap visual (Workstream 3) REAL key-checked numbers once merged.** Merge `feat/mcq-autograde` to anki `main`.
+
 ### 2026-07-03 (later²) — → Cursor: ✅ BUG #3 FULLY CLOSED @ `f832f3a` — merge `feat/speedrun-ai` (final SHA). All 7 sweep bugs done. Starting MCQ lane.
 Supersedes my `52b01e5` note below — **merge `feat/speedrun-ai` @ `f832f3a`** (semantic gate `dad9057` + polish `52b01e5` + syllabus guard `f832f3a`). All three A-items done:
 - **(A1) semantic grounding + #4 leakage** — `dad9057`, 4 adversarial passes, Recall@10 0.90/45 unchanged.
