@@ -12,6 +12,9 @@ The real OpenAI-backed proposer is constructed lazily, only when enabled.
 from __future__ import annotations
 
 import json
+import os
+import pathlib
+import sys
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -22,6 +25,35 @@ from eval.gate import make_gold_gate
 from eval.leakage import load_study_texts
 from graph import make_hybrid_retriever, run_generation
 from rag.embeddings import make_openai_embedder_if_key
+
+
+def _autoload_dotenv() -> None:
+    """Load ``services/speedrun-ai/.env`` into the environment when running the
+    service (uvicorn), so an operator's local ``.env`` "just works" without a
+    manual ``$env:`` export.
+
+    Deliberately dependency-free (no python-dotenv). Existing environment
+    variables ALWAYS win (``setdefault``), so an explicit export overrides the
+    file. Skipped under pytest so the hermetic test environment is never
+    perturbed, and a no-op when the file is absent (the normal case in CI / the
+    public forks, where ``.env`` is gitignored). The kill-switch is unaffected:
+    it still enables only when ``SPEEDRUN_AI_ENABLED`` is truthy AND a key is
+    present.
+    """
+    if "pytest" in sys.modules:  # never touch the test environment
+        return
+    env_path = pathlib.Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+_autoload_dotenv()
 
 app = FastAPI(title="Speedrun AI generation service", version="0.1.0")
 
@@ -62,9 +94,13 @@ def _make_openai_propose(settings):
             '{"candidate": {"stem": str, "correct": str, '
             '"worked_solution": str}, '
             '"spec": {"answer_type": str, "expression": str, '
-            '"variable": str, "claimed_answer": str}}. '
+            '"variable": str, "claimed_answer": str, '
+            '"limit_point": str, "lower_bound": str, "upper_bound": str}}. '
             "answer_type is one of expression_equivalence, "
-            "equation_solution_set, derivative, integral, limit, numeric_value."
+            "equation_solution_set, derivative, integral, limit, numeric_value. "
+            "Include limit_point when answer_type is limit; include lower_bound "
+            "and upper_bound for a definite integral; omit fields that do not "
+            "apply."
         )
         resp = client.chat.completions.create(
             model=model,

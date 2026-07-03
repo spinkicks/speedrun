@@ -83,33 +83,60 @@ citation = r.ground(candidate, min_score=0.03)   # str | None (abstain gate)
 graph_fn = r.as_graph_retriever(min_score=0.03)  # candidate -> citation|None
 ```
 
-### Grounding gate: TOPICALITY, not word-count
+### Grounding gate: SEMANTIC relevance (embeddings)
 
 `ground()` returns a citation only when the candidate is genuinely *on topic* for
 some corpus passage. RRF's fused score is rank-based and relevance-blind (a junk
-doc landing #1 in both arms scores the same as a real hit), so on top of the RRF
-floor the gate decides **topicality** from three signals on the **top retrieved
-passage**, ALL of which must hold (conservative — any doubt abstains):
+doc landing #1 in both arms scores the same as a real hit), so the **decisive**
+signal is the **semantic cosine** between the query and its fused top passage,
+computed with real OpenAI embeddings (`text-embedding-3-small`), which must clear
+`SEMANTIC_GROUND_THRESHOLD` (default **0.33**, env-overridable). Two cheap lexical
+guards flank it (>= 1 shared token; a discriminative-anchor concentration guard)
+to also reject in-domain keyword-bags a pure cosine cannot. Conservative — any
+doubt abstains.
 
-1. **Discriminative overlap.** A matched term counts only if it is
-   corpus-*discriminative* — outside the everyday-English band (`value, set,
-   function, point, order, field, ...` — common English that merely happens to be
-   math vocab). At least one discriminative query term must co-occur in the top
-   passage. This kills off-topic prose and bare-noun bags whose only overlaps are
-   everyday words.
-2. **Per-passage concentration.** A high fraction (>= 0.55) of the query's
-   discriminative terms must land in that **one** top passage — a keyword-stuffed
-   stem whose terms scatter across many passages fails.
-3. **Raw relevance floor.** The top passage's raw dense cosine must clear a floor
-   (>= 0.12), independent of the relevance-blind RRF score. This is a
-   defense-in-depth third barrier — signals 1+2 already reject every adversarial
-   stem on their own.
+- **Injectable embedder** (`rag/embeddings.py`): the real `OpenAIEmbedder` is
+  built lazily only when a key is present (the enabled path); tests inject a
+  deterministic stub, so CI stays offline. Corpus-passage embeddings are cached
+  (computed once).
+- **Calibration** (on real embeddings, never touching `eval/holdout/`): off-topic
+  prose tops out at cosine ≈0.29; genuine covered stems sit at 0.37–0.71, so 0.33
+  sits in the gap. Verified by **four independent adversarial passes**: off-topic
+  prose — including topic-adjacent finance/physics/CS text and single-math-anchor
+  sentences ("My cat is named Eigenvalue…") — abstains; genuine terse stems
+  ("Compute the determinant.", "Does the series converge?") ground.
+- The gate lives **only** in `ground()`; the eval arms (`retrieve`,
+  `retrieve_bm25`, `retrieve_dense`) are untouched, so **Recall@10 is unchanged**.
 
-This replaced an earlier gate that counted distinct corpus-vocabulary tokens and
-required >= 4 — a word-COUNT heuristic that an adversary defeated with off-topic
-English sentences built from the ~39 everyday words that are also math vocab. The
-topicality gate lives **only** in `ground()`; the eval arms (`retrieve`,
-`retrieve_bm25`, `retrieve_dense`) are untouched, so Recall@10 is unchanged.
+This is the third iteration of the gate. Two earlier *lexical* gates were each
+defeated by a fresh adversary: (1) a word-COUNT heuristic (>= 4 distinct corpus
+tokens) fell to off-topic English built from everyday-words-that-are-also-math;
+(2) a 3-signal topicality gate (discriminative overlap + per-passage
+concentration + a raw 0.12 cosine floor) fell to a **single** math word in
+off-topic prose (one anchor forces concentration → 1.0; the low floor can't
+separate a 1-word math overlap from a 1-word off-topic one). Lexical overlap
+fundamentally cannot separate "one math word in off-topic prose" from "a genuine
+terse math stem"; the semantic embedding gate can.
+
+#### Known limitation: coverage-gap mis-citation (honest disclosure)
+
+A *genuine* math question on a topic the corpus does **not** cover (e.g. ODEs /
+separation of variables, arc length, partial-fraction integration, PCA) can
+ground to the nearest *in-domain but unsupporting* passage at cosine 0.35–0.43 —
+a **misleading citation**. The covered-stem and uncovered-mis-cite cosine
+distributions **overlap** (≈0.37 vs <= 0.43), so no single fixed threshold
+separates "near-neighbor covered passage" from "actually-supported passage" when
+the true source is simply absent (a *similarity ≠ entailment* problem).
+
+- **Impact is bounded:** the AI service is **OFF by default**; the study app never
+  depends on it; the hard safety gates (SymPy symbolic verification + gold-set
+  leakage) are independent and unaffected. In normal use the proposer is asked for
+  topics drawn from the exam syllabus, and covered topics ground correctly.
+- **Robust fix (future work):** augment the cosine floor with an
+  **entailment/support check** ("does this passage actually support this
+  problem?") — an NLI or LLM-judge call — since the failure mode is an absent
+  source, not an out-ranked one. Merely raising the floor toward ~0.45 would
+  reject most mis-citations but trade recall on genuinely covered terse stems.
 
 ## In-house eval (NOT the §7f gold set)
 
