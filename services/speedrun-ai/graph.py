@@ -31,6 +31,7 @@ by the caller (``app.py`` and Tasks 4.3 / 4.4).
 
 from __future__ import annotations
 
+import re
 from typing import Any, Callable, Optional, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -70,6 +71,88 @@ class GraphState(TypedDict, total=False):
 
 
 # ---------------------------------------------------------------------------
+# Fail-closed syllabus scoping (AI bug #3)
+# ---------------------------------------------------------------------------
+#
+# The grounding corpus covers exactly nine leaf topics. A GENUINE math question
+# on an UNCOVERED topic (ODEs / separation of variables, arc length,
+# partial-fraction integration, PCA, ...) grounds to a near-neighbour-but-
+# unsupporting passage → a misleading citation. The semantic cosine gate cannot
+# separate these (the covered-stem and uncovered-mis-cite distributions overlap).
+# Fail-closed scoping fixes it in normal operation: we refuse to even PROPOSE for
+# a topic the corpus does not cover. This is a *similarity != entailment* guard;
+# the robust future fix is an entailment/support check (see rag/README.md and
+# docs/FUTURE-PLANS.md).
+#
+# ALIAS map: each covered ``topic_id`` -> the set of content tokens that signal
+# it. A free-text topic is covered when it shares >= 1 content token with a
+# covered topic_id's own tokens OR with that topic_id's alias tokens. Tokens are
+# matched EXACTLY (post-normalization), never as substrings, so "integrate" does
+# NOT match "integration" — this is deliberate: "integrate the rational function
+# by partial fractions" is an uncovered technique and must abstain. Kept small
+# and documented; not tuned to any single attack string.
+_TOPIC_ALIASES: dict[str, set[str]] = {
+    "calc::limits": {"limit", "limits"},
+    "calc::single_var::differentiation": {"derivative", "derivatives", "differentiation"},
+    "calc::single_var::integration": {"integral", "integrals", "integration"},
+    "calc::sequences_series": {"series", "sequence", "sequences", "converge", "convergence"},
+    # NB: no bare "partial" alias here — it would collide with the UNCOVERED
+    # integration technique "partial fractions" (partial-fraction integration is
+    # not in the corpus). "partial derivatives" still matches via "derivative"
+    # + "gradient"/"multivariable".
+    "calc::multivar": {"gradient", "multivariable", "multivariate"},
+    "linear_algebra::vector_spaces": {"vector", "vectors", "space", "spaces", "basis", "subspace", "subspaces"},
+    "linear_algebra::matrices": {"matrix", "matrices", "determinant", "determinants", "rank"},
+    "linear_algebra::eigen": {"eigen", "eigenvalue", "eigenvalues", "eigenvector", "eigenvectors", "diagonalize", "diagonalization"},
+    "linear_algebra::linear_maps": {"map", "maps", "transformation", "transformations", "nullity"},
+}
+
+_ALNUM_RE = re.compile(r"[a-z0-9]+")
+
+
+def _content_tokens(text: str) -> set[str]:
+    """Lowercase, split on non-alphanumerics, keep tokens with a letter.
+
+    Dropping pure-number tokens (e.g. the "3" in "row3") avoids spurious
+    overlaps; a topic_id like ``linear_algebra::eigen`` yields
+    ``{"linear", "algebra", "eigen"}`` and a query like "eigenvalues" yields
+    ``{"eigenvalues"}``.
+    """
+    return {t for t in _ALNUM_RE.findall(text.lower()) if any(c.isalpha() for c in t)}
+
+
+def topic_is_covered(topic: str, covered_topics: set[str]) -> bool:
+    """Decide whether a free-text ``topic`` is in the grounding corpus.
+
+    True when EITHER:
+
+    * ``topic`` exactly equals a covered ``topic_id`` (fast path); OR
+    * ``topic``'s content tokens overlap a covered ``topic_id``'s content tokens
+      (e.g. "linear maps" -> ``linear_algebra::linear_maps``), OR its alias
+      tokens (e.g. "eigenvalues" -> ``linear_algebra::eigen``,
+      "row reduce a matrix" -> ``linear_algebra::matrices``).
+
+    Only ``topic_id``s present in ``covered_topics`` are consulted, so if the
+    corpus stops covering a leaf its aliases stop matching too. Matching is on
+    WHOLE normalized tokens (no substring matching), so near-but-uncovered
+    techniques ("integrate ... by partial fractions") do not false-match.
+    """
+    topic = (topic or "").strip()
+    if not topic:
+        return False
+    if topic in covered_topics:
+        return True
+    query_tokens = _content_tokens(topic)
+    if not query_tokens:
+        return False
+    for topic_id in covered_topics:
+        signal = _content_tokens(topic_id) | _TOPIC_ALIASES.get(topic_id, set())
+        if query_tokens & signal:
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Default stub collaborators (safe, offline)
 # ---------------------------------------------------------------------------
 
@@ -87,14 +170,18 @@ def default_retriever(candidate: dict) -> Optional[str]:
     return "PLACEHOLDER-CITATION (stub retriever; real grounding in Task 4.3)"
 
 
-# The default grounding threshold. RRF scores are ~1/(k+rank) summed over the
-# two arms (k=60). With a small corpus the top-ranked doc in a single arm always
-# scores ~1/60 (~0.0167) regardless of relevance, so the old 0.01 floor admitted
-# essentially ANY hit — near-zero-similarity passages counted as "grounding",
-# neutering the drop-if-unverifiable gate. A genuine top hit ranks near the top
-# of BOTH arms (~1/60 + 1/60 ≈ 0.0333, and ~0.031 even at rank ~1+10). We set
-# the floor to 0.03: above the single-arm-only score (~0.0167, rejected) yet
-# below a real both-arms top hit (~0.031-0.033, admitted). Tunable by the caller.
+# The default grounding threshold on the fused RRF score. This is the SECOND
+# line of defence for the drop-if-unverifiable gate; the FIRST is that each
+# retrieval arm now only ranks docs with real (nonzero) raw similarity (see
+# HybridRetriever._ranked_ids_from_scores — BUG 3 fix), so a zero-signal query
+# yields NO candidates and grounds nothing regardless of this threshold.
+#
+# For queries that DO match, RRF scores are ~1/(k+rank) summed over the two arms
+# (k=60). A doc ranked #1 in only ONE arm scores ~1/60 (~0.0167); a genuine top
+# hit near the top of BOTH arms scores ~1/60 + 1/60 ≈ 0.0333 (and ~0.031 even at
+# rank ~1+10). The floor is 0.03: above the single-arm-only score (~0.0167,
+# rejected) yet below a real both-arms top hit (~0.031-0.033, admitted). This
+# prunes weak, single-arm-only matches. Tunable by the caller.
 DEFAULT_MIN_GROUND_SCORE = 0.03
 
 
@@ -102,6 +189,7 @@ def make_hybrid_retriever(
     *,
     corpus: Optional[list[dict]] = None,
     min_score: float = DEFAULT_MIN_GROUND_SCORE,
+    embedder=None,
 ) -> Retriever:
     """Build the REAL hybrid-retriever grounding function for injection.
 
@@ -111,13 +199,23 @@ def make_hybrid_retriever(
     or pulls in the RAG dependencies. If ``corpus`` is omitted, the vendored
     ``rag/corpus/gre_math_sources.jsonl`` is loaded.
 
+    When an ``embedder`` (``embed(texts) -> list[vector]``) is supplied, the
+    grounding gate uses the SEMANTIC discriminator (FIX 4): corpus-passage
+    embeddings are cached once and each candidate must clear the calibrated
+    query-to-top-passage cosine threshold. The real OpenAI embedder is built by
+    ``app.py`` only when a key is present; with no embedder the gate degrades to
+    the lexical topicality gate. The embedder is used ONLY in grounding — the
+    eval arms stay byte-identical, so Recall@10 is preserved.
+
     A top hit below ``min_score`` yields ``None`` → the graph's "no source
     grounding" abstain path (the drop-if-unverifiable gate).
     """
     from rag.retriever import HybridRetriever, load_corpus
 
     rows = corpus if corpus is not None else load_corpus()
-    return HybridRetriever(rows).as_graph_retriever(min_score=min_score)
+    return HybridRetriever(rows, embedder=embedder).as_graph_retriever(
+        min_score=min_score
+    )
 
 
 def default_make_distractors(candidate: dict) -> list:
@@ -262,9 +360,44 @@ def _make_distractors_node(make_distractors: MakeDistractors):
     return distractors
 
 
+def _assemble_choices(correct: str, distractors: list) -> list[str]:
+    """Assemble the answer choices: correct answer + distractors, deduped, with
+    the correct answer appearing exactly once. Shared by the gold_gate node (so
+    the gate scans exactly what will ship) and :func:`emit_node`.
+    """
+    choices: list[str] = []
+    for option in [correct, *distractors]:
+        option = str(option).strip()
+        if option and option not in choices:
+            choices.append(option)
+    return choices
+
+
+def _candidate_for_gate(state: GraphState) -> dict:
+    """Build the candidate dict the gold gate should scan.
+
+    BUG 4: the raw proposed candidate carries only stem/correct/worked_solution.
+    The distractors live in a SEPARATE state key (from the distractors node) and
+    the answer choices are assembled only at emit time — both human-visible and
+    both AFTER the gate ran. If the gate only sees the raw candidate, a leak
+    buried solely in a distractor is never scanned and ships. So we enrich the
+    candidate with the distractors AND the assembled choices before gating, so
+    the gate scans every field that will actually be emitted.
+    """
+    candidate = dict(state.get("candidate", {}))
+    correct = str(candidate.get("correct", "")).strip()
+    distractors = list(state.get("distractors", []))
+    candidate["distractors"] = distractors
+    candidate["choices"] = _assemble_choices(correct, distractors)
+    return candidate
+
+
 def _make_gate_node(gate: Gate):
     def gold_gate(state: GraphState) -> dict:
-        return {"gate_result": bool(gate(state.get("candidate", {})))}
+        # Scan the ENRICHED candidate (stem/solution/correct + distractors +
+        # assembled choices) so a leak hidden only in a distractor/choice is
+        # caught before emit (BUG 4).
+        return {"gate_result": bool(gate(_candidate_for_gate(state)))}
 
     return gold_gate
 
@@ -276,10 +409,7 @@ def emit_node(state: GraphState) -> dict:
     distractors = list(state.get("distractors", []))
     # Assemble the answer choices: correct answer + distractors, deduped, with
     # the correct answer appearing exactly once.
-    choices: list[str] = []
-    for option in [correct, *distractors]:
-        if option and option not in choices:
-            choices.append(option)
+    choices = _assemble_choices(correct, distractors)
 
     problem = {
         "stem": candidate.get("stem", ""),
@@ -446,6 +576,9 @@ def build_graph(
     return builder.compile()
 
 
+TOPIC_NOT_COVERED_REASON = "topic not in grounding corpus"
+
+
 def run_generation(
     topic: str,
     technique: str,
@@ -455,15 +588,19 @@ def run_generation(
     make_distractors: MakeDistractors = default_make_distractors,
     gate: Gate = default_gate,
     max_retries: int = 2,
+    covered_topics: Optional[set[str]] = None,
 ) -> dict[str, Any]:
-    """Convenience: build the graph and run it once, returning the final state."""
-    graph = build_graph(
-        llm_propose=llm_propose,
-        retriever=retriever,
-        make_distractors=make_distractors,
-        gate=gate,
-        max_retries=max_retries,
-    )
+    """Convenience: build the graph and run it once, returning the final state.
+
+    Fail-closed syllabus scoping (AI bug #3): ``covered_topics`` is OPT-IN
+    (default ``None`` = current behaviour, so existing callers/tests are
+    unaffected). When a set of covered ``topic_id``s is supplied and ``topic`` is
+    NOT covered (see :func:`topic_is_covered`), we ABSTAIN immediately — BEFORE
+    building/running the graph, so the expensive propose/verify/ground path never
+    runs and no misleading citation can be produced. ``app.generate_problem``
+    passes the corpus's covered set so the RUNNING service is fail-closed by
+    default.
+    """
     initial: GraphState = {
         "topic": topic,
         "technique": technique,
@@ -473,4 +610,20 @@ def run_generation(
         "abstain_reason": None,
         "problem": None,
     }
+    if covered_topics is not None and not topic_is_covered(topic, covered_topics):
+        # Fail closed: refuse to propose for an uncovered topic. Return the same
+        # abstain shape the graph's abstain terminal produces.
+        return {
+            **initial,
+            "status": "abstain",
+            "problem": None,
+            "abstain_reason": TOPIC_NOT_COVERED_REASON,
+        }
+    graph = build_graph(
+        llm_propose=llm_propose,
+        retriever=retriever,
+        make_distractors=make_distractors,
+        gate=gate,
+        max_retries=max_retries,
+    )
     return dict(graph.invoke(initial))
