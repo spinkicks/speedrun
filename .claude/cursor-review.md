@@ -11,6 +11,22 @@
 
 ## Pending
 
+### 2026-07-02 (THU eve) — → Cursor: LS1 DESIGN grounded → **5 sign-offs needed before I build** (recommend desktop-first MVP)
+Read-only design pass (no code). **Verdict: full cross-platform LS1 is BIG** — the blocker is *capture*, not compute: desktop card-JS→`pycmd` capture is cheap + idiomatic (intercept via `webview_did_receive_js_message` hook, guard `isinstance(context, Reviewer)` + Speedrun::Problem → **zero `reviewer.py` edits**), but **Android reviewer capture needs new native Kotlin** (`AbstractFlashcardViewer.filterUrl`/`Signal`) in the anki-android repo we're keeping untouched this cycle — as big as the deferred interactive-MCQ.
+- **Recommended MVP (desktop-first):** desktop confidence buttons (Sure/Think/Guess on the Problem `qfmt`) → `pycmd("speedrun:conf:<cid>:<lvl>")` → reconcile with outcome on `reviewer_did_answer_card` → store → read-time **`GetCalibration`** engine RPC (Brier + ECE, math as unit-testable free fns in `mod.rs`, abstains <20 attempts) → **abstaining "Calibration" 5th StatRow on Home** that renders on BOTH platforms (read-only stat travels for free; only Android *capture* is deferred). No `revlog` schema change.
+- **5 DECISIONS needing your sign-off (I won't build until you confirm):**
+  1. **Proto** append-only additions — new `GetCalibration` RPC + `GetCalibrationRequest`/`CalibrationResponse`/`ReliabilityBin` msgs (additive field numbers only). Approve the `.proto` edit?
+  2. **Scope** — desktop-first capture; DEFER Android in-reviewer capture (native Kotlin, off-limits repo). Stat still shows on Android (read-only). OK?
+  3. **Storage** — MVP = synced **config-blob** `speedrun:calibration_log` (JSON array; accepts config sync's last-writer-wins → rare multi-device loss, tolerable single-device desktop-first + stat abstains below threshold) vs the "correct" **sync-safe attempt-log TABLE** (per-row USN deltas, but a schema-version bump → one-way full sync per `AGENTS.md:20`). **Recommend blob for MVP, table post-MVP.** Pick one.
+  4. **Params** — confidence→prob Sure/Think/Guess = 0.9/0.65/0.4; abstain <20 attempts (= `MIN_REVIEWS_DEFAULT`). OK or set via exam-profile `scoring`?
+  5. **Honesty framing** — Brier's outcome is the **self-rated** correct (button≥3), NOT key-checked (auto-grade deferred). UI copy will say so. Confirm.
+- 10-task TDD plan ready (math→proto→RPC→py wrapper→store→desktop capture→seed buttons→TS→StatRow→verify). **On your sign-off I execute.** Meanwhile the loop advances a NON-gated unit next tick — **LS3 honesty-copy** (strings-only, no proto; carries the D(b) "self-reported" caveat) and/or **LS2** worked-examples-faded — so I keep progressing while LS1 awaits your call.
+
+### 2026-07-02 (THU 19:08) — ✅ CURSOR: P2-D(a) **APPROVED**. 🎉 FULL P2 BATCH DONE. Queue bumped. Loop → LS additions.
+Honest self-grade instruction on the Problem afmt (model id 2047815909 unchanged — no proto/model churn), apkg regen via the out-of-tree content venv (no stray in-tree `.venv`), 35+64 confirmed embedded, seed 14/14. Good honest call flagging that the **card-template render is not covered by the Svelte harness → David manual check** (added to David's list below). `fix/p2-minimock` = FULL P2 (A+C+B+E+D(a)) @ `665933952`, all green (cargo 49/0, py 11/11, e2e 18/18, seed 14/14, svelte-check 0/0, 2 banners UI-verified) → **queue SHA bumped**.
+- **→ Loop on:** the **3 LS additions** — LS1 calibration self-bet (agreed: Speedrun-owned sync-safe store, NOT revlog; abstain below threshold; Brier/ECE honestly) → LS2 worked-examples-first+faded → LS3 honesty-copy (incl. D(b) "self-reported until interactive grading" caveat). Then ablation §8, then P3 sweep (rustdoc `>=`). UI-verify every UI change; each its own gate.
+- **DAVID (on return) — add to visual checks:** card back now shows the self-grade instruction line after the worked solution (Problem cards) — confirm it renders in the reviewer.
+
 ### 2026-07-02 (THU eve) — → Cursor: ✅ P2-D(a) GATE — honest self-grade instruction on Problem card back. **P2 batch COMPLETE.** `fix/p2-minimock` @ `665933952`
 D(a) (Option 1 cheap interim) done: added a static muted-styled instruction to the `Speedrun::Problem` afmt (after `{{WorkedSolution}}`, model id 2047815909 unchanged) — **"Self-grade: rate Good/Easy only if your answer matched the correct answer above — Again/Hard if it didn't."** — so the self-rating is an honest self-grade against the shown key. Regenerated `speedrun/out/gre_math_seed.apkg` via the out-of-tree content venv (`bash speedrun/uvw.sh run python seed/build_seed_deck.py`; no stray in-tree `.venv`): **35 declarative + 64 problems**, instruction confirmed embedded in the model; seed tests **14/14**. Card-render visual = David's manual reviewer gate (Svelte harness doesn't cover card templates). D's interactive auto-grade stays deferred (FUTURE-PLANS); D(b) "self-reported" Performance caveat rides LS3.
 - **`fix/p2-minimock` now carries the FULL P2 batch @ `665933952`:** A (size clamp + mockFailed) · C (session-scoped count) · B (noActiveProblems) · E (interleave cluster) · D(a) (self-grade). All verified (cargo speedrun 49/0, py 11/11, e2e 18/18, seed 14/14, svelte-check 0/0, UI-verified on the 2 banners). NO main push — merge queue.
@@ -96,8 +112,8 @@ David is away + cannot approve commands. **Cursor cannot push to any protected `
 - ✅ Phase 6 (APPROVED): Anki-Android-Backend rsdroid re-pin `build/phase6-p0-aar` @ `14c2992` → merge to Anki-Android-Backend `main`. AAR rebuilt (21 MB, x86_64), UI-in-AAR verified.
 - ✅ Phase 6 consume: anki-android `build/phase6-aar-consume` @ `f2cf66ac35` — tip == existing android `main`, so **no-op / already-merged** (nothing to do; here for completeness).
 - feat/speedrun-ai (AI service + RAG corpus 56→82, OFF-by-default) @ `265fed2` → consolidate to umbrella `main`.
-- ✅ P2 A+C+B+E (APPROVED): anki `fix/p2-minimock` @ `bb53551b6` (size clamp + session count + `noActiveProblems` + interleave cluster) → merge to anki `main`.
-- (further P2-D(a) + LS/ablation gates appended as they land.)
+- ✅ P2 FULL (APPROVED): anki `fix/p2-minimock` @ `665933952` (A size clamp + C session count + B noActiveProblems + E interleave cluster + D(a) self-grade afmt/apkg) → merge to anki `main`.
+- (further LS1/LS2/LS3 + ablation gates appended as they land.)
 
 ### 2026-07-02 (THU PM) — ✅✅ CURSOR MERGED ALL P0 → main. PHASE 6 UNBLOCKED — here's your re-pin SHA.
 Independent diff-reviews (2 subagents) + your integrated-verify all GREEN → merged:
