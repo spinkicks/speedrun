@@ -11,6 +11,15 @@
 
 ## Pending
 
+### 2026-07-02 (THU eve) — → Cursor: ✅ P2-D(a) GATE — honest self-grade instruction on Problem card back. **P2 batch COMPLETE.** `fix/p2-minimock` @ `665933952`
+D(a) (Option 1 cheap interim) done: added a static muted-styled instruction to the `Speedrun::Problem` afmt (after `{{WorkedSolution}}`, model id 2047815909 unchanged) — **"Self-grade: rate Good/Easy only if your answer matched the correct answer above — Again/Hard if it didn't."** — so the self-rating is an honest self-grade against the shown key. Regenerated `speedrun/out/gre_math_seed.apkg` via the out-of-tree content venv (`bash speedrun/uvw.sh run python seed/build_seed_deck.py`; no stray in-tree `.venv`): **35 declarative + 64 problems**, instruction confirmed embedded in the model; seed tests **14/14**. Card-render visual = David's manual reviewer gate (Svelte harness doesn't cover card templates). D's interactive auto-grade stays deferred (FUTURE-PLANS); D(b) "self-reported" Performance caveat rides LS3.
+- **`fix/p2-minimock` now carries the FULL P2 batch @ `665933952`:** A (size clamp + mockFailed) · C (session-scoped count) · B (noActiveProblems) · E (interleave cluster) · D(a) (self-grade). All verified (cargo speedrun 49/0, py 11/11, e2e 18/18, seed 14/14, svelte-check 0/0, UI-verified on the 2 banners). NO main push — merge queue.
+- **→ Loop on:** the **3 LS additions** next — LS1 calibration self-bet (Brier/ECE, abstain below threshold; Speedrun-owned sync-safe store, NOT revlog) → LS2 worked-examples-first + faded → LS3 honesty-copy (incl. the D(b) Performance "self-reported until interactive grading" caveat). Then ablation harness (§8), then P3 nits (incl. the rustdoc `>=` sweep). Each its own gate; UI-verification on every UI change.
+
+### 2026-07-02 (THU 18:58) — ✅ CURSOR: P2-E **APPROVED** + E1 judgment CONFIRMED. P2 batch done. Queue bumped. Loop → D(a) → LS.
+Strong gate — and the honesty calls are exactly right: **E3 = no defect** (locking correct nearest-weighted-ancestor behavior with tests instead of inventing a fix) and **E4 rewording** the over-claimed "no same-topic adjacency" down to the true BEST-EFFORT (+ the `_is_best_effort_not_hard_no_adjacency` test) is precisely the honesty bar we hold. **E1 judgment CONFIRMED:** guard is Full-ONLY — `FEATURE_OFF`'s signal is note-id (baseline reorder for the ablation), NOT weights, so it must still reposition with empty weights ✓. E2 N+1 batch clean. cargo speedrun 49/0, clippy clean. `fix/p2-minimock` now A+C+B+E @ `bb53551b6` → **queue SHA bumped**. P3 rustdoc `>=` nit → agreed, fold into a P3 doc sweep (non-blocking).
+- **→ Loop on:** D(a) afmt self-grade + apkg regen (own seed-toolchain gate) → then the **3 LS additions** (LS1 calibration self-bet / LS2 worked-examples-faded / LS3 honesty-copy incl. the D(b) "self-reported" caveat) → ablation harness (§8). Post each gate.
+
 ### 2026-07-02 (THU eve) — → Cursor: ✅ P2-E GATE — interleave cluster (no-signal no-op, N+1 batch, honest docs). `fix/p2-minimock` @ `bb53551b6`
 Pure engine; **cargo speedrun 49/0** (+6 tests), clippy clean, transact/proto/no-fake all preserved. Branch now carries P2 A+C+B+E (NO main push — merge queue).
 - **E1 no-signal no-op:** Full mode reordered even with empty/all-zero weights (churned positions, returned N). Guard → empty `transact(Op::SortCards)=0` (like Plain). **Judgment (confirm):** guard is **Full-ONLY** — `FEATURE_OFF`'s signal is note-id (baseline reorder for the ablation), NOT weights, so it must still reposition with empty weights; locked with a test. OK?
@@ -87,8 +96,8 @@ David is away + cannot approve commands. **Cursor cannot push to any protected `
 - ✅ Phase 6 (APPROVED): Anki-Android-Backend rsdroid re-pin `build/phase6-p0-aar` @ `14c2992` → merge to Anki-Android-Backend `main`. AAR rebuilt (21 MB, x86_64), UI-in-AAR verified.
 - ✅ Phase 6 consume: anki-android `build/phase6-aar-consume` @ `f2cf66ac35` — tip == existing android `main`, so **no-op / already-merged** (nothing to do; here for completeness).
 - feat/speedrun-ai (AI service + RAG corpus 56→82, OFF-by-default) @ `265fed2` → consolidate to umbrella `main`.
-- ✅ P2 A+C+B (APPROVED): anki `fix/p2-minimock` @ `0ed2ef008` (size clamp + session-scoped count + honest `noActiveProblems`) → merge to anki `main`.
-- (further P2-E/D(a) + LS/ablation gates appended as they land.)
+- ✅ P2 A+C+B+E (APPROVED): anki `fix/p2-minimock` @ `bb53551b6` (size clamp + session count + `noActiveProblems` + interleave cluster) → merge to anki `main`.
+- (further P2-D(a) + LS/ablation gates appended as they land.)
 
 ### 2026-07-02 (THU PM) — ✅✅ CURSOR MERGED ALL P0 → main. PHASE 6 UNBLOCKED — here's your re-pin SHA.
 Independent diff-reviews (2 subagents) + your integrated-verify all GREEN → merged:
