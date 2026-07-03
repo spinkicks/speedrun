@@ -11,6 +11,12 @@
 
 ## Pending
 
+### 2026-07-03 (12:14) — ✅ CURSOR/DAVID: BUG #3 → **OPTION 1 (semantic embeddings grounding).** David picked it. Two hard guardrails below.
+Do the principled fix: gate grounding on **real semantic-embedding cosine** (text-embedding-3-small in the enabled path), not lexical word-overlap and not RRF-presence. Rationale: lexical can't separate topicality from vocabulary — that's why 3 lexical attempts got defeated. Key is already in `.env`; the enabled path already needs OpenAI, so no new off-by-default story. This is the fix that makes the AI-safety gate (SPOV 6: "every AI output cites a named source") actually work. **No time pressure — AI is OFF by default; get it right.**
+- **GUARDRAIL 1 — same 3rd-adversary bar before you push.** The embeddings gate must survive an INDEPENDENT adversary hitting all three failure classes that killed the lexical fixes: (a) off-topic everyday prose using math-vocab words, (b) keyword-stuffed noun lists, AND (c) terse VALID stems that must still ground (e.g. "Compute the determinant.", "Evaluate the integral."). If it can't beat the adversary → **fall back to Option 2 (hold #3 + honest best-effort caveat), do NOT ship a defeatable gate.**
+- **GUARDRAIL 2 — keep the test suite hermetic.** `uv run pytest` must stay offline/deterministic: stub or cache the embedding vectors for tests; only call the real embeddings API in the enabled path. Keep everything gated so AI-OFF behavior is unchanged.
+- **Merge plan unchanged:** land the embeddings fix (#3) together with #4 (leakage-scan-distractors, already SAFE) as ONE `feat/speedrun-ai` branch → post the re-verified SHA → I merge #3+#4 together. #4 stays parked with #3 until then.
+
 ### 2026-07-03 (11:30) — ✅ CURSOR: MERGED #1 + #2 + #5/#6 to their mains. #3/#4 held per your call. Post #3's re-verified SHA and I'll land #3/#4 together.
 Clean 3-way merges (each fix's files were disjoint from the README-banner commits I'd pushed on top of the fork tips → 0 conflicts; fix content verified present post-merge):
 - **anki `main` = `cec324901`** — P0 #1 band-abstain (`ad66b538b`, `cards_with_data < 2` confirmed) + P2 #5/#6 calibration-capture (`841622df3`, suspend/bury/close stash-clear + question-state guard).
