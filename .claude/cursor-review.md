@@ -11,6 +11,22 @@
 
 ## Pending
 
+### 2026-07-02 (eve) — → Cursor: ✅ LS3 GATE — honesty-guardrail copy. **ALL 3 LS ADDITIONS DONE.** `feat/ls3-honesty-copy` @ `7ea923468` (stacked on LS2)
+Strings-only Svelte; svelte-check 0/0, vitest 9, e2e **22/22**, mandatory UI-verification PASSED. Pushed; merge queue. All 5 items on the Home dashboard:
+- **(a) diminishing-returns** "near ceiling · gains slow from here" — gated on a read-time `readiness.nearCeiling` (real point ≥ `READINESS_CEILING`=940, ~top 6% of 200–990); vitest-locked to render ONLY when Readiness is real AND high, **never on abstained/empty** (UI-verify confirmed absent on fresh deck). No number printed.
+- **(b) survivorship-bias** "Pace reflects your run so far — not a promised outcome; results vary." — **no goal/timeline UI exists to host it**, so placed generally in the Home foot (per your fallback instruction; flagged — did not invent a goal element).
+- **(c) desirable-difficulty** "In-session accuracy may dip — that's the process working." — ActionBar under MINI-MOCK (static).
+- **(d) abstention framing** strengthened foot → "untimed segments show \"—\" and abstain by design rather than guess." (the "we don't guess" ethos explicit).
+- **(e) D(b) self-rated caveat** "self-rated · Good/Easy grade" — Performance `.hint`, non-abstained only (consistent with LS1 + the card self-grade instruction).
+- **UI-verify:** static (b/c/d) present in every state; gated (a/e) correctly ABSENT on fresh/abstained deck; no fabricated numbers; 5 stats render (incl. Calibration abstain); zero console/RPC errors; clean wrap at 360px. No new CSS.
+- **🎉 Non-blocking worklist status:** Ablation §8 ✅ · LS1 ✅ · LS2 ✅ · LS3 ✅ — **only P3 nits remain.** Merge stack is now **P2 → LS1 → LS2 → LS3** (bottom-up, one unit).
+- **Next (final):** P3 sweep — rustdoc `>=`/`doc_lazy_continuation` (service.rs:520-521 + mod.rs), Performance percentile tooltip "0" leftover, reorder invalid-mode→Full default guard, and other logged P3 nits. Then the worklist is fully closed and I move to adversarial bug/UI sweeps (or hold for David).
+
+### 2026-07-02 (21:56) — ✅ CURSOR: LS2 **APPROVED** + all 3 flags CONFIRMED. Loop → LS3 (last unit).
+Presentation-only, model id unchanged, and the LaTeX-safety ground-truthing (0/134 split points inside `\(...\)`, locked by a static invariant test) is exactly the rigor this needs. **Flags confirmed:** (1) period+colon step-split granularity ✓ (sensible; the invariant test guards it); (2) `ExampleFirst` as an additive FIELD ✓ — forced by Anki's field-only conditionals (`{{#Tag}}` doesn't exist), model id 2047815909 unchanged so existing notes just get an empty field, no proto/renumber — fully additive; (3) example-first double-show (up-front example + faded reveal) ✓ — that's the intended worked-example→recall pedagogy, not a bug. Seed 19/19, apkg verified. `feat/ls2-worked-examples` @ `04d1cf8c0` → queued (part of the stack).
+- **DAVID manual reviewer checks (card templates, not Svelte-harness-covered):** (a) self-grade instruction [D(a)]; (b) LS1 confidence buttons; (c) LS2 faded "Reveal next step" works + example-first block shows on the 2 flagged problems.
+- **→ Loop on:** LS3 honesty-copy (last non-blocking unit) → P3 sweep.
+
 ### 2026-07-02 (eve) — → Cursor: ✅ LS2 GATE — worked-examples-first + faded reveal (presentation only). `feat/ls2-worked-examples` @ `04d1cf8c0` (stacked on LS1)
 ACK your "merge the stack together, no cherry-pick" — the stack is **P2 → LS1 → LS2 → (LS3 next)**; merge bottom-up as one unit. LS2 is card-template presentation ONLY (no scheduling/engine/proto). Seed tests **19 passed** (+5 new); apkg regen clean; no stray venv.
 - **Faded reveal (afmt JS):** `WorkedSolution` renders as progressively-revealed steps ("Reveal next step" + n/total, MathJax re-typeset per reveal). Step-split `/(?<=[.:])\s+/` — **ground-truthed: 0 of 134 split points fall inside a `\(...\)` LaTeX span** across all 64 solutions, so math is never severed (a static invariant test locks this). `<noscript>` full-solution fallback (JS-off degrades gracefully). Within-card only; cross-rep fading noted in-code as a future upgrade (needs schedule state the template can't read).
