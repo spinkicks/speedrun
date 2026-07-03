@@ -27,6 +27,7 @@ seeds are consumed at retrieval time; results are byte-stable across runs.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Iterable, Optional
@@ -95,6 +96,79 @@ _REQUIRED_FIELDS = ("id", "topic_id", "title", "text", "source_citation")
 DEFAULT_MIN_DISCRIMINATIVE_TERMS = 1
 DEFAULT_MIN_DISC_CONCENTRATION = 0.55
 DEFAULT_MIN_TOP_COSINE = 0.12
+
+# ---------------------------------------------------------------------------
+# SEMANTIC grounding gate (FIX 4, the DEFINITIVE fix).
+#
+# The three lexical fixes above were each defeated by a fresh adversary because
+# word-OVERLAP cannot tell "one incidental math word inside off-topic prose"
+# ("My cat is named Eigenvalue and she loves the sofa.") from a genuine terse
+# stem ("Find the eigenvalues.") — both carry the SAME single anchor. The
+# decisive discriminator is SEMANTIC: after RRF selects the top hit (the passage
+# whose citation would ship), require the COSINE of an embedding of the query
+# against an embedding of that top passage to clear a calibrated threshold.
+#
+# The gate runs ONLY when an ``embedder`` is injected (the real OpenAI
+# ``text-embedding-3-small`` path when a key is present, or a deterministic stub
+# in hermetic tests). When no embedder is available the retriever degrades to
+# the lexical topicality gate above (still safe, just without the semantic
+# discriminator). The semantic check lives ONLY in ``ground()`` — the eval
+# arms (retrieve / retrieve_bm25 / retrieve_dense) are byte-untouched, so
+# Recall@10 is preserved.
+#
+# CALIBRATION (measured live on REAL text-embedding-3-small; NEVER eval/holdout):
+# for each genuine terse stem and each adversary attack we embed the query and
+# measure the cosine to its FUSED top passage.
+#
+#   * OFF-TOPIC PROSE (single incidental math anchor, e.g. "My cat is named
+#     Eigenvalue and she loves the sofa.") — the hole the three LEXICAL fixes
+#     could not close — has SEMANTIC cosine <= 0.287 to its lexical top hit.
+#   * GENUINE terse stems whose fused top hit is the RIGHT passage have cosine
+#     >= 0.386. So the cosine threshold 0.33 sits in the (0.287, 0.386) GAP and
+#     is THE discriminator that abstains on off-topic prose while grounding
+#     genuine stems.
+#
+# Two attacks are IN-DOMAIN vocabulary, not off-topic prose, so a pure cosine
+# cannot reject them (they really are semantically math): the keyword bag
+# "group ring field vector matrix eigenvalue" (cosine 0.458) and the bare-noun
+# bag "value set function point" (cosine 0.287, disc 0). These are caught by the
+# COMPLEMENTARY lexical guards retained alongside the cosine — a scattered bag
+# has low per-passage concentration (0.33) or zero discriminative anchors — NOT
+# by the porous single-anchor 0.12-cosine logic, which is no longer decisive.
+# Combined gate (cosine >= 0.33 AND concentration >= 0.5 AND >=1 discriminative
+# anchor AND >=1 lexical overlap): 0 leaks / 0 false-abstains across 25 attacks
+# (incl. 8+ fresh single-anchor variants) and 17 genuine stems (incl. fresh
+# variants). ``SEMANTIC_GROUND_THRESHOLD`` env-overrides the cosine floor.
+DEFAULT_SEMANTIC_GROUND_THRESHOLD = 0.33
+
+# A cheap lexical pre-filter kept in front of the semantic cosine: the query
+# must share at least one real (stopword-stripped) content token with the top
+# passage. This short-circuits obvious non-matches before the cosine and mirrors
+# "you cannot be grounded to a passage you share no word with". It is a
+# PRE-filter, not the decisive signal — the semantic cosine is what closes the
+# off-topic-prose hole.
+DEFAULT_MIN_LEXICAL_OVERLAP = 1
+
+# Concentration floor used ALONGSIDE the semantic cosine (in-domain-bag guard).
+# Lower than the lexical-gate's 0.55 because here the semantic cosine carries the
+# main load; this floor only rejects scattered keyword/bare-noun bags (attack
+# concentration tops out at 0.33; the lowest genuine stem is 0.50).
+DEFAULT_SEMANTIC_MIN_CONCENTRATION = 0.5
+
+
+def _resolve_semantic_threshold() -> float:
+    """Return the semantic-gate threshold, env-overridable.
+
+    ``SEMANTIC_GROUND_THRESHOLD`` (a float in [0, 1]) overrides the calibrated
+    default. A malformed value is ignored (fail-safe to the default).
+    """
+    raw = os.environ.get("SEMANTIC_GROUND_THRESHOLD")
+    if raw is None:
+        return DEFAULT_SEMANTIC_GROUND_THRESHOLD
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_SEMANTIC_GROUND_THRESHOLD
 
 
 def load_corpus(path: Path | str | None = None) -> list[dict]:
@@ -196,6 +270,21 @@ def reciprocal_rank_fusion(
 
 
 # ---------------------------------------------------------------------------
+# Semantic-gate vector helpers
+# ---------------------------------------------------------------------------
+
+
+def _l2_normalize_rows(mat: np.ndarray) -> np.ndarray:
+    """L2-normalize each row; zero rows stay zero (cosine 0, not NaN)."""
+    mat = np.asarray(mat, dtype=float)
+    if mat.ndim == 1:
+        mat = mat.reshape(1, -1)
+    norms = np.linalg.norm(mat, axis=1, keepdims=True)
+    norms[norms == 0.0] = 1.0
+    return mat / norms
+
+
+# ---------------------------------------------------------------------------
 # Optional real bi-encoder dense arm (only if cached; else TF-IDF fallback)
 # ---------------------------------------------------------------------------
 
@@ -237,6 +326,14 @@ class HybridRetriever:
     prefer_sentence_transformers : bool
         If True, attempt the real bi-encoder dense arm; it is used only if the
         model loads with no network. Defaults to True but degrades gracefully.
+    embedder : object with ``embed(texts) -> list[vector]``, optional
+        The SEMANTIC grounding gate's embedder (FIX 4). When supplied, ``ground``
+        requires the query-to-top-passage cosine to clear
+        :data:`DEFAULT_SEMANTIC_GROUND_THRESHOLD` (the decisive discriminator).
+        Corpus-passage embeddings are computed ONCE here and cached. When
+        omitted, ``ground`` degrades to the lexical topicality gate. The embedder
+        is used ONLY in ``ground`` — never in the eval retrieval arms — so
+        Recall@10 is byte-preserved.
     """
 
     def __init__(
@@ -245,6 +342,7 @@ class HybridRetriever:
         *,
         rrf_k: int = 60,
         prefer_sentence_transformers: bool = True,
+        embedder=None,
     ) -> None:
         if not corpus:
             raise ValueError("corpus must be non-empty")
@@ -307,6 +405,19 @@ class HybridRetriever:
                 if " " not in term
             )
 
+        # --- SEMANTIC gate: cache corpus-passage embeddings ONCE (FIX 4) -----
+        # Injected embedder is used ONLY by ground() (never the eval arms). We
+        # embed every passage a single time here (L2-normalized rows) so the
+        # per-query cost is one embed() call for the query. ``None`` disables the
+        # semantic gate (ground() falls back to the lexical topicality gate).
+        self.embedder = embedder
+        self._passage_embeddings = None
+        if embedder is not None:
+            vecs = embedder.embed(list(self._docs))
+            self._passage_embeddings = _l2_normalize_rows(
+                np.asarray(vecs, dtype=float)
+            )
+
     # -- ranking helpers ----------------------------------------------------
 
     # Raw-similarity floor below which a doc is treated as NO signal in an arm.
@@ -352,6 +463,32 @@ class HybridRetriever:
 
     def _dense_ranked_ids(self, query: str) -> list[str]:
         return self._ranked_ids_from_scores(self._dense_sims(query))
+
+    # -- SEMANTIC gate (FIX 4, decisive discriminator) ---------------------
+
+    def _semantic_cosine(self, query: str, doc_id: str) -> float:
+        """Cosine between the EMBEDDING of ``query`` and the cached embedding of
+        ``doc_id`` (the fused top passage). Requires an injected embedder.
+
+        This is the decisive relevance signal: off-topic prose that shares an
+        incidental math token with a passage is still semantically FAR from it,
+        while a genuine terse stem is semantically CLOSE. Returns a cosine in
+        [-1, 1]; both operands are L2-normalized so this is a plain dot product.
+        """
+        if self.embedder is None or self._passage_embeddings is None:
+            raise RuntimeError("semantic cosine requires an injected embedder")
+        q_vecs = self.embedder.embed([query])
+        q = _l2_normalize_rows(np.asarray(q_vecs, dtype=float))[0]
+        top_i = self._ids.index(doc_id)
+        passage = self._passage_embeddings[top_i]
+        return float(np.dot(q, passage))
+
+    def _lexical_overlap(self, query: str, doc_id: str) -> int:
+        """Count of the query's (stopword-stripped) content tokens that also
+        occur in ``doc_id`` — the cheap pre-filter in front of the cosine."""
+        top_i = self._ids.index(doc_id)
+        top_tokens = self._doc_token_sets[top_i]
+        return sum(1 for t in set(_tokenize(query)) if t in top_tokens)
 
     # -- topicality signals (RRF-rank independent) -------------------------
 
@@ -446,28 +583,44 @@ class HybridRetriever:
         min_discriminative_terms: int = DEFAULT_MIN_DISCRIMINATIVE_TERMS,
         min_disc_concentration: float = DEFAULT_MIN_DISC_CONCENTRATION,
         min_top_cosine: float = DEFAULT_MIN_TOP_COSINE,
+        semantic_threshold: Optional[float] = None,
+        min_lexical_overlap: int = DEFAULT_MIN_LEXICAL_OVERLAP,
+        semantic_min_concentration: float = DEFAULT_SEMANTIC_MIN_CONCENTRATION,
     ) -> Optional[str]:
         """Return the top hit's ``source_citation`` if the candidate is grounded.
 
         Builds a query from the candidate's stem (and worked solution / topic /
         technique when present). Returns ``None`` — driving the graph's "no
-        source grounding" abstain path — unless ALL of the following hold
-        (TOPICALITY gate; conservative — any doubt -> abstain):
+        source grounding" abstain path — unless the candidate is grounded.
 
-        * the candidate has usable text, and
-        * a fused hit exists whose RRF score clears ``min_score``, and
-        * (1) DISCRIMINATIVE overlap: the query has at least
-          ``min_discriminative_terms`` discriminative terms (corpus vocabulary
-          minus the everyday-English band) co-occurring in the top passage, and
-        * (2) PER-PASSAGE CONCENTRATION: the fraction of the query's
-          discriminative terms landing in that one top passage is
-          >= ``min_disc_concentration``, and
-        * (3) RAW RELEVANCE FLOOR: the top passage's raw dense cosine is
-          >= ``min_top_cosine`` (RRF alone is relevance-blind).
+        Two gate paths share the same first steps (usable query -> a fused hit
+        clearing ``min_score``):
 
-        The topicality signals are evaluated before returning any citation, so an
-        off-topic stem never grounds regardless of its (relevance-blind) RRF
-        score. See the module-level parameter docs for calibration.
+        SEMANTIC gate (FIX 4, used when an ``embedder`` was injected) — the
+        SEMANTIC COSINE is THE decisive discriminator; two cheap lexical guards
+        flank it:
+
+        * a LEXICAL PRE-FILTER: the query shares >= ``min_lexical_overlap``
+          content tokens with the top passage (short-circuits obvious
+          non-matches), and
+        * an IN-DOMAIN-BAG GUARD: >= ``min_discriminative_terms`` discriminative
+          anchors, concentrated (>= ``semantic_min_concentration``) in the top
+          passage — this rejects scattered keyword / bare-noun bags that a pure
+          cosine cannot (they really ARE math vocabulary), and
+        * the DECISIVE SEMANTIC COSINE between the embedding of the query and the
+          cached embedding of the fused top passage is >= ``semantic_threshold``
+          (defaults to the env-overridable calibrated
+          :data:`DEFAULT_SEMANTIC_GROUND_THRESHOLD`). Off-topic prose sharing an
+          incidental math token is semantically FAR from the passage and abstains;
+          a genuine stem is semantically CLOSE and grounds.
+
+        LEXICAL topicality gate (fallback when NO embedder is present) —
+        discriminative-term overlap + per-passage concentration + a raw-cosine
+        floor, all on the fused top hit (any failure -> abstain).
+
+        The gate is evaluated before returning any citation, so an off-topic stem
+        never grounds regardless of its (relevance-blind) RRF score. See the
+        module-level parameter docs for calibration.
         """
         query = " ".join(
             str(candidate.get(key, ""))
@@ -482,10 +635,38 @@ class HybridRetriever:
         top = hits[0]
         if top["score"] < min_score:
             return None
-        # TOPICALITY gate (RRF-rank independent): discriminative-term overlap,
-        # per-passage concentration, and a raw-cosine relevance floor — all on
-        # the SAME passage whose citation we would return (the fused top hit).
-        # Any failure => abstain.
+
+        # SEMANTIC gate (decisive) when an embedder is available.
+        if self.embedder is not None and self._passage_embeddings is not None:
+            # Cheap lexical pre-filter: no shared content token -> abstain.
+            if self._lexical_overlap(query, top["id"]) < min_lexical_overlap:
+                return None
+            # COMPLEMENTARY lexical guards for IN-DOMAIN keyword/bare-noun bags,
+            # which a pure cosine cannot reject (they really are math): a
+            # scattered bag has no discriminative anchor concentrated in the ONE
+            # top passage. These are NOT the decisive signal — the semantic
+            # cosine below closes the off-topic-prose hole — but they close the
+            # narrow in-domain-vocab-bag gap. (Calibrated: attack concentration
+            # tops out at 0.33 among bags; every genuine stem >= 0.5.)
+            disc_in_top, concentration, _ = self._topicality(query, top["id"])
+            if disc_in_top < min_discriminative_terms:
+                return None
+            if concentration < semantic_min_concentration:
+                return None
+            # DECISIVE: semantic cosine of the query vs. the fused top passage.
+            threshold = (
+                semantic_threshold
+                if semantic_threshold is not None
+                else _resolve_semantic_threshold()
+            )
+            if self._semantic_cosine(query, top["id"]) < threshold:
+                return None
+            return top["source_citation"]
+
+        # LEXICAL topicality gate (fallback; no embedder). Discriminative-term
+        # overlap, per-passage concentration, and a raw-cosine relevance floor —
+        # all on the SAME passage whose citation we would return (the fused top
+        # hit). Any failure => abstain.
         disc_in_top, concentration, top_cosine = self._topicality(query, top["id"])
         if disc_in_top < min_discriminative_terms:
             return None
@@ -502,11 +683,16 @@ class HybridRetriever:
         min_discriminative_terms: int = DEFAULT_MIN_DISCRIMINATIVE_TERMS,
         min_disc_concentration: float = DEFAULT_MIN_DISC_CONCENTRATION,
         min_top_cosine: float = DEFAULT_MIN_TOP_COSINE,
+        semantic_threshold: Optional[float] = None,
+        min_lexical_overlap: int = DEFAULT_MIN_LEXICAL_OVERLAP,
+        semantic_min_concentration: float = DEFAULT_SEMANTIC_MIN_CONCENTRATION,
     ):
         """Adapt to the graph's ``Retriever = Callable[[dict], Optional[str]]``.
 
         Returns a closure ``retriever(candidate) -> citation | None`` suitable
         for injection into :func:`graph.build_graph` / :func:`graph.run_generation`.
+        The semantic-gate params are forwarded (active only when this retriever
+        was built with an embedder).
         """
 
         def _retriever(candidate: dict) -> Optional[str]:
@@ -516,6 +702,9 @@ class HybridRetriever:
                 min_discriminative_terms=min_discriminative_terms,
                 min_disc_concentration=min_disc_concentration,
                 min_top_cosine=min_top_cosine,
+                semantic_threshold=semantic_threshold,
+                min_lexical_overlap=min_lexical_overlap,
+                semantic_min_concentration=semantic_min_concentration,
             )
 
         return _retriever

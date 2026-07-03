@@ -21,6 +21,7 @@ from config import load_settings
 from eval.gate import make_gold_gate
 from eval.leakage import load_study_texts
 from graph import make_hybrid_retriever, run_generation
+from rag.embeddings import make_openai_embedder_if_key
 
 app = FastAPI(title="Speedrun AI generation service", version="0.1.0")
 
@@ -91,7 +92,11 @@ def generate_problem(topic: str, technique: str) -> dict[str, Any]:
     """
     settings = load_settings()
     llm_propose = _make_openai_propose(settings)
-    retriever = make_hybrid_retriever()
+    # SEMANTIC grounding gate (FIX 4): build the real OpenAI embedder when a key
+    # is present (it is, in the enabled path). Constructing it does not hit the
+    # network; corpus embeddings are computed once inside make_hybrid_retriever.
+    embedder = make_openai_embedder_if_key(settings)
+    retriever = make_hybrid_retriever(embedder=embedder)
     # Real §7f gold gate = leakage-free check against the curated study content.
     gate = make_gold_gate(load_study_texts())
     return run_generation(

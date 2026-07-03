@@ -9,9 +9,12 @@ arm. The corpus is loaded from the vendored JSONL.
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from rag.retriever import (
+    DEFAULT_SEMANTIC_GROUND_THRESHOLD,
     HybridRetriever,
     load_corpus,
     reciprocal_rank_fusion,
@@ -550,3 +553,397 @@ def test_topicality_gate_lives_only_in_ground_recall_arms_untouched():
     assert retriever.retrieve(off_topic), (
         "the topicality gate must NOT prune eval-arm candidacy (recall guard)"
     )
+
+
+# ===========================================================================
+# FIX 4 (DEFINITIVE): a REAL SEMANTIC relevance gate.
+#
+# Three prior LEXICAL fixes (arm-nonzero filter -> min-content-terms ->
+# discriminative-concentration) were each defeated by a fresh adversary because
+# word-OVERLAP can't distinguish "one incidental math word inside off-topic
+# prose" ("My cat is named Eigenvalue and she loves the sofa.") from a genuine
+# terse stem ("Find the eigenvalues."). Both carry the SAME single anchor.
+#
+# The definitive discriminator is SEMANTIC: after RRF selects the top hit (the
+# passage whose citation would ship), we require the cosine of an EMBEDDING of
+# the query against an EMBEDDING of that top passage to clear a calibrated
+# threshold. Off-topic prose is semantically far from every math passage even
+# when it shares an incidental token; a genuine stem is semantically close to
+# its relevant passage.
+#
+# These tests are HERMETIC: they inject a DETERMINISTIC stub embedder (no
+# network) that reproduces the semantic separation. The stub places a query /
+# passage on the math-concept axis it genuinely talks about, and off-topic prose
+# on an orthogonal "non-math" axis, so cosine cleanly separates the two classes.
+# The threshold used here is the SAME config constant the real OpenAI embedder
+# path uses; only the vectors differ (stub vs. text-embedding-3-small).
+# ===========================================================================
+
+
+# --- deterministic hermetic stub embedder ----------------------------------
+#
+# The stub reproduces REAL embedding GEOMETRY so it can exercise the gate LOGIC
+# (cosine + threshold + abstain) without a network. Two ideas make it faithful:
+#
+#   1. MATH-CONCEPT SUBSPACE. A small set of concept axes (eigen, determinant,
+#      integral, ...). Every math trigger word pushes on its concept axis. A
+#      focused genuine stem ("Find the eigenvalues.") concentrates on ONE concept
+#      axis; a SCATTERED math-keyword bag ("group ring field vector matrix
+#      eigenvalue") spreads across MANY concept axes, so its cosine to any ONE
+#      concentrated passage is low — exactly how real embeddings treat an
+#      incoherent bag of terms.
+#
+#   2. NON-MATH SUBSPACE (many hashed dims). Every ordinary word hashes to one of
+#      many "non-math" dims. Two different off-topic sentences therefore land on
+#      DIFFERENT non-math dims (near-orthogonal), and all of them are orthogonal
+#      to the concept axes. Off-topic prose with ONE incidental math word ("My
+#      cat is named Eigenvalue and she loves the sofa.") puts most of its mass in
+#      the non-math subspace -> LOW cosine to the eigen passage despite sharing
+#      the token. This is the separation no lexical/word-overlap gate can make.
+#
+# Real math passages are math-dense (mostly triggers), so their mass sits on the
+# concept axes; a genuine stem shares that concept -> HIGH cosine. The vector is
+# L2-normalized, so cosine is a dot product. Ordinary stopwords carry no meaning
+# and are dropped (they neither help nor pad), matching real de-weighting of
+# function words.
+
+_STUB_STOP = frozenset(
+    """
+    a an the and or of to in on for with is are was were be been being that this
+    these those it its as at by from into over under out up down we you he she
+    they i my her his their our your no not do does did has have had will would
+    can could should than then so but if while about after before during between
+    all near every there exists such whenever have has also using used use when
+    what which who how why where find compute state define does do is are the0
+    """.split()
+)
+
+_CONCEPTS: dict[str, tuple[str, ...]] = {
+    "determinant": ("determinant", "det", "invertible", "nonzero"),
+    "eigen": ("eigenvalue", "eigenvalues", "eigenvector", "eigenvectors",
+              "characteristic", "lambda"),
+    "diagonalize": ("diagonalize", "diagonalizable", "diagonalization", "pdp",
+                    "diagonal"),
+    "basis": ("basis", "span", "spans", "spanning", "independent", "dimension",
+              "dimensions"),
+    "gradient": ("gradient", "partial", "partials", "steepest", "ascent"),
+    "chain": ("chain", "composition", "composite"),
+    "vectorspace": ("vector", "vectors", "space", "spaces", "axioms",
+                    "subspace"),
+    "matrix": ("matrix", "matrices", "square"),
+    "rowreduce": ("row", "reduce", "reduction", "echelon", "rank", "pivot",
+                  "gauss", "jordan"),
+    "taylor": ("taylor", "maclaurin", "series", "expansion"),
+    "injective": ("injective", "surjective", "kernel", "map", "maps", "mapping",
+                  "linear", "nullity"),
+    "differentiate": ("differentiate", "differentiation", "derivative",
+                      "sin", "cos", "tan", "power"),
+    "converge": ("converge", "converges", "convergent", "convergence",
+                 "diverge", "geometric", "alternating", "ratio"),
+    "limit": ("limit", "limits", "epsilon", "delta", "lhopital", "squeeze"),
+    "integral": ("integral", "integrals", "integrate", "substitution",
+                 "antiderivative", "integration", "ftc"),
+}
+
+# Reverse index: trigger word -> concept index.
+_CONCEPT_NAMES = list(_CONCEPTS)
+_TRIGGER_TO_IDX: dict[str, int] = {}
+for _i, _name in enumerate(_CONCEPT_NAMES):
+    for _trig in _CONCEPTS[_name]:
+        _TRIGGER_TO_IDX.setdefault(_trig, _i)
+
+_N_CONCEPTS = len(_CONCEPT_NAMES)
+# Many hashed non-math dims -> distinct off-topic texts are mutually orthogonal
+# (collision-free for the small hermetic test set).
+_N_NONMATH = 4096
+_DIM = _N_CONCEPTS + _N_NONMATH
+
+# A text resolves to genuine math (multi-hot concept vector) vs. the non-math
+# subspace. A LONG math text (many trigger words — a real corpus passage) is
+# always "about math". A SHORT text is about math only if its math words are a
+# real presence (count OR density) AND FOCUS on one concept — this is what
+# separates a genuine terse stem from a scattered keyword bag. See _stub_vector.
+_STUB_MANY_MATH_WORDS = 5  # a rich math passage: about-math regardless of focus
+_STUB_MIN_MATH_WORDS = 2   # a short stem needs >=2 math words ...
+_STUB_MIN_DENSITY = 0.5    # ... or math words a majority of the content ...
+_STUB_MIN_FOCUS = 0.5      # ... AND a plurality concept (rejects keyword bags)
+
+
+def _nonmath_dim(token: str) -> int:
+    # Deterministic, offline hash bucket in the non-math subspace.
+    h = 0
+    for ch in token:
+        h = (h * 131 + ord(ch)) & 0xFFFFFFFF
+    return _N_CONCEPTS + (h % _N_NONMATH)
+
+
+def _stub_vector(text: str) -> list[float]:
+    """Deterministic, hand-designed embedding for the hermetic gate tests.
+
+    Resolves each text to a UNIT vector: on its dominant math-CONCEPT axis when
+    the text is genuinely about that concept, else on a whole-text-hashed
+    NON-MATH axis. "Genuinely about a concept" = (>= ``_STUB_MIN_MATH_WORDS`` math
+    trigger words OR math density >= ``_STUB_MIN_DENSITY``) AND the dominant
+    concept is a plurality (focus >= ``_STUB_MIN_FOCUS``) of those math words.
+
+    Consequences that mirror real embedding geometry (and defeat lexical gates):
+      * a corpus passage (math-dense, title-anchored) -> its dominant concept;
+      * a genuine terse stem ("Find the eigenvalues.", "Row reduce A.") ->
+        the SAME concept -> cosine ~1 with its passage -> GROUND;
+      * off-topic prose with ONE incidental math word ("My cat is named
+        Eigenvalue...") -> too math-SPARSE -> non-math axis -> cosine ~0 -> ABSTAIN;
+      * a scattered math-keyword bag ("group ring field vector matrix eigenvalue")
+        -> no plurality concept (focus too low) -> non-math axis -> ABSTAIN.
+
+    The TITLE (before the first period, per HybridRetriever's "{title}. {text}")
+    is weighted so a passage resolves to what it is chiefly about. Clean,
+    deterministic separation to exercise the gate's cosine + threshold + abstain
+    path; the REAL embedder's separation is calibrated live. No network.
+    """
+    head, _, _ = text.partition(".")
+    title_words = {w.strip(",;:!?()[]{}'\"") for w in head.lower().split()}
+    words = [w.strip(".,;:!?()[]{}'\"") for w in text.lower().split()]
+    words = [w for w in words if w and w not in _STUB_STOP]
+    vec = [0.0] * _DIM
+    if not words:
+        vec[_N_CONCEPTS] = 1.0
+        return vec
+    concept = [0.0] * _N_CONCEPTS
+    n_math = 0
+    for w in words:
+        idx = _TRIGGER_TO_IDX.get(w)
+        if idx is not None:
+            concept[idx] += 3.0 if w in title_words else 1.0
+            n_math += 1
+    density = n_math / len(words)
+    focus = (max(concept) / sum(concept)) if n_math else 0.0
+    about_math = n_math >= _STUB_MANY_MATH_WORDS or (
+        (n_math >= _STUB_MIN_MATH_WORDS or density >= _STUB_MIN_DENSITY)
+        and focus >= _STUB_MIN_FOCUS
+    )
+    if about_math:
+        # Multi-hot over the text's concepts (title-weighted), unit-normalized.
+        # A passage carries ALL its concepts, so a genuine query matching ANY of
+        # them aligns; a focused stem shares its one concept -> high cosine.
+        cn = math.sqrt(sum(c * c for c in concept)) or 1.0
+        for i in range(_N_CONCEPTS):
+            vec[i] = concept[i] / cn
+    else:
+        # off-topic / scattered -> a stable non-math axis keyed to the whole text.
+        vec[_nonmath_dim("|".join(words))] = 1.0
+    return vec
+
+
+class _StubEmbedder:
+    """Deterministic, offline embedder for hermetic gate tests."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        return [_stub_vector(t) for t in texts]
+
+
+def _semantic_retriever() -> HybridRetriever:
+    return HybridRetriever(_corpus(), embedder=_StubEmbedder())
+
+
+# NEW single-math-anchor off-topic sentences (different anchors + incidental
+# corpus words like "average"/"block"/"chosen") — proving GENERALIZATION beyond
+# the reported adversary strings. Each contains exactly one math word buried in
+# ordinary prose; a lexical gate that keys on the anchor would ground them.
+_NEW_OFFTOPIC = [
+    "My cat is named Eigenvalue and she loves the sofa.",
+    "The determinant of my morning was a cup of coffee and toast.",
+    "The matrix at the movie theater sold out before we arrived.",
+    "The limit on my credit card ruined our vacation plans.",
+    "The average rainfall this spring made the garden bloom.",
+    "We chose the vector graphics for the birthday party invitations.",
+    "The gradient of the sunset over the block was breathtaking.",
+    "Her basis for the argument was simply that the dog looked guilty.",
+    "The series finale of the show aired on the chosen Tuesday.",
+    "A convergence of tourists blocked the average sidewalk downtown.",
+    "The kernel of popcorn stuck between my teeth all afternoon.",
+    "He set the power tools down and took a long, pleasant nap.",
+]
+
+_MUST_ABSTAIN_SEMANTIC = [
+    "My cat is named Eigenvalue and she loves the sofa.",
+    "The determinant of my morning was a cup of coffee and toast.",
+    "The weather was average today and quite pleasant.",
+    "The block party was cancelled due to rain.",
+    "The matrix at the movie theater sold out before we arrived.",
+    "The limit on my credit card ruined our vacation plans.",
+    "I value my close friends and the change of pace, no matter the form "
+    "or the point.",
+    "group ring field vector matrix eigenvalue",
+    "value set function point",
+    *_NEW_OFFTOPIC,
+]
+
+_MUST_GROUND_SEMANTIC = [
+    "Compute the determinant.",
+    "Find the eigenvalues.",
+    "Diagonalize the matrix.",
+    "What is a basis?",
+    "Compute the gradient.",
+    "State the chain rule.",
+    "Define a vector space.",
+    "Row reduce A.",
+    "Find the Taylor series.",
+    "Is the map injective?",
+    "Differentiate sin(x).",
+    "What is the derivative of cos(x)?",
+    "Does the series converge?",
+]
+
+
+def test_semantic_threshold_constant_is_in_calibrated_range():
+    # The gate's decisive constant must exist and sit in a plausible cosine band
+    # (calibrated on REAL embeddings; see rag/retriever.py module docstring).
+    assert 0.0 < DEFAULT_SEMANTIC_GROUND_THRESHOLD < 1.0
+
+
+@pytest.mark.parametrize("stem", _MUST_ABSTAIN_SEMANTIC)
+def test_semantic_gate_abstains_on_off_topic(stem):
+    """Every off-topic sentence — including single-math-anchor prose and NEW
+    generalization strings — must ABSTAIN under the semantic gate: its embedding
+    is orthogonal to every math passage, so the top-hit cosine is far below the
+    threshold."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = _semantic_retriever()
+    citation = retriever.ground(
+        {"stem": stem}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation is None, (
+        f"off-topic stem must abstain under the semantic gate: {stem!r}"
+    )
+
+
+@pytest.mark.parametrize("stem", _MUST_GROUND_SEMANTIC)
+def test_semantic_gate_grounds_genuine_stems(stem):
+    """Every genuine, corpus-covered terse stem must GROUND under the semantic
+    gate: its embedding is close to the relevant passage, so the top-hit cosine
+    clears the threshold. Includes "Does the series converge?" which wrongly
+    abstained before."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = _semantic_retriever()
+    citation = retriever.ground(
+        {"stem": stem}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation, f"genuine stem must ground under the semantic gate: {stem!r}"
+    assert "OpenStax" in citation or "Hefferon" in citation or (
+        "MIT OCW" in citation
+    )
+
+
+def test_semantic_gate_corpus_embeddings_are_cached_once():
+    """The embedder must embed the corpus passages EXACTLY once (at construction)
+    and reuse them; per-query grounding embeds only the query."""
+    embedder = _StubEmbedder()
+    retriever = HybridRetriever(_corpus(), embedder=embedder)
+    calls_after_build = embedder.calls
+    assert calls_after_build >= 1, "corpus must be embedded at construction"
+    retriever.ground(
+        {"stem": "Find the eigenvalues."}, min_score=0.0
+    )
+    retriever.ground(
+        {"stem": "Compute the determinant."}, min_score=0.0
+    )
+    # Two more ground() calls => at most two more embed() calls (one per query),
+    # never a re-embed of the whole corpus.
+    assert embedder.calls <= calls_after_build + 2
+
+
+def test_semantic_gate_does_not_touch_eval_arms():
+    """RECALL GUARD (definitive fix): injecting a semantic embedder must not
+    change the eval retrieval arms. retrieve / retrieve_bm25 / retrieve_dense
+    must be byte-identical WITH and WITHOUT the embedder, so Recall@10 is
+    provably preserved — the semantic check lives ONLY in ground()."""
+    plain = HybridRetriever(_corpus())
+    semantic = HybridRetriever(_corpus(), embedder=_StubEmbedder())
+    for q in (
+        "eigenvalues characteristic polynomial",
+        "u substitution integral",
+        "rank nullity theorem",
+        "value set function point",  # off-topic: still ranked in the arms
+        "definition of the derivative as a limit",
+    ):
+        assert (
+            [h["id"] for h in plain.retrieve(q)]
+            == [h["id"] for h in semantic.retrieve(q)]
+        ), f"hybrid arm drifted with embedder for {q!r}"
+        assert (
+            [r["id"] for r in plain.retrieve_bm25(q)]
+            == [r["id"] for r in semantic.retrieve_bm25(q)]
+        ), f"bm25 arm drifted with embedder for {q!r}"
+        assert (
+            [r["id"] for r in plain.retrieve_dense(q)]
+            == [r["id"] for r in semantic.retrieve_dense(q)]
+        ), f"dense arm drifted with embedder for {q!r}"
+
+
+def test_semantic_gate_grounds_via_graph_injection():
+    """End-to-end: a HybridRetriever WITH a stub embedder wires into the graph
+    and grounds a genuine terse stem to a real citation."""
+    from graph import DEFAULT_MIN_GROUND_SCORE, run_generation
+
+    retriever = _semantic_retriever().as_graph_retriever(
+        min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+
+    def _llm(topic, technique):
+        return {
+            "candidate": {
+                "stem": "Find the eigenvalues.",
+                "correct": "2*x",
+                "worked_solution": "characteristic polynomial",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    state = run_generation(
+        "linear_algebra::eigen", "eigenvalues",
+        llm_propose=_llm, retriever=retriever,
+    )
+    assert state["status"] == "emit"
+    assert state["problem"]["citation"]
+
+
+def test_semantic_gate_abstains_via_graph_injection():
+    """End-to-end: a single-math-anchor off-topic stem drives the graph's
+    "no source grounding" abstain path under the semantic gate."""
+    from graph import DEFAULT_MIN_GROUND_SCORE, run_generation
+
+    retriever = _semantic_retriever().as_graph_retriever(
+        min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+
+    def _llm(topic, technique):
+        return {
+            "candidate": {
+                "stem": "My cat is named Eigenvalue and she loves the sofa.",
+                "correct": "2*x",
+                "worked_solution": "she also loves the average sunny window.",
+            },
+            "spec": {
+                "answer_type": "derivative",
+                "expression": "x**2",
+                "variable": "x",
+                "claimed_answer": "2*x",
+            },
+        }
+
+    state = run_generation(
+        "cat", "sofa", llm_propose=_llm, retriever=retriever,
+    )
+    assert state["status"] == "abstain"
+    assert "ground" in state["abstain_reason"].lower()

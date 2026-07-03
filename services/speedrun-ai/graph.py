@@ -106,6 +106,7 @@ def make_hybrid_retriever(
     *,
     corpus: Optional[list[dict]] = None,
     min_score: float = DEFAULT_MIN_GROUND_SCORE,
+    embedder=None,
 ) -> Retriever:
     """Build the REAL hybrid-retriever grounding function for injection.
 
@@ -115,13 +116,23 @@ def make_hybrid_retriever(
     or pulls in the RAG dependencies. If ``corpus`` is omitted, the vendored
     ``rag/corpus/gre_math_sources.jsonl`` is loaded.
 
+    When an ``embedder`` (``embed(texts) -> list[vector]``) is supplied, the
+    grounding gate uses the SEMANTIC discriminator (FIX 4): corpus-passage
+    embeddings are cached once and each candidate must clear the calibrated
+    query-to-top-passage cosine threshold. The real OpenAI embedder is built by
+    ``app.py`` only when a key is present; with no embedder the gate degrades to
+    the lexical topicality gate. The embedder is used ONLY in grounding — the
+    eval arms stay byte-identical, so Recall@10 is preserved.
+
     A top hit below ``min_score`` yields ``None`` → the graph's "no source
     grounding" abstain path (the drop-if-unverifiable gate).
     """
     from rag.retriever import HybridRetriever, load_corpus
 
     rows = corpus if corpus is not None else load_corpus()
-    return HybridRetriever(rows).as_graph_retriever(min_score=min_score)
+    return HybridRetriever(rows, embedder=embedder).as_graph_retriever(
+        min_score=min_score
+    )
 
 
 def default_make_distractors(candidate: dict) -> list:
