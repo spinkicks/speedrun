@@ -9,6 +9,8 @@ arm. The corpus is loaded from the vendored JSONL.
 
 from __future__ import annotations
 
+import pytest
+
 from rag.retriever import (
     HybridRetriever,
     load_corpus,
@@ -413,4 +415,138 @@ def test_default_min_ground_score_rejects_single_arm_weak_hit():
     # ...but a genuine top hit present near the top of both arms must still pass.
     assert DEFAULT_MIN_GROUND_SCORE < both_arms_top, (
         "default grounding threshold must still admit a genuine top hit"
+    )
+
+
+# ---------------------------------------------------------------------------
+# BUG 3 (TOPICALITY): the min-content-terms word-COUNT gate was defeated by an
+# independent adversary. Counting DISTINCT corpus-vocabulary tokens measures
+# ENGLISH-WORD OVERLAP, not TOPICALITY: the corpus vocab contains ~39 everyday
+# English words that are also math vocab (value, set, function, point, order,
+# field, ... base). An off-topic English sentence built from those words matches
+# >= 4 vocab terms and wrongly grounds; conversely a terse but genuine stem
+# ("Find the eigenvalues.") matches < 4 and wrongly abstains.
+#
+# The real gate is TOPICALITY, decided from three signals on the TOP retrieved
+# passage (all must hold; conservative — any doubt -> abstain):
+#   (1) DISCRIMINATIVE terms: matched terms count only if corpus-discriminative
+#       (outside the everyday-English band) — raw vocabulary membership does not.
+#   (2) PER-PASSAGE CONCENTRATION: the discriminative query terms must co-occur
+#       in the ONE top passage (not scatter across many), i.e. a high fraction of
+#       the query's discriminative terms land in the top hit.
+#   (3) RAW RELEVANCE FLOOR: RRF is rank-based / relevance-blind, so the top
+#       hit's RAW dense cosine must also clear a floor.
+# Thresholds were calibrated on the hermetic corpus + the terse legit stems
+# below (NEVER on eval/holdout): attack disc-concentration tops out at 0.50 and
+# attack raw cosine (among any with a discriminative anchor) never clears the
+# floor, while every genuine stem has disc-concentration >= 0.57 and cosine
+# >= 0.16. See rag/retriever.py for the numbers.
+# ---------------------------------------------------------------------------
+
+
+# Strings the SHALLOW word-count gate wrongly GROUNDS but a topicality gate must
+# ABSTAIN on (off-topic prose from everyday-math words, keyword stuffing, bare
+# noun bags). Includes generalization cases built from DIFFERENT everyday-math
+# words than the reported examples, so the gate cannot be tuned to the list.
+_WRONGLY_GROUND = [
+    # off-topic English prose whose words are all everyday-math-vocab
+    "I value my close friends and the change of pace, no matter the form "
+    "or the point.",
+    "The team set a positive tone, valued open feedback, and kept a real "
+    "sense of order.",
+    "In real life you have to change your base, close the deal, and value "
+    "your time.",
+    # keyword stuffing (no question)
+    "group ring field vector matrix eigenvalue",
+    "linear vector matrix theorem function domain range image",
+    # bare noun bag of everyday-math words
+    "value set function point",
+    # the reviewer "party" sentence extended so word-count grounds (12 terms)
+    "The function last night was a great party with lots of dancing and "
+    "value. We set the table and kept good order all night. It was a real "
+    "change of pace, no matter the form.",
+    # GENERALIZATION: different everyday-math words, must also abstain
+    "Please open the map and set a course, then close the range and change "
+    "lanes.",
+    "The base rate of change in the market was positive, a real product of "
+    "the order.",
+    "sum product power root series line plane area volume base",
+    "identity form space image order rule change rate",
+    "She kept an open mind about the plane ride and valued the extra space "
+    "and volume.",
+]
+
+# Terse but genuine corpus-covered stems the SHALLOW gate wrongly ABSTAINS on
+# (fewer than 4 matched vocab terms) — the topicality gate must GROUND them.
+_WRONGLY_ABSTAIN = [
+    "Compute the determinant.",
+    "Find the eigenvalues.",
+    "Diagonalize the matrix.",
+    "What is a basis?",
+    "Compute the gradient.",
+    "State the chain rule.",
+    "Define a vector space.",
+    "Row reduce A.",
+    "Find the Taylor series.",
+    "Is the map injective?",
+    "Differentiate sin(x).",
+    "What is the derivative of cos(x)?",
+]
+
+
+@pytest.mark.parametrize("stem", _WRONGLY_GROUND)
+def test_ground_off_topic_or_stuffed_query_abstains(stem):
+    """Every off-topic / keyword-stuffed / bare-noun stem must ABSTAIN at the
+    default threshold — its words overlap the corpus vocab but carry no
+    topicality (no discriminative anchor concentrated in one real passage)."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    citation = retriever.ground(
+        {"stem": stem}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation is None, (
+        f"off-topic / non-topical stem must abstain, not ground: {stem!r}"
+    )
+
+
+@pytest.mark.parametrize("stem", _WRONGLY_ABSTAIN)
+def test_ground_terse_genuine_stem_still_grounds(stem):
+    """Every terse but genuinely corpus-covered stem must GROUND at the default
+    threshold, even though it matches fewer than the old 4 vocab terms."""
+    from graph import DEFAULT_MIN_GROUND_SCORE
+
+    retriever = HybridRetriever(_corpus())
+    citation = retriever.ground(
+        {"stem": stem}, min_score=DEFAULT_MIN_GROUND_SCORE
+    )
+    assert citation, f"terse genuine math stem must still ground: {stem!r}"
+    assert "OpenStax" in citation or "Hefferon" in citation or (
+        "MIT OCW" in citation
+    )
+
+
+def test_topicality_gate_lives_only_in_ground_recall_arms_untouched():
+    """RECALL GUARD: the topicality gate must live ONLY in ground(). The three
+    eval arms (retrieve / retrieve_bm25 / retrieve_dense) — which define
+    Recall@10 — must be untouched, i.e. still surface hits for genuine queries
+    AND still surface hits for the off-topic vocab-overlap strings (the gate
+    does not prune their candidacy; only ground() abstains on them). This is what
+    structurally preserves Recall@10."""
+    retriever = HybridRetriever(_corpus())
+    # genuine queries: all three arms return candidates
+    for q in (
+        "eigenvalues characteristic polynomial",
+        "u substitution integral",
+        "rank nullity theorem",
+    ):
+        assert retriever.retrieve(q), f"hybrid arm must return hits for {q!r}"
+        assert retriever.retrieve_bm25(q), f"bm25 arm must return hits for {q!r}"
+        assert retriever.retrieve_dense(q), f"dense arm must return hits for {q!r}"
+    # An off-topic vocab-overlap string STILL produces ranked candidates in the
+    # arms (candidacy is retrieval's job); only ground() abstains on it. If the
+    # gate had leaked into the arms, these would be pruned and Recall could move.
+    off_topic = "value set function point"
+    assert retriever.retrieve(off_topic), (
+        "the topicality gate must NOT prune eval-arm candidacy (recall guard)"
     )

@@ -79,9 +79,37 @@ r = HybridRetriever(load_corpus())         # deterministic, offline
 hits = r.retrieve("u substitution for integrals", k=10)
 # -> [{id, topic_id, title, text, source_citation, score}, ...] desc by score
 
-citation = r.ground(candidate, min_score=0.01)   # str | None (abstain gate)
-graph_fn = r.as_graph_retriever(min_score=0.01)  # candidate -> citation|None
+citation = r.ground(candidate, min_score=0.03)   # str | None (abstain gate)
+graph_fn = r.as_graph_retriever(min_score=0.03)  # candidate -> citation|None
 ```
+
+### Grounding gate: TOPICALITY, not word-count
+
+`ground()` returns a citation only when the candidate is genuinely *on topic* for
+some corpus passage. RRF's fused score is rank-based and relevance-blind (a junk
+doc landing #1 in both arms scores the same as a real hit), so on top of the RRF
+floor the gate decides **topicality** from three signals on the **top retrieved
+passage**, ALL of which must hold (conservative — any doubt abstains):
+
+1. **Discriminative overlap.** A matched term counts only if it is
+   corpus-*discriminative* — outside the everyday-English band (`value, set,
+   function, point, order, field, ...` — common English that merely happens to be
+   math vocab). At least one discriminative query term must co-occur in the top
+   passage. This kills off-topic prose and bare-noun bags whose only overlaps are
+   everyday words.
+2. **Per-passage concentration.** A high fraction (>= 0.55) of the query's
+   discriminative terms must land in that **one** top passage — a keyword-stuffed
+   stem whose terms scatter across many passages fails.
+3. **Raw relevance floor.** The top passage's raw dense cosine must clear a floor
+   (>= 0.12), independent of the relevance-blind RRF score. This is a
+   defense-in-depth third barrier — signals 1+2 already reject every adversarial
+   stem on their own.
+
+This replaced an earlier gate that counted distinct corpus-vocabulary tokens and
+required >= 4 — a word-COUNT heuristic that an adversary defeated with off-topic
+English sentences built from the ~39 everyday words that are also math vocab. The
+topicality gate lives **only** in `ground()`; the eval arms (`retrieve`,
+`retrieve_bm25`, `retrieve_dense`) are untouched, so Recall@10 is unchanged.
 
 ## In-house eval (NOT the §7f gold set)
 

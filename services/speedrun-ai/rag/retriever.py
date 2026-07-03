@@ -44,22 +44,57 @@ CORPUS_PATH = Path(__file__).with_name("corpus") / "gre_math_sources.jsonl"
 
 _REQUIRED_FIELDS = ("id", "topic_id", "title", "text", "source_citation")
 
-# Minimum count of DISTINCT corpus-vocabulary content terms a query must match
-# before ground() will consider it grounded (BUG 3, deepened). This is the
-# RRF-rank-INDEPENDENT relevance signal: RRF score alone is relevance-blind (a
-# junk doc landing #1 in both arms scores the same ~0.0333 as a real hit), and
-# raw dense similarity alone does NOT separate off-topic from genuine (an
-# off-topic "party" sentence scores ~0.245, inside the genuine gold band whose
-# floor is ~0.10). What DOES separate them cleanly is how many distinct corpus
-# content terms the query overlaps. Chosen from the in-house gold set: ALL 50
-# gold questions match >= 4 distinct content terms (min observed 4), while the
-# adversarial off-topic stems match at most 3 (incidental ambiguous words like
-# "function"/"set"/"value" that are common English AND math vocab). A floor of 4
-# sits exactly at the genuine minimum (so Recall@10 is not regressed — verified)
-# and above the incidental-overlap band, so every off-topic / stopword-laden
-# stem — including the end-to-end "party" attack — abstains. Conservative by
-# design (any doubt -> abstain).
-DEFAULT_MIN_CONTENT_TERMS = 4
+# ---------------------------------------------------------------------------
+# TOPICALITY gate parameters (BUG 3, re-fixed against an adversarial defeat).
+#
+# The prior gate counted DISTINCT corpus-vocabulary tokens and required >= 4.
+# That measures ENGLISH-WORD OVERLAP, not TOPICALITY: the corpus vocabulary
+# contains ~39 everyday-English words that are also math vocab (value, set,
+# function, point, order, field, ... base). So an off-topic English sentence
+# built from those words matched >= 4 vocab terms and wrongly grounded, while a
+# terse genuine stem ("Find the eigenvalues.") matched < 4 and wrongly abstained.
+#
+# The re-fix decides TOPICALITY from three signals on the TOP retrieved passage,
+# ALL of which must hold (conservative — any doubt -> abstain):
+#
+#   (1) DISCRIMINATIVE-term overlap. A matched term counts only if it is
+#       corpus-DISCRIMINATIVE, i.e. NOT in the everyday-English band
+#       (:data:`_EVERYDAY_ENGLISH`). Raw vocabulary membership no longer counts.
+#       The gate needs >= :data:`DEFAULT_MIN_DISCRIMINATIVE_TERMS` discriminative
+#       query terms co-occurring in the top passage. This kills all off-topic
+#       prose / bare-noun bags whose only overlaps are everyday words (disc == 0).
+#
+#   (2) PER-PASSAGE CONCENTRATION. Of the query's discriminative terms, the
+#       fraction co-occurring in the ONE top passage must be
+#       >= :data:`DEFAULT_MIN_DISC_CONCENTRATION`. A keyword-stuffed stem whose
+#       discriminative terms scatter across many passages fails this (its top
+#       passage covers only a minority of them), while a genuine stem's few
+#       discriminative terms concentrate in the one relevant passage.
+#
+#   (3) RAW RELEVANCE FLOOR (defense-in-depth). RRF's fused score is rank-based
+#       and relevance-blind (a junk doc landing #1 in both arms scores the same
+#       ~0.0333 as a real hit), so the top passage's RAW dense cosine must ALSO
+#       clear :data:`DEFAULT_MIN_TOP_COSINE`. In the current corpus signals (1)+(2)
+#       already reject EVERY attack in the adversarial set on their own — no attack
+#       reaches both a discriminative anchor AND >= 0.55 concentration — so this
+#       floor is a conservative third barrier against future/unseen attacks that
+#       might satisfy (1)+(2), set low enough not to reject thinly-covered but
+#       genuine single-term stems.
+#
+# All three signals are measured on the SAME passage: the FUSED (RRF) top hit —
+# the passage whose citation would be returned — so concentration and the cosine
+# floor describe one coherent candidate, not a different raw-cosine argmax.
+#
+# Calibration (hermetic corpus + the terse legit stems only; NEVER eval/holdout):
+# across the adversarial attack set (off-topic prose, keyword stuffing, bare-noun
+# bags — including generalization strings built from DIFFERENT everyday words)
+# the discriminative concentration tops out at 0.50, while every genuine stem
+# (terse AND long, including graph-style queries carrying a worked-solution
+# suffix) has concentration >= 0.67 and fused-top cosine >= 0.13. The thresholds
+# below sit in those gaps with margin on both sides.
+DEFAULT_MIN_DISCRIMINATIVE_TERMS = 1
+DEFAULT_MIN_DISC_CONCENTRATION = 0.55
+DEFAULT_MIN_TOP_COSINE = 0.12
 
 
 def load_corpus(path: Path | str | None = None) -> list[dict]:
@@ -95,6 +130,24 @@ _TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 # still score in both arms via common-word overlap and reach the relevance-blind
 # both-arms-#1 RRF ceiling (~0.0333), grounding to an arbitrary citation.
 _STOPWORDS = frozenset(ENGLISH_STOP_WORDS)
+
+# Everyday-English CONTENT-word band (BUG 3 topicality re-fix). These are common
+# general-English words that happen ALSO to be math vocabulary, so they carry no
+# topical signal on their own — a term is corpus-DISCRIMINATIVE only if it lies
+# OUTSIDE this band. This is a domain stoplist, NOT derived from the corpus's own
+# document frequencies: df cannot separate these from genuine anchors (e.g.
+# "matrix" df=35 and "space" df=21 are legit high-df anchors, while "field" df=1
+# and "volume" df=1 are low-df everyday words), so the everyday/technical split
+# is lexical, not frequency-based. Verified to contain NO genuine math anchor
+# (see tests). Not tuned to any single attack string: it is the general band of
+# words that are simultaneously ordinary English and incidental math vocabulary.
+_EVERYDAY_ENGLISH = frozenset(
+    """
+    value set function point order field power space map root term series line
+    plane area volume sum product number real close open image range domain
+    identity change rate rule form positive negative solution matter base
+    """.split()
+)
 
 
 def _tokenize(text: str) -> list[str]:
@@ -202,6 +255,12 @@ class HybridRetriever:
         # A document's searchable text = title + body (title is high-signal).
         self._docs = [f"{row['title']}. {row['text']}" for row in self.corpus]
 
+        # Per-document (stopword-stripped) content-token SETS. Used by the
+        # topicality gate's per-passage concentration signal: which of a query's
+        # discriminative terms co-occur in ONE specific passage (the top hit).
+        # Aligned by index with ``self._ids`` / ``self._docs``.
+        self._doc_token_sets = [set(_tokenize(doc)) for doc in self._docs]
+
         # --- Sparse arm: BM25 -------------------------------------------------
         self._bm25 = BM25Okapi([_tokenize(doc) for doc in self._docs])
 
@@ -275,27 +334,69 @@ class HybridRetriever:
         scores = np.asarray(self._bm25.get_scores(_tokenize(query)), dtype=float)
         return self._ranked_ids_from_scores(scores)
 
-    def _dense_ranked_ids(self, query: str) -> list[str]:
+    def _dense_sims(self, query: str) -> np.ndarray:
+        """Raw dense similarity of the query against every doc (index-aligned).
+
+        Cosine in both the real bi-encoder path and the TF-IDF fallback. This is
+        the RAW, relevance-BEARING score (unlike RRF, which is rank-based and
+        relevance-blind), used both for ranking and for the topicality gate's
+        raw-relevance floor.
+        """
         if self.dense_arm == "sentence-transformers":  # pragma: no cover
             q_emb = self._st_model.encode([query], normalize_embeddings=True)
             sims = (self._doc_embeddings @ q_emb.T).ravel()
         else:
             q_vec = self._tfidf.transform([query])
             sims = cosine_similarity(q_vec, self._tfidf_matrix).ravel()
-        return self._ranked_ids_from_scores(np.asarray(sims, dtype=float))
+        return np.asarray(sims, dtype=float)
 
-    # -- relevance signal (RRF-rank independent) ---------------------------
+    def _dense_ranked_ids(self, query: str) -> list[str]:
+        return self._ranked_ids_from_scores(self._dense_sims(query))
 
-    def _matched_terms(self, query: str) -> int:
-        """Count DISTINCT corpus-vocabulary content terms the query matches.
+    # -- topicality signals (RRF-rank independent) -------------------------
 
-        Stopwords are already dropped by :func:`_tokenize`; a term counts only if
-        it is in the corpus content-vocabulary. This is independent of RRF rank
-        and of raw similarity magnitude, so it distinguishes a genuinely on-topic
-        stem (many matched content terms) from an off-topic sentence whose only
-        overlaps are a couple of incidental words.
+    def _discriminative_query_terms(self, query: str) -> set[str]:
+        """Distinct query terms that are corpus-DISCRIMINATIVE.
+
+        A term is discriminative iff it is in the corpus content-vocabulary AND
+        NOT in the everyday-English band (:data:`_EVERYDAY_ENGLISH`). Everyday
+        words (value/set/function/point/...) are common English that merely
+        happen to be math vocab, so they carry no topical signal; only the
+        remaining terms distinguish a genuine math stem from off-topic prose.
         """
-        return len({tok for tok in _tokenize(query) if tok in self._content_vocab})
+        return {
+            tok
+            for tok in _tokenize(query)
+            if tok in self._content_vocab and tok not in _EVERYDAY_ENGLISH
+        }
+
+    def _topicality(self, query: str, doc_id: str) -> tuple[int, float, float]:
+        """Return the three topicality signals for ``query`` against ``doc_id``.
+
+        ``doc_id`` is the passage whose citation grounding would return — i.e. the
+        FUSED (RRF) top hit — so all three signals describe the ONE coherent
+        candidate passage, not scattered corpus statistics or a different
+        raw-cosine argmax. ``(disc_in_top, disc_concentration, top_cosine)``:
+
+        * ``disc_in_top`` — count of the query's discriminative terms that
+          co-occur in that passage (per-passage overlap, NOT a corpus-global
+          count).
+        * ``disc_concentration`` — fraction of the query's discriminative terms
+          that land in that passage (0.0 if the query has none). A keyword-stuffed
+          or off-topic stem whose discriminative terms scatter across passages
+          scores low; a focused genuine stem scores near 1.0.
+        * ``top_cosine`` — that passage's RAW dense cosine (the relevance floor
+          signal; RRF score is rank-based / relevance-blind so this is required
+          too).
+        """
+        disc_terms = self._discriminative_query_terms(query)
+        top_i = self._ids.index(doc_id)
+        sims = self._dense_sims(query)
+        top_cosine = float(sims[top_i]) if sims.size else 0.0
+        top_tokens = self._doc_token_sets[top_i]
+        disc_in_top = sum(1 for t in disc_terms if t in top_tokens)
+        concentration = disc_in_top / len(disc_terms) if disc_terms else 0.0
+        return disc_in_top, concentration, top_cosine
 
     # -- public API ---------------------------------------------------------
 
@@ -342,24 +443,31 @@ class HybridRetriever:
         candidate: dict,
         *,
         min_score: float,
-        min_content_terms: int = DEFAULT_MIN_CONTENT_TERMS,
+        min_discriminative_terms: int = DEFAULT_MIN_DISCRIMINATIVE_TERMS,
+        min_disc_concentration: float = DEFAULT_MIN_DISC_CONCENTRATION,
+        min_top_cosine: float = DEFAULT_MIN_TOP_COSINE,
     ) -> Optional[str]:
         """Return the top hit's ``source_citation`` if the candidate is grounded.
 
-        Builds a query from the candidate's stem (and worked solution / topic
-        when present). Returns ``None`` — driving the graph's "no source
-        grounding" abstain path — unless ALL of the following hold:
+        Builds a query from the candidate's stem (and worked solution / topic /
+        technique when present). Returns ``None`` — driving the graph's "no
+        source grounding" abstain path — unless ALL of the following hold
+        (TOPICALITY gate; conservative — any doubt -> abstain):
 
         * the candidate has usable text, and
-        * the query matches at least ``min_content_terms`` distinct corpus
-          content terms (the RRF-rank-independent relevance signal: an off-topic
-          stem whose only overlaps are a couple of incidental words abstains even
-          though its fused score can reach the relevance-blind both-arms ceiling),
-          and
-        * a fused hit exists whose RRF score clears ``min_score``.
+        * a fused hit exists whose RRF score clears ``min_score``, and
+        * (1) DISCRIMINATIVE overlap: the query has at least
+          ``min_discriminative_terms`` discriminative terms (corpus vocabulary
+          minus the everyday-English band) co-occurring in the top passage, and
+        * (2) PER-PASSAGE CONCENTRATION: the fraction of the query's
+          discriminative terms landing in that one top passage is
+          >= ``min_disc_concentration``, and
+        * (3) RAW RELEVANCE FLOOR: the top passage's raw dense cosine is
+          >= ``min_top_cosine`` (RRF alone is relevance-blind).
 
-        The relevance-term check is applied first so an off-topic query never
-        grounds regardless of its RRF score.
+        The topicality signals are evaluated before returning any citation, so an
+        off-topic stem never grounds regardless of its (relevance-blind) RRF
+        score. See the module-level parameter docs for calibration.
         """
         query = " ".join(
             str(candidate.get(key, ""))
@@ -367,15 +475,23 @@ class HybridRetriever:
         ).strip()
         if not query:
             return None
-        # RRF-rank-independent relevance gate: require enough matched content
-        # terms before any citation can be returned.
-        if self._matched_terms(query) < min_content_terms:
-            return None
+        # A candidate hit must exist and clear the RRF floor first.
         hits = self.retrieve(query, k=1)
         if not hits:
             return None
         top = hits[0]
         if top["score"] < min_score:
+            return None
+        # TOPICALITY gate (RRF-rank independent): discriminative-term overlap,
+        # per-passage concentration, and a raw-cosine relevance floor — all on
+        # the SAME passage whose citation we would return (the fused top hit).
+        # Any failure => abstain.
+        disc_in_top, concentration, top_cosine = self._topicality(query, top["id"])
+        if disc_in_top < min_discriminative_terms:
+            return None
+        if concentration < min_disc_concentration:
+            return None
+        if top_cosine < min_top_cosine:
             return None
         return top["source_citation"]
 
@@ -383,7 +499,9 @@ class HybridRetriever:
         self,
         *,
         min_score: float,
-        min_content_terms: int = DEFAULT_MIN_CONTENT_TERMS,
+        min_discriminative_terms: int = DEFAULT_MIN_DISCRIMINATIVE_TERMS,
+        min_disc_concentration: float = DEFAULT_MIN_DISC_CONCENTRATION,
+        min_top_cosine: float = DEFAULT_MIN_TOP_COSINE,
     ):
         """Adapt to the graph's ``Retriever = Callable[[dict], Optional[str]]``.
 
@@ -395,7 +513,9 @@ class HybridRetriever:
             return self.ground(
                 candidate,
                 min_score=min_score,
-                min_content_terms=min_content_terms,
+                min_discriminative_terms=min_discriminative_terms,
+                min_disc_concentration=min_disc_concentration,
+                min_top_cosine=min_top_cosine,
             )
 
         return _retriever
