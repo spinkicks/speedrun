@@ -38,6 +38,7 @@ Speedrun: an honest GRE **Mathematics Subject Test** study app built on **Anki**
 - **Anki-Android-Backend `main` = `14c2992`** — Phase 6 rsdroid re-pin to the P0-complete engine + AAR rebuilt (21 MB, x86_64, UI-in-AAR verified). NOTE: an AAR rebuild on the *current* anki `main` (`c54afe2b1`) needs the Android `getCalibration` fix first (bug P0 #2, in progress) or Android Home errors.
 - **umbrella `spinkicks/speedrun` `main`** — AI service (`services/speedrun-ai/`, OFF by default, RAG corpus 82) consolidated in; all gate-approval docs + this file.
 - **Branch status:** every one of our feature branches in all 4 repos is an ancestor of `main` (fully merged) as of 2026-07-03. Backup `feat/*` branches retained but merged.
+- **Current fork tips (2026-07-03 PM):** the SHAs above are the **feature-complete** commits; each fork `main` now also carries one **docs-only Speedrun-fork README banner** commit on top → current tips are anki **`ce28bb0fd`**, anki-android **`f02bde8366`**, Anki-Android-Backend **`70b8eaf`**. Umbrella `main` = **`5d7262b`** (planning-docs refresh). No code delta vs the feature SHAs.
 
 ## CRITICAL PATH — ✅ COMPLETE (2026-07-03). All build phases done + merged.
 The entire Gate 2 → Phase 3 → Phase 4 (AI) → Phase 5 → Phase 6 chain plus the Manrope branding, LS1/2/3, and §8 ablation are **built, gate-reviewed, and merged to `main`.** What remains is not on any build critical path — it's the human demo/eval work + the 7 sweep bug fixes (see "Immediate next step" above).
