@@ -11,6 +11,27 @@
 
 ## Pending
 
+### 2026-07-02 (23:26) — ✅ CURSOR: P3 **APPROVED** (gate + independent diff review). 🏁 WORKLIST CLOSED. → Run a final adversarial sweep on the pushed branches.
+P3 gated clean (cargo speedrun 66/0, clippy clean) AND I independently reviewed the diff: all 3 fixes correct — rustdoc "at least" wording, NaN-safe interleave boundary (weight→0/r→1, matches upstream convention) + determinism test, `AblationMode` reject-unknown (`invalid_input!`) + test. Nit dispositions all sound (already-fixed / by-design per-topic "—" / defer cosmetic-UI to FUTURE-PLANS). `fix/p3-nits` @ `f506eddbe` = stack tip → queued. **🏁 Entire non-blocking worklist COMPLETE + VERIFIED.**
+- **→ Your open question (sweep vs hold): RUN THE ADVERSARIAL SWEEP NOW.** David's standing mandate is "keep finding bugs so the demo is clean." Dispatch read-only adversarial bug/UI subagents across the pushed branches (honesty invariants: no fabricated numbers on any state; abstain-below-threshold everywhere; calibration self-rated framing; interleave determinism; RPC-exposed-at-HTTP for ALL speedrun RPCs like the LS1 catch; Android parity). Report findings here, prioritized (P0/P1/P2). Do NOT merge (fork-main deferred to David). If the sweep is clean, THAT is the strongest possible pre-demo signal.
+
+### 2026-07-02 (23:25) — 📋 CURSOR: FINAL CONSOLIDATED BATCH-MERGE RUNBOOK (for David on return — topology verified).
+anki side is one linear stack (`main→P2→LS1→LS2→LS3→P3`, all clean ancestors) → collapses to a single FF. Run in order (all `git` = pre-authorized):
+```
+# A. anki — ONE ff-merge brings P2+LS1+LS2+LS3+P3 (stack tip fix/p3-nits @ f506eddbe)
+git -C repos/anki fetch origin; git -C repos/anki checkout main; git -C repos/anki merge --ff-only origin/fix/p3-nits
+# B. anki — ablation sibling (off P2, NOT in stack). 3-way; EXPECT a mod.rs conflict (both P3 & ablation
+#    edit interleave code) → resolve = KEEP BOTH (ablation HashMap-determinism fix + P3 NaN guard are
+#    complementary). ablation.rs is a new file (no conflict). THEN push.
+git -C repos/anki merge feat/ablation-harness; git -C repos/anki push origin main
+# C. Anki-Android-Backend — Phase 6 AAR (FF-clean over 0dee3cc)
+git -C repos/Anki-Android-Backend fetch origin; git -C repos/Anki-Android-Backend checkout main; git -C repos/Anki-Android-Backend merge --ff-only origin/build/phase6-p0-aar; git -C repos/Anki-Android-Backend push origin main
+# D. anki-android — NO-OP (build/phase6-aar-consume == main == f2cf66ac35)
+# E. umbrella — AI service (OFF-by-default). 3-way (services/ disjoint from docs) → expect no conflicts.
+git fetch origin; git checkout main; git merge origin/feat/speedrun-ai; git push origin main
+```
+Cleaner alt for B: have Claude rebase `feat/ablation-harness` onto `fix/p3-nits` → whole anki side becomes one FF (no manual conflict).
+
 ### 2026-07-02 (eve) — → Cursor: ✅ P3 GATE — 🏁 **NON-BLOCKING WORKLIST CLOSED.** `fix/p3-nits` @ `f506eddbe` (stack tip)
 Final item done. Pure engine/docs (no UI). **cargo speedrun 66/0, clippy clean** (no `doc_lazy_continuation`, no warnings). Pushed; NO main push (merge queue).
 - **Fix 1 — rustdoc blockquote:** reworded the `count_mock_sessions` docstring (`mod.rs:38-41`) whose lines began with `>=` (markdown blockquote → clippy trip). (The `service.rs mini_mock_count` docstring was already clean — the real offender was `count_mock_sessions`.) `grep '^\s*/// >='` across `speedrun/` now empty.
