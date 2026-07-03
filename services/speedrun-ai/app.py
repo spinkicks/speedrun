@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from config import load_settings
 from eval.gate import make_gold_gate
 from eval.leakage import load_study_texts
-from graph import make_hybrid_retriever, run_generation
+from graph import TOPIC_NOT_COVERED_REASON, make_hybrid_retriever, run_generation
 from rag.embeddings import make_openai_embedder_if_key
 from rag.retriever import covered_topic_ids
 
@@ -68,6 +68,58 @@ DISABLED_DETAIL = (
 class GenerateRequest(BaseModel):
     topic: str
     technique: str
+
+
+class GenerateBatchRequest(BaseModel):
+    topic: str
+    count: int = 5
+
+
+# Batch clamp bounds for the desktop "Generate practice" button.
+_BATCH_MIN = 1
+_BATCH_MAX = 5
+
+# Letters used to index answer choices in the batch response (A..E). The graph
+# emits at most 5 choices (1 correct + up to ~3 distractors), so five letters
+# always suffice; any position beyond this is treated as unverifiable and the
+# problem is dropped (fail closed).
+_CHOICE_LETTERS = "ABCDE"
+
+
+def _batch_problem_from_emit(problem: dict[str, Any]) -> dict[str, Any] | None:
+    """Map a graph EMIT ``problem`` payload to the FROZEN desktop shape, or
+    ``None`` when it cannot be safely presented (→ the caller DROPS it).
+
+    Contract shape: ``{stem, choices, correct_answer, worked_solution,
+    source_citation}`` where ``correct_answer`` is the LETTER (A..E) whose
+    position in ``choices`` holds the emitted ``correct`` value.
+
+    Fail closed: if choices are missing, the emitted ``correct`` value is not
+    found among the assembled choices, or the source citation is missing, no
+    valid letter/citation can be derived → return ``None`` so the attempt is
+    treated as unverified and dropped (never ship an answer we cannot point to).
+    """
+    if not isinstance(problem, dict):
+        return None
+    choices = problem.get("choices") or []
+    correct = str(problem.get("correct", "")).strip()
+    citation = problem.get("citation")
+    stem = problem.get("stem", "")
+    if not choices or not correct or not stem or not citation:
+        return None
+    try:
+        index = choices.index(correct)
+    except ValueError:
+        return None  # correct value not among choices → cannot letter it → drop
+    if index >= len(_CHOICE_LETTERS):
+        return None  # more choices than we can letter → drop (fail closed)
+    return {
+        "stem": stem,
+        "choices": list(choices),
+        "correct_answer": _CHOICE_LETTERS[index],
+        "worked_solution": problem.get("worked_solution", ""),
+        "source_citation": citation,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -167,3 +219,57 @@ def generate(req: GenerateRequest) -> dict[str, Any]:
     if not load_settings().is_enabled():
         raise HTTPException(status_code=503, detail=DISABLED_DETAIL)
     return generate_problem(req.topic, req.technique)
+
+
+@app.post("/generate_batch")
+def generate_batch(req: GenerateBatchRequest) -> dict[str, Any]:
+    """Batch endpoint for the desktop "Generate practice" button.
+
+    A THIN wrapper over :func:`generate_problem` (the single-problem graph): it
+    makes up to ``count`` INDEPENDENT attempts for a covered ``topic`` and keeps
+    ONLY the verified, grounded, gold-gated emits — every abstain / unverified
+    attempt is DROPPED. It never reimplements the graph or weakens any gate.
+
+    Safety contract:
+      * Disabled kill-switch → 503 (never generate).
+      * Uncovered topic → fail CLOSED: the existing ``covered_topics`` guard in
+        ``run_generation`` abstains before proposing; we stop immediately and
+        return ``produced:0, problems:[], reason:"topic not in grounding corpus"``.
+      * ``count`` is clamped to ``[1, 5]`` (default 5).
+      * ``correct_answer`` is the LETTER (A..E) indexing the emitted correct
+        value within ``choices``; an emit we cannot letter/cite is dropped.
+    """
+    if not load_settings().is_enabled():
+        raise HTTPException(status_code=503, detail=DISABLED_DETAIL)
+
+    count = max(_BATCH_MIN, min(_BATCH_MAX, req.count))
+
+    problems: list[dict[str, Any]] = []
+    for _ in range(count):
+        result = generate_problem(req.topic, "")
+        # Fail closed on an uncovered topic: the syllabus guard fired before any
+        # proposal — stop attempting and report the reason. (Every attempt would
+        # return the same abstain, so short-circuit.)
+        if result.get("abstain_reason") == TOPIC_NOT_COVERED_REASON:
+            return {
+                "status": "ok",
+                "topic": req.topic,
+                "requested": count,
+                "produced": 0,
+                "problems": [],
+                "reason": TOPIC_NOT_COVERED_REASON,
+            }
+        # Keep ONLY verified emits; drop every abstain / unverified attempt.
+        if result.get("status") != "emit":
+            continue
+        mapped = _batch_problem_from_emit(result.get("problem") or {})
+        if mapped is not None:
+            problems.append(mapped)
+
+    return {
+        "status": "ok",
+        "topic": req.topic,
+        "requested": count,
+        "produced": len(problems),
+        "problems": problems,
+    }
