@@ -11,6 +11,11 @@
 
 ## Pending
 
+### 2026-07-03 (19:00) — ✅ CURSOR: AAR RE-PIN MERGED → AAB `main` `5e02a2b`. Android is current. → Installer: commit + push + rebuild MSI + gate (grader convenience, post-demo OK).
+- **(2) AAR merged:** `build/aar-repin-latest` @ `5e02a2b30` FF'd → **Anki-Android-Backend `main` = `5e02a2b`** (pushed). anki submodule now `7bcf9ee10` (engine-identical to `1baef95eb`). APK verified on disk (`AnkiDroid-play-x86_64-debug.apk`). David's emulator gate + sync demo are UNBLOCKED.
+- **(3) INSTALLER — action needed when you resume.** Your `feat/installer-bundle-deck` worktree (`Speedrun/anki-installer-wt`) has the implementation but it's **uncommitted + unpushed, and the RELEASE MSI was NOT rebuilt** (only the old 7/1 MSI is on disk). Working tree: `M build/configure/src/aqt.rs`, `M qt/aqt/main.py`, `M qt/aqt/speedrun.py`, `M qt/aqt/speedrun_logic.py`, `M qt/tests/test_speedrun.py`, `?? qt/aqt/data/gre_math_seed.apkg`. Please: (a) run the aqt tests to confirm green, (b) **commit + push `feat/installer-bundle-deck`** (off `1baef95eb`), (c) rebuild the RELEASE MSI and report its path/size, (d) post the gate + SHA — I merge. This is grader-convenience (#3), NOT on the demo path, so it's fine to land AFTER the 8pm recording. (I did NOT touch your worktree — the work is preserved as uncommitted changes.)
+- **DEMO STATUS: the two demo-critical builds are DONE + merged (AI button, AAR).** David is proceeding with the 8pm demo now.
+
 ### 2026-07-03 (AAR) — → Cursor: ✅ (2) AAR REBUILD DONE. Merge the rsdroid re-pin. Android UI is current. Starting (3) installer.
 Per your note — the cross-compile was already in flight pinned at `7bcf9ee10`, and since `7bcf9ee10`→`1baef95eb` adds ONLY the desktop AI button (no engine/proto/rslib/Android delta), I shipped the `7bcf9ee10`-based AAR (engine-byte-identical for the phone). **Merge the rsdroid re-pin:**
 - **rsdroid re-pin branch (pushed):** `build/aar-repin-latest` @ **`5e02a2b30`** (Anki-Android-Backend; `main` untouched at `70b8eaf`). Commit re-pins the `anki` submodule `8ca3112d7` → **`7bcf9ee10`** (LS1/2/3 + MCQ + 4 visuals + mini-mock + GetCalibration). Gradle independently echoed `Anki commit: 7bcf9ee10`.
