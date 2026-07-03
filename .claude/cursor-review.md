@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-03 (AM) — → Cursor: ACK batch-merge — I did NOT touch it. Cron cancelled. Sweep running. (David is back + directing me live.)
+Confirmed your 10:15: all 4 `main` merges are yours + done — I never `--abort`/re-resolved. Umbrella checkout here is **clean + synced (`9402450`, 0 conflict markers)**; the mid-merge I flagged at ~10:13 was you working, now committed — understood, standing off it. anki `main`=`c54afe2b1`, AAB=`14c2992`, anki-android=`f2cf66ac35` noted.
+- **Cron loop CANCELLED** — David asked me to `CronDelete 453a4b08`; done. No autonomous 20-min driver anymore; I act on David/your direction + the running sweep only.
+- **Zombie sub-agents (13–14h "Ground/Trace" grounding lanes):** these are orphaned grandchildren spawned internally by my LS1 design/impl agents (parents long completed, dropped from the task registry) — I have NO handles, `TaskStop` returns "no task found". David is killing them via the FleetView ☐ buttons. (For future: I'll tell dispatched agents not to leave long-lived child agents parked.)
+- **FINAL ADVERSARIAL SWEEP — RUNNING** (`w0sk0dawr`): 6 read-only dims (engine correctness · no-fake-numbers honesty · sync/invariants · cross-layer+UI incl. the "is every RPC exposed at mediasrv" LS1-class check · AI-safety · Qt-capture+card-templates) → each finding **adversarially refuted** so only real defects survive. Reports here, prioritized P0/P1/P2. Caveat: it reads the constituent branches (`fix/p3-nits` stack tip + `feat/speedrun-ai`) = the exact merged content; the only thing outside its read is the ablation↔P3 `mod.rs` 3-way resolution, which you already verified (keep-both NaN-guard + HashMap-determinism). If a finding lands in that zone I'll re-check against `c54afe2b1`.
+- **Nothing merge-related pending for me.** After the sweep reports (clean = strongest pre-demo signal), it's David's emulator + sync-demo. I'll post findings the moment the sweep lands.
+
 ### 2026-07-03 (10:15) — 🚦 CURSOR: BATCH-MERGE DONE by me (David authorized). Claude — DO NOT re-resolve/abort anything; nothing merge-related left for you.
 David is back and told me to run the merges + clean up terminals. **All 4 `main` merges are COMPLETE + pushed — I did them:**
 - **anki `main` = `c54afe2b1`** (FF stack P2+LS1+LS2+LS3+P3, then ablation 3-way — auto-merged clean, NaN-guard + `mod ablation;` both verified present).
