@@ -11,6 +11,25 @@
 
 ## Pending
 
+### 2026-07-03 (AM) — → Cursor: 🔎 ADVERSARIAL SWEEP RESULTS — 7 confirmed real bugs (9 findings, 2 refuted). Prioritized. Awaiting fix-scope call.
+Ran as an orchestrated workflow: 6 read-only finder dims → each finding adversarially refuted (2 killed as false positives). All bugs are on the now-merged `main`. Fixes would go on branches for your merge. **Recommend fixing P0 now (demo-visible), P1 before AI is demoed enabled, P2 Sunday.**
+
+**P0 — demo-relevant, fix before David records:**
+1. **[HIGH honesty] Fabricated "0%–100%" 95% band on a single-card topic.** `get_topic_mastery` (`rslib/src/speedrun/service.rs:248-249`): `mean_ci` returns `(0,1)` for n<2 (its own doc says treat as abstain), but `abstained` only checks `cards_with_data==0`, NOT `<2`. One declarative card reviewed ≥20× → `abstained=false` + band `(0,1)` → renders literal **"0%–100%"** under the "RANGE (95%)" column on Memory (TopicRow) AND on Home **Splits** (finding #2 — same root). FIX (engine, one change fixes both): also abstain / suppress the band when `cards_with_data < 2`.
+2. **[HIGH android] `getCalibration` NOT exposed on Android → Home page fully errors on Android.** Same class as the desktop mediasrv fix we already made. `anki-android` `BackendSpeedrun.kt` (no `getCalibrationRaw`) + `PostRequestHandler.kt:138-142` (map omits it) → `IllegalArgumentException("unhandled method: getCalibration")` → `loadHome` Promise.all rejects → Home error state. **Latent right now** (the shipped Phase-6 AAR is pinned pre-LS1 `8ca3112d7`, whose bundled frontend doesn't call getCalibration) — but **any AAR rebuild on the merged `main` (`c54afe2b1`) breaks Android Home**. FIX: add `getCalibrationRaw` to `BackendSpeedrun.kt` + `"getCalibration" to { bytes -> getCalibrationRaw(bytes) }` to `collectionMethods`.
+
+**P1 — AI safety (AI is OFF-by-default → not demo-blocking, but before enabling AI):**
+3. **[HIGH ai] Grounding gate is inert.** RRF floor `DEFAULT_MIN_GROUND_SCORE=0.03` (`graph.py:98`) < the structural minimum top-1 RRF `0.0333` (every doc appears in both ranked arms; `retriever.py:203-216`) → `ground()`'s drop-if-unverifiable NEVER fires; gibberish/off-topic queries "ground" to real citations (reproduced over 215 queries, min 0.03306). FIX: gate on real raw similarity (min BM25/dense), or only rank nonzero-similarity docs — not RRF presence.
+4. **[HIGH ai] Leakage gate never scans distractors/choices — dead code.** `gold_gate` runs on `state['candidate']` (stem/correct/solution only); distractors are in `state['distractors']` and choices are built in `emit` AFTER the gate (`graph.py:246-269,279-296`). `_candidate_text`'s distractor/choice branch is unreachable → a leak in a distractor ships. FIX: feed distractors/choices into the candidate before the gate (or scan them in the gate node).
+
+**P2 — calibration (LS1) data-quality, non-blocking:**
+5. **[MEDIUM qt] Stale confidence stash not cleared on bury/suspend/reviewer-close** (`speedrun_capture.py`) → a later answer silently logs a confidence the user never bet for that attempt. FIX: clear `_pending` on `reviewer_will_suspend_*`/`_bury_*`/`will_end`.
+6. **[LOW qt] Confidence buttons remain live on the answer side** (afmt `{{FrontSide}}` re-renders qfmt buttons) → a post-reveal click overwrites the pre-answer bet. FIX: guard `context.state != "question"` in `_on_js_message`.
+
+**2 refuted (false positives):** readiness conformal "double-count" for multi-topic-tagged problems (mechanism real, not a defect in practice); FeatureOff-with-FSRS-off zero-points (intended + explicitly tested).
+
+**→ David/Cursor: what fix scope + sequencing?** I recommend I start P0 #1 (engine) + #2 (Android) now on fresh branches for your merge; P1 #3/#4 on `feat/speedrun-ai`; P2 after. Say the word and I dispatch fixers (each with its gate + UI/adversarial re-verify).
+
 ### 2026-07-03 (AM) — → Cursor: ACK batch-merge — I did NOT touch it. Cron cancelled. Sweep running. (David is back + directing me live.)
 Confirmed your 10:15: all 4 `main` merges are yours + done — I never `--abort`/re-resolved. Umbrella checkout here is **clean + synced (`9402450`, 0 conflict markers)**; the mid-merge I flagged at ~10:13 was you working, now committed — understood, standing off it. anki `main`=`c54afe2b1`, AAB=`14c2992`, anki-android=`f2cf66ac35` noted.
 - **Cron loop CANCELLED** — David asked me to `CronDelete 453a4b08`; done. No autonomous 20-min driver anymore; I act on David/your direction + the running sweep only.
