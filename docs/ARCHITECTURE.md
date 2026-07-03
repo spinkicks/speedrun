@@ -1,5 +1,7 @@
 # Speedrun — Architecture & Build-Feasibility
 
+> **Status: this was the pre-build feasibility/design doc (2026-06). As-built state is in `docs/STATE.md` + `docs/WHAT-WE-BUILT.md`.** The feasibility calls below held up; "future/not-yet" language has been lightly corrected where it's now shipped, but this remains a largely historical design doc.
+
 Based on a deep read of the cloned repos (`repos/anki` @ version 26.05, `repos/anki-android`) plus official Anki/AnkiDroid developer docs. Every claim cites a real file path or doc URL.
 
 ## 0. Feasibility verdict
@@ -7,12 +9,12 @@ Based on a deep read of the cloned repos (`repos/anki` @ version 26.05, `repos/a
 | Target | Verdict | Confidence | Core reason |
 |---|---|---|---|
 | **Desktop (one engine)** | ✅ Feasible, low risk | High | `./run` builds the whole stack; adding a proto method + Rust impl + Python call is a documented, well-trodden path. |
-| **Android (same engine)** | ✅ Feasible, medium risk | Medium | AnkiDroid does NOT vendor `rslib` source — it pulls a prebuilt JNI AAR (`io.github.david-allison:anki-android-backend:0.1.64-anki25.09.2`). To ship OUR modified `rslib` we must fork & build a **third repo**, `ankidroid/Anki-Android-Backend` (rsdroid), **not yet cloned**. |
+| **Android (same engine)** | ✅ Feasible, medium risk | Medium | AnkiDroid does NOT vendor `rslib` source — it pulls a prebuilt JNI AAR (`io.github.david-allison:anki-android-backend:0.1.64-anki25.09.2`). To ship OUR modified `rslib` we forked & built a **third repo**, `ankidroid/Anki-Android-Backend` (rsdroid) — ✅ **cloned to `repos/Anki-Android-Backend`, AAR built, `local_backend=true` swap proven on the emulator.** |
 | **iOS (same engine)** | ⚠️ Not realistic in a 1-week build | High | AnkiMobile is closed-source; we'd write a Swift shell over `rslib`'s protobuf FFI from scratch. **Android-first is the correct call.** |
 
 **The single most important fact:** the engine is `rslib` (Rust); both desktop and Android consume it, but through **different bridges** — desktop via a PyO3 bridge (`pylib/rsbridge`), Android via a JNI bridge built in the separate **rsdroid** repo. Our Rust change lives in one place; the work multiplier is in the *bridges*, not the engine.
 
-> **ACTION:** when we start building, clone the third repo beside the others: `git clone https://github.com/ankidroid/Anki-Android-Backend` → it must sit at `repos/Anki-Android-Backend` (i.e. `../Anki-Android-Backend` relative to the anki-android root).
+> **DONE:** the third repo was cloned beside the others at `repos/Anki-Android-Backend` (i.e. `../Anki-Android-Backend` relative to the anki-android root), forked, and its AAR rebuilt from our modified `rslib`.
 
 ## 1. Build system (desktop)
 - **Toolchain:** Rust `1.92.0` (pinned in `repos/anki/rust-toolchain.toml`); custom Rust-based **Ninja/N2** generator (`./ninja`, `build/configure`, `build/runner`) — NOT Bazel/cargo at top level; Python 3.9+ via `uv`; Node/TS via `yarn`; Qt via PyQt; protobuf via prost (Rust) / protobuf-es (TS).
@@ -55,8 +57,8 @@ Based on a deep read of the cloned repos (`repos/anki` @ version 26.05, `repos/a
 | Memory (FSRS) | Already in Rust core (`scheduler/fsrs/`) | Consume/extend; don't reimplement. |
 | Prerequisite taxonomy/DAG | Add-on data + read-only RPC | Portable to Android with no extra native work; only put in core if queue building consumes it. |
 | Practice-problem queue selection | Rust core (`scheduler/queue/builder/`) **if** it changes what's shown next | The one shared decision point both apps use → identical behavior for free. This is where the real engine change is justified. |
-| IRT/readiness model | Split: light inference as read-only RPC; heavy calibration/training as external service | Keeps the mobile `.so` small; readiness display is just a returned number. |
-| RAG problem generation | External service; generated cards imported as notes (`rslib/src/adding.rs`) + synced down | Network/LLM deps must NOT enter the mobile native lib. |
+| IRT/readiness model | Split: light inference as read-only RPC; heavy calibration/training as external service | Keeps the mobile `.so` small; readiness display is just a returned number. **As-built: Performance & Readiness are computed *in-engine, deterministically, recompute-on-read* — no synced score blob** (see Decision 15 / D1). |
+| RAG problem generation | External service; generated cards imported as notes (`rslib/src/adding.rs`) + synced down | Network/LLM deps must NOT enter the mobile native lib. **As-built: shipped as `services/speedrun-ai/` (FastAPI; SymPy verify + hybrid RAG + gold-set gate), OFF by default (`SPEEDRUN_AI_ENABLED=1` + `OPENAI_API_KEY`); both apps score fully with AI off.** |
 
 **Math rendering:** Anki uses **MathJax in a WebView on both platforms** (desktop `ts/` + `qt/aqt/data/web/`; AnkiDroid `AnkiDroid/src/main/assets/mathjax/` + `libanki/.../template/MathJax.kt`; `rslib/src/latex.rs`, `cloze.rs`). Author cards with `\(...\)`/`\[...\]` → both render identically. No need for KaTeX.
 
@@ -65,13 +67,13 @@ Based on a deep read of the cloned repos (`repos/anki` @ version 26.05, `repos/a
 ## 6. Risk register + day-1 walking skeleton
 **Top risks:** (1) rsdroid build chain (High) — clone `Anki-Android-Backend`, get a stock `local_backend` AAR building first; (2) engine fork drift (High) — ONE forked anki repo feeds both bridges, keep proto additive; (3) Windows build friction (Med) — follow `docs/windows.md`, relocate to `C:\anki` if needed; (4) undo/corruption (Med-High) — `transact` + `Op` + additive fields, prefer read-only RPCs; (5) sync conflict expectations (Med) — design test around USN + forced one-way; (6) iOS scope creep (Med) — defer; (7) perf on mobile (Low-Med) — keep IRT/RAG off-device; (8) math rendering (Low) — use bundled MathJax.
 
-**Walking skeleton (the real feasibility gate):**
-1. Desktop builds & runs (`./run`; `./ninja check` green).
-2. Add a no-op read RPC end-to-end (`SpeedrunService.GetReadiness` returns a constant) — proves proto→Rust→Python seam.
-3. Stand up our own sync server from `rslib/sync`; sync the desktop build against it.
-4. Clone `Anki-Android-Backend`, build a stock `local_backend=true` AAR, run AnkiDroid against it.
-5. Rebuild the AAR from our forked rslib (with the RPC), call it from `libanki` — **this is the true "one engine, two apps" milestone.**
-6. Then layer real logic: queue-builder hook (core), taxonomy DAG (add-on), readiness display (read RPC), RAG generation (external service).
+**Walking skeleton (the real feasibility gate) — ✅ COMPLETE (all six steps landed; see `docs/STATE.md`):**
+1. ✅ Desktop builds & runs (now via `just run`; `just check` green).
+2. ✅ Read RPC end-to-end on `SpeedrunService` — proves proto→Rust→Python seam (grew into the full scoring RPC set).
+3. ✅ Stood up our own sync server from `rslib/sync`; desktop syncs against it (see `docs/SYNC-SELFHOST.md`).
+4. ✅ Cloned `Anki-Android-Backend`, built a `local_backend=true` AAR, ran AnkiDroid against it.
+5. ✅ Rebuilt the AAR from our forked rslib (with the RPCs), called from `libanki` — **the "one engine, two apps" milestone, proven on the emulator.**
+6. ✅ Real logic layered: queue-builder interleave (core), taxonomy DAG (add-on), the 3 honest scores (in-engine + read RPC), RAG generation (external `services/speedrun-ai/`, off by default).
 
 ## Key references
 Repo: `repos/anki/docs/{development,build,architecture,protobuf,language_bridge,windows}.md`; `rust-toolchain.toml`; `rslib/proto/{build.rs,rust.rs,python.rs}`; `rslib/src/{services.rs,backend/mod.rs,ops.rs,collection/mod.rs,collection/transact.rs,undo/mod.rs,scheduler/queue/builder/mod.rs,latex.rs,cloze.rs}`; `rslib/src/sync/http_server/mod.rs`; `rslib/sync/main.rs`; `proto/anki/{decks,backend,ankidroid}.proto`; `Cargo.toml` (fsrs 5.2.0). anki-android: `libanki/README.md`, `AnkiDroid/build.gradle` (507–517), `buildSrc/.../BackendDependencies.kt`, `gradle/libs.versions.toml`, `libanki/.../Storage.kt`, `AnkiDroid/src/main/assets/mathjax/`, `libanki/.../template/MathJax.kt`.

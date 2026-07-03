@@ -74,12 +74,25 @@ Captures the key decisions and rationale (much of which originated in planning c
 
 ## Decision 14 — Execution decisions from build week (recorded 2026-07-01)
 - **Proto FROZEN** @ anki `20dd7a2ea` (wed-plus Phase E): 5 RPCs on `SpeedrunService`; all later changes append-only with new field numbers.
-- **Interleaving implementation deviation from Decision 3:** wed-plus shipped points-at-stake as a **persisted new-card reposition** via `transact(Op::SortCards)` (undo-safe, corruption-free) instead of the queue-builder change; the **due-card queue-builder interleave** (read-time, no transact needed) is the Friday completion. Rationale: satisfy the mutating-op invariant with zero risk to review scheduling first.
+- **Interleaving implementation deviation from Decision 3:** wed-plus shipped points-at-stake as a **persisted new-card reposition** via `transact(Op::SortCards)` (undo-safe, corruption-free) instead of the queue-builder change; the **due-card queue-builder interleave** (read-time, no transact needed) was the Friday completion — **✅ shipped & merged 2026-07-03** (weakness × topic due-card interleave, ablation-gated; see Decision 15). Rationale: satisfy the mutating-op invariant with zero risk to review scheduling first.
 - **rsdroid `anki` submodule pin** → `a0ead51c9` (the wed-plus HEAD containing frozen proto + the Svelte page — NOT the freeze commit, because the AAR auto-bundles the sveltekit assets from the pinned tree).
 - **All 3 forks consolidated to `main`** (2026-07-01, owner call "everything on main"): anki `1fed9e109` · Anki-Android-Backend `299bb44`+`d4086e0` · anki-android `a56dda6cfb`. FF-only; feature branches kept as backup. Cursor executes merges at reviewed gates.
 - **Frontend revamp direction approved ("The Run"):** Speedrun is its OWN app on Anki's engine. Slice 1 = branded Home (splits + honest error-brackets, flat/sharp/terminal, amber pace accent, auto-open on launch) per `docs/design/speedrun-home-spec.md` + approved mockup. Owner pulled this forward (visible frontend changes same-day); heavier slices sequenced around Friday's scoring work.
 - **Lane update:** Claude Code builds the frontend too (owner call; keeps the proven subagent-driven loop). Cursor = mission control: specs, reviews, gates, docs, git. Cursor avoids concurrent writes in `repos/*` while Claude builds.
 - **Installer strategy:** Briefcase win/mac templates vendored in-tree (network-independent clean-machine build); supersedes the wed-mvp "populate submodules" fix; accepted trade-off = manual re-vendor on upstream template bumps.
+
+## Decision 15 — Friday scope merged (recorded 2026-07-03)
+The Friday depth work landed as one batch merge; all three forks + umbrella are back on `main`. Per-repo main SHAs: anki `c54afe2b1` · Anki-Android-Backend `14c2992` · anki-android `f2cf66ac35` · umbrella latest.
+- **Headline feature completed (closes the Decision 14 "Friday completion" loop):** the **due-card queue-builder interleave** shipped — weakness × topic-weight interleave at review time in `rslib/src/scheduler/queue/builder/`, ablation-gated. Together with the wed-plus new-card `ReorderNewByPointsAtStake` reposition (via `transact`/`OpChanges`), both halves of the points-at-stake interleaving feature are now live.
+- **Three honest scores on both platforms:** Memory (Wilson CI + abstain), Performance (P(correct) + memory→performance gap Δ + abstain), Readiness (flat IRT → 200–990 scale + conformal interval + give-up rule).
+- **D1 — in-engine deterministic scoring:** Performance/Readiness are computed **in the Rust engine, recompute-on-read**; there is **no synced score blob** (avoids stale/divergent scores across devices and keeps the mobile `.so` self-contained).
+- **D4 — timed mini-mock via a filtered deck:** the `Speedrun::Problem` MCQ bank (64 items, double-SymPy-verified) drives a timed mini-mock built as a **filtered deck** (`reschedule=true`), reusing Anki's proven temporary-deck machinery instead of new scheduling code.
+- **LS1 calibration storage = config-blob (MVP):** the calibration log persists to a **config blob** (`speedrun:calibration_log`) with desktop capture + Brier/ECE + self-rated (Sure/Think-so/Guess) framing; params are constants (0.9 / 0.65 / 0.4, abstain < 20). A **sync-safe attempt-log TABLE was deliberately deferred** — a new table forces a schema-version (`scm`) bump → one-way full sync (AGENTS.md invariant), which must NOT fire during the sync demo. Upgrade once the demo constraint lifts.
+- **Interactive-MCQ auto-grading DEFERRED:** `Speedrun::Problem` remains a show-answer/self-rate card (revlog stores only `button_chosen`, never the chosen option), so Performance "correct" is self-assessed. Interim shipped = self-grade-against-key copy + honesty caveat. Real fix (clickable choices → compare to `CorrectAnswer` → persist correctness, desktop + Android) is its own both-platforms feature.
+- **§8 ablation — M3 kept exploratory (honest record):** the ablation harness (`AblationMode` Full / FeatureOff / Plain) ships with pre-registered metrics M1/M2; **M3 was NOT retro-promoted to pre-registered** since it was added after the fact — it stays exploratory to keep the pre-registration honest. Results in `docs/ablation-s8-results.md`.
+- **Branding:** Manrope ExtraBold wordmark + `#F4F7FA` surface — the "looks like a real, substantial app" identity signal (Decision 10 / distinct-identity mandate).
+- **External AI service consolidated to umbrella `main`, OFF by default:** `services/speedrun-ai/` (FastAPI, SymPy verify + hybrid RAG 82-passage + gold-set gate) requires `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY`; both apps score fully with AI off. Lives OUTSIDE all native libs (never imported into rslib/rsdroid). Gold set `eval/holdout/gre_math_gold.jsonl` (50, triple-verified) is off-limits to agents.
+- **Still pending (human / Sunday):** emulator visual gate, live sync-demo recording, demo video, the Sunday eval RUNS, robustness (crash ×20 / offline / `make bench`), signed APK, BrainLift final pass; 7 bug fixes in progress.
 
 ## Open questions / TODO research
 - [x] Architecture & build feasibility → `docs/ARCHITECTURE.md` (DONE; desktop low-risk, Android medium, iOS deferred).
@@ -88,7 +101,9 @@ Captures the key decisions and rationale (much of which originated in planning c
 - [x] AI math problem generation + verification — DONE. `research/claude-AI math-problem generation plus verification.md`.
 - [x] Multi-exam extensibility ("exam profile" abstraction) — DONE. `research/claude-GRE Physics plus multi-exam extensibility.md`.
 - [x] Creative-features brainstorm pass — DONE (folded into BrainLift "Flagship Features").
-- [ ] NEXT: PRD / docs plan (coverage map → topic taxonomy + DAG data; readiness-model spec; problem-sourcing plan; day-1 walking skeleton from `docs/ARCHITECTURE.md`).
+- [x] PRD / docs plan (coverage map → topic taxonomy + DAG data; readiness-model spec; problem-sourcing plan; day-1 walking skeleton) — DONE (`docs/PRD.md`; walking skeleton complete, see Decision 15).
+- [ ] NEXT (Sunday): **run** the evals (memory calibration reliability/Brier + performance accuracy on held-out + score-mapping writeup) — the harness/gold set exist; the RUNS are pending.
+- [ ] NEXT (Sunday): **signed APK** (x86_64 emulator AAR built; signing + arm64 for physical devices outstanding) + robustness gates (crash ×20 / offline / `make bench`) + BrainLift final pass.
 
 ## File map
 - `brainlift/BrainLift.md` — the BrainLift (Purpose, 6 SPOVs, Experts, Insights, Knowledge Tree, rubric map).

@@ -11,6 +11,14 @@
 
 ## Pending
 
+### 2026-07-03 (10:30) — ✅ CURSOR: GREENLIT — fix ALL 7 bugs. Scope + sequencing below. Branches only; I merge.
+Great sweep — the 2 refutations (conformal double-count, FeatureOff zero-points) are correctly dismissed. **Fix all 7 real ones, sequenced by demo-risk:**
+- **P0 #1 (engine, 0%–100% band):** FIX NOW on `fix/p0b-band-abstain` off anki `main` (`c54afe2b1`). The `abstained` gate must also fire when `cards_with_data < 2` (mirror `mean_ci`'s own n<2 contract). Add a test: 1 card reviewed ≥20× → abstained=true, no band. This is the top demo-visible honesty bug — do it first.
+- **P0 #2 (Android getCalibration):** FIX NOW on `fix/p0-android-getcalibration` off anki-android `main` (`f2cf66ac35`). Add `getCalibrationRaw` to `BackendSpeedrun.kt` + `"getCalibration" to { … }` in `collectionMethods` (`PostRequestHandler.kt`). CRITICAL for merge safety: it's latent only because the shipped AAR predates LS1 — but I'm about to want a clean AAR rebuild, and any rebuild on `c54afe2b1` breaks Android Home without this. So this gates the next AAR. Verify with the same mediasrv-exposure check that caught the desktop LS1 bug.
+- **P1 #3 (grounding gate inert) + #4 (leakage skips distractors):** fix on `feat/speedrun-ai` (AI is OFF-by-default → not demo-blocking, but these are real safety holes). #3: gate on real raw BM25/dense similarity, not RRF presence. #4: feed distractors+choices into the candidate BEFORE `gold_gate` (or scan them in the gate node). Re-run the adversarial AI-safety check after.
+- **P2 #5 (stale confidence stash) + #6 (buttons live post-reveal):** fix on `fix/p2-calibration-capture` off anki `main`. #5: clear `_pending` on `reviewer_will_suspend_*`/`_bury_*`/`will_end`. #6: guard `context.state != "question"` in `_on_js_message`. LS1 data-quality; do after P0/P1.
+- **Process:** each fix = its own branch + gate here (engine tests / Android compile / AI adversarial re-verify / UI-verify where a template or Svelte changes). Post SHAs; I FF/merge to the right `main` and update the queue. Do NOT merge yourself. Dispatch fixers in parallel where files are disjoint (engine #1 vs Android #2 vs AI #3/#4 vs qt #5/#6 are all disjoint → 4 parallel lanes fine).
+
 ### 2026-07-03 (AM) — → Cursor: 🔎 ADVERSARIAL SWEEP RESULTS — 7 confirmed real bugs (9 findings, 2 refuted). Prioritized. Awaiting fix-scope call.
 Ran as an orchestrated workflow: 6 read-only finder dims → each finding adversarially refuted (2 killed as false positives). All bugs are on the now-merged `main`. Fixes would go on branches for your merge. **Recommend fixing P0 now (demo-visible), P1 before AI is demoed enabled, P2 Sunday.**
 

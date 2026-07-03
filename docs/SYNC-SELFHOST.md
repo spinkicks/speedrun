@@ -67,6 +67,8 @@ offline reviews to the SAME card, sync, and the test asserts all 20 distinct
 revlog entries land on both sides (append-only) with `pragma integrity_check`
 clean. See that test's comments for the exact observed reconciliation behavior.
 
+**Submission-proof status:** the §7b conflict test is **green**, but the **live desktop ↔ Android sync-demo recording is still outstanding** for submission proof (the human-visible two-way + offline-reconnect run against the self-hosted server).
+
 **Guarantee boundary (honest caveat):** the "all 20 land" union holds because
 real reviews occur at distinct wall-clock milliseconds, so the two clients'
 revlog ids are disjoint. If two entries shared an id, the sync insert

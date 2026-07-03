@@ -2,19 +2,19 @@
 
 Everything we deliberately deferred, so nothing gets lost. Grouped by when it naturally lands. `docs/PROGRESS.md` tracks what's *done*; this tracks what's *next*. Not a commitment to do all of it — a menu. **Updated 2026-07-01 after the 7-agent audit** (audit-sourced items marked `[audit]`).
 
-## Friday workstream (next up, per cadence — full brief: `docs/plans/2026-07-03-friday-brief.md`)
-- **Due-card queue interleave** (the remaining half of the headline feature): weakness × topic-weight × interleave ordering at review time in `rslib/src/scheduler/queue/builder/` (PRD §4.65-66). The new-card `ReorderNewByPointsAtStake` reposition (done) covers new-card ordering; this covers the review queue.
-- **Performance & Readiness scores:** Performance = P(correct on novel problem) — needs the `Speedrun::Problem` note type + curated problem bank first; **memory→performance gap meter** (§7d paraphrase test); Readiness = flat IRT → scaled 200–990 + conformal range + give-up rule. **Three scores on the phone.** Proto additions are append-only on the frozen proto: percentile, scale semantics (0-1 vs 200-990), `gap_delta`, `abstain_reason`/`unlock_requirements`.
-- **External AI/RAG service (FastAPI + LangGraph, off by default):** generate → SymPy/CAS verify → RAG source-ground (hybrid BM25+dense) → gold-set gate (§7f); mal-rule distractors. Lives in the umbrella repo, NEVER in rslib/rsdroid. App still scores with AI off.
-- **Live sync demo:** desktop ↔ Android two-way against the self-hosted server + offline-reconnect run (§7b test already green; this is the human-visible proof).
+## Friday workstream (SHIPPED + merged to main 2026-07-03 — full brief: `docs/plans/2026-07-03-friday-brief.md`)
+- **✅ DONE — Due-card queue interleave** (the remaining half of the headline feature): weakness × topic-weight × interleave ordering at review time in `rslib/src/scheduler/queue/builder/` (PRD §4.65-66), ablation-gated. The new-card `ReorderNewByPointsAtStake` reposition (done) covers new-card ordering; this now covers the review queue too.
+- **✅ DONE — Performance & Readiness scores (three scores on both platforms):** Performance = P(correct on novel problem) + **memory→performance gap meter** (§7d) + abstain; Readiness = flat IRT → scaled 200–990 + conformal range + give-up rule. ✅ The `Speedrun::Problem` note type + curated problem bank (**64 items, double-SymPy-verified**) shipped too. Computed **in-engine, deterministically, recompute-on-read** (no synced score blob). Proto additions stayed append-only on the frozen proto.
+- **✅ DONE — External AI/RAG service (FastAPI, off by default):** generate → SymPy/CAS verify → RAG source-ground (hybrid BM25+dense, 82-passage) → gold-set gate (§7f); mal-rule distractors. Consolidated to umbrella `main` as `services/speedrun-ai/`, NEVER in rslib/rsdroid; requires `SPEEDRUN_AI_ENABLED=1` + `OPENAI_API_KEY`. App still scores fully with AI off.
+- **Live sync demo** *(code path proven; recording still OPEN)*: desktop ↔ Android two-way against the self-hosted server + offline-reconnect run. §7b test already green; the **human-visible recording remains outstanding** (see `docs/SYNC-SELFHOST.md`).
 
 ## Sunday workstream (prove it + ship)
-- Memory **calibration** (reliability chart + Brier/log loss on held-out) (§9.1).
-- Performance accuracy on held-out exam questions (§9.2); score-mapping writeup + range (§9.3). Create `eval/holdout/` (does not exist yet) + one-command eval entrypoint; leakage scan BEFORE any AI-generated content lands.
-- **3-build ablation harness** (full / feature-off / plain), equal study time, pre-registered metric (§8) — map builds to the engine's `AblationMode` enum (already shipped).
-- **Leakage check** script (§7e); **crash ×20** + offline tests (§7g); **`make bench`** p50/p95/worst on a 50k-card deck (§7h, §10).
-- Packaged desktop installer + **signed APK**; both apps score with AI off.
-- Results report + memory/performance/readiness one-pagers + demo video + BrainLift final pass.
+- **[OPEN] RUN** Memory **calibration** eval (reliability chart + Brier/log loss on held-out) (§9.1). *(LS1 calibration capture + Brier/ECE machinery shipped; the held-out RUN is what remains.)*
+- **[OPEN] RUN** Performance accuracy on held-out exam questions (§9.2); **[OPEN]** score-mapping writeup + range (§9.3). ✅ `eval/holdout/` now EXISTS (`gre_math_gold.jsonl`, 50 triple-verified — agents must not read) + one-command eval entrypoint; leakage scan BEFORE any AI-generated content lands.
+- **✅ DONE — 3-build ablation harness** (full / feature-off / plain), equal study time, pre-registered metric (§8) — `AblationMode` enum + harness shipped; results in `docs/ablation-s8-results.md` (M1/M2 pre-registered; M3 kept exploratory, not retro-promoted).
+- **Leakage check** script (§7e); **[OPEN] crash ×20** + **[OPEN] offline** tests (§7g); **[OPEN] `make bench`** p50/p95/worst on a 50k-card deck (§7h, §10).
+- Packaged desktop installer (done) + **[OPEN] signed APK**; both apps score with AI off.
+- Results report + memory/performance/readiness one-pagers + demo video + **[OPEN] BrainLift final pass**.
 
 ## Engineering-quality backlog `[audit 2026-07-01]` (non-critical findings; criticals went straight to Claude's branch)
 **Engine:**

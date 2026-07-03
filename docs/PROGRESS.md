@@ -1,6 +1,8 @@
 # Speedrun — Progress Tracker (done / left), mapped to the spec
 
-Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-01 (Wed afternoon)** — after the wed-plus merge to `main` on all 3 forks AND the 7-agent full audit (findings below).
+Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-03 (Fri AM)** — after the full Friday-scope + LS1/2/3 + §8 ablation + AI-service batch-merge to `main` on all repos. Per-repo `main`: anki `c54afe2b1` · Anki-Android-Backend `14c2992` · anki-android `f2cf66ac35` · umbrella latest.
+
+> **2026-07-03 headline:** the entire build scope is shipped + merged. What's left is human demo/eval (emulator gate, sync-demo recording, demo video), the Sunday eval RUNS + robustness + signed APK + BrainLift pass, and 7 fixes from the 2026-07-03 adversarial sweep (2 P0 demo-visible, 2 P1 AI-safety, 2 P2 calibration — in progress on branches, see `.claude/cursor-review.md`).
 
 ## ✅ Done — foundation (walking skeleton, Mon–Tue)
 - ✅ Anki forked & building from source; `just run` / `just check` green (known complexipy tool crash only).
@@ -38,8 +40,14 @@ Plan `docs/plans/2026-07-01-mobile-first-and-startrun-plan.md`. Triggered by Dav
 - ⬜ **David — remaining recordings** (`docs/PROOF-INDEX.md`): test results, phone review screen-recording, MVP demo video (`docs/DEMO-VIDEO-SCRIPT.md`) → submit.
 - ⏭️ Post-Friday backlog: R1b Android reviewer theme, full reviewer chrome, i18n/FTL + MathJax labels (see FUTURE-PLANS `[audit]`).
 
-## Friday (highest-weight day) — plan READY for Cursor review (Thursday)
-`docs/plans/2026-07-03-friday-ai-scores-sync.md` — grounded (6-agent sweep). Due-card interleave (read-time), Problem layer + curated bank + mini-mocks, honest Performance/Readiness (flat IRT→200–990 + conformal + give-up, in-engine deterministic), OFF-by-default AI service (SymPy verify + RAG + gold gate), three scores both platforms, live sync demo. **Do not execute until Cursor approves.**
+## ✅ Friday (highest-weight day) — EXECUTED + MERGED (2026-07-02→03)
+`docs/plans/2026-07-03-friday-ai-scores-sync.md` — executed subagent-driven with per-phase gate review. All merged to `main`:
+- ✅ **Due-card queue-builder interleave** (weakness × ETS weight × topic interleave at review time, read-time, ablation-gated) — the remaining headline engine piece, done.
+- ✅ **Problem layer:** `Speedrun::Problem` MCQ note type (`PROBLEM_MODEL_ID=2047815909`) + 64-problem bank (double-SymPy-verified) + timed mini-mock (filtered deck, `reschedule=true`).
+- ✅ **Honest Performance** (P(correct) + mean-CI band + memory→performance gap Δ + abstention) and **Readiness** (flat IRT → scaled 200–990 + conformal range + give-up rule, in-engine deterministic).
+- ✅ **OFF-by-default AI service** (`services/speedrun-ai/`): SymPy verify + hybrid RAG (82-passage corpus) + gold-set gate; kill-switched.
+- ✅ **Three scores on the shared Svelte surface**, both platforms; Manrope/#F4F7FA re-skin folded in.
+- ⬜ **Live sync demo** — §7b test green; the human-visible desktop↔Android recording remains.
 
 ## Prior 7-agent audit (2026-07-01) — RESOLVED
 The audit that caught the above (UI shipped "code-complete" but never rendered on desktop: RPCs 403/404 + no profile bootstrap) is now fully addressed on `main`. Non-critical audit items remain itemized in `FUTURE-PLANS.md` under `[audit]`. Original finding text kept below for the record:
@@ -50,34 +58,36 @@ The audit that caught the above (UI shipped "code-complete" but never rendered o
   - **MEDIUM (backlogged in FUTURE-PLANS):** no i18n/FTL on speedrun pages; MathJax labels not implemented (spec item); RangeBand uses non-existent CSS tokens (`--accent`/`--frame-bg`) so band won't theme; empty-state conflates missing-profile vs no-cards; test gaps (FeatureOff mode, exact-position undo assert, child decks, Python modes 1/2); constants duplicated (0.9 / 20 / "gre_math"); no instrumentation test for the Android screen/bridge.
 - ⬜ **David:** desktop + Android emulator smoke tests — **hold until Claude lands the critical fixes**, then record.
 
-## Friday — AI + 3 scores + sync demo (full brief: `docs/plans/2026-07-03-friday-brief.md`)
-- ⚠️ **Interleaving headline:** new-card points-at-stake reorder ✅ DONE; the **due-card queue-builder interleave** (weakness × weight × interleave at review time, PRD §4.65-66) is the remaining Friday engine piece.
-- ⚠️ **Sync:** server + §7b test ✅ DONE; remaining = live desktop↔phone two-way demo + offline-reconnect run.
-- ❌ **Performance model** P(correct on novel problem) + **memory→performance gap meter** (§7d) — needs the `Speedrun::Problem` note type + problem bank first.
-- ❌ **Readiness** flat IRT → scaled 200–990 + conformal range + give-up rule (scaffolding RPC exists; needs append-only proto additions: percentile, scale semantics, gap delta, unlock requirements).
-- ❌ **External AI/RAG service** (FastAPI + LangGraph, off by default): generate → SymPy/CAS verify → RAG source-ground → gold-set gate (§7f).
-- ⚠️ **Three scores on phone** (Memory live; Perf/Read columns scaffolded, abstaining).
-- ❌ App still scores with **AI off** (needs curated Problem bank).
+## ✅ Learning-science additions (2026-07-02) — MERGED
+- ✅ **LS1 calibration** — pre-answer confidence self-bet (Sure/Think/Guess) → Brier/ECE, config-blob store (`speedrun:calibration_log`), desktop capture via webview hook, abstains <20 attempts, self-rated framing; `GetCalibration` RPC + 5th "Calibration" StatRow (both platforms). Android capture deferred (native Kotlin) — read-only stat still shows.
+- ✅ **LS2 worked-examples-first + faded reveal** — progressive step reveal (LaTeX-safe, ground-truthed 0/134 split points inside math spans) + `ExampleFirst` field.
+- ✅ **LS3 honesty-guardrail copy** — diminishing-returns / survivorship-bias / desirable-difficulty / abstention framing / self-reported caveat, all gated to render only on real data.
 
-## Sunday — prove it & ship
-- ❌ Memory **calibration** (reliability chart + Brier/log loss on held-out) (§9.1).
-- ❌ Performance accuracy on held-out exam questions (§9.2); score mapping + range writeup (§9.3).
-- ❌ **3-build ablation harness** (full / feature-off / plain), equal study time, pre-registered metric (§8) — engine `AblationMode` exists; the harness/builds do not.
-- ❌ **Leakage check** script (§7e — `eval/holdout/` does not exist yet); **crash ×20** + offline tests (§7g); **`make bench`** p50/p95/worst on 50k deck (§7h, §10).
-- ❌ Packaged **installers** (desktop) + **signed APK** (+ arm64-v8a for physical devices); both apps score with AI off.
-- ❌ Results report + model one-pagers + demo video (3–5 min) + BrainLift final pass.
+## ✅ §8 ablation harness (2026-07-02) — MERGED
+- ✅ One build, three modes (`AblationMode` Full/FeatureOff/Plain); pre-registered metrics: M1 same-topic adjacency (Full **0.00** vs 0.79 baselines — decisive), M2 pre-registered secondary was mis-specified and reported honestly (not hidden), M3 exploratory. Results: `docs/ablation-s8-results.md`. (This was on the Sunday list; done early.)
+
+## Sunday — prove it & ship (partly done early)
+- ✅ **Gold set + leakage clearance** — `eval/holdout/gre_math_gold.jsonl` (50, triple-verified, leakage-cleared); `eval/holdout/` created (implementer agents must NOT read it).
+- ✅ **3-build ablation harness** (§8) — done (above).
+- ✅ **Desktop installer** — release MSI, offline, 27/27.
+- ⬜ Memory **calibration RUN** (reliability chart + Brier/log loss on held-out) (§9.1) — LS1 math shipped; the held-out evaluation run remains.
+- ⬜ **Performance accuracy** on held-out exam questions (§9.2); score-mapping + range writeup (§9.3).
+- ⬜ **crash ×20** + offline tests (§7g); **`make bench`** p50/p95/worst on 50k deck (§7h, §10).
+- ⬜ **Signed APK** (+ arm64-v8a for physical devices); both apps score with AI off (✅ already true).
+- ⬜ Results report + model one-pagers + demo video (3–5 min) + BrainLift final pass.
+- ⬜ **7 sweep bug fixes** (2026-07-03) — 2 P0 (single-card band; Android getCalibration) demo-visible; 2 P1 AI-safety; 2 P2 calibration. In progress on branches (`.claude/cursor-review.md`).
 
 ---
 
-## Rubric weight coverage (updated 2026-07-01 post-audit)
+## Rubric weight coverage (updated 2026-07-03 post-Friday-merge)
 | Area | Weight | Status |
 |---|---|---|
-| Rust change & fit with Anki | 20% | ✅ read-only RPCs + a real **mutating** reorder via `transact` w/ tests; strengthen Fri with due-queue interleave; §7a artifacts refreshed |
-| Score accuracy & honest uncertainty | 20% | ⚠️ Memory score LIVE (Wilson + abstain, engine-verified); Performance/Readiness scaffolding only (always-abstain — honest) |
-| Study feature on learning science | 15% | ⚠️ points-at-stake new-card reorder + ablation modes built; due-card interleave + 3-build harness remain |
-| AI checking & safety | 15% | ❌ Friday (service, CAS verify, RAG, gold gate) |
-| Fair re-runnable tests | 12% | ❌ eval/holdout, ablation harness, leakage, bench all pending (Sunday) |
-| Two apps one engine + sync | 10% | ⚠️ one engine ✅ both apps; §7b conflict test ✅; live two-way phone demo pending |
-| Useful product & clean UX | 8% | ⚠️ Memory dashboard shipped (desktop data-path fix in flight); Speedrun Home "The Run" landing today |
+| Rust change & fit with Anki | 20% | ✅ read-only RPCs + a real **mutating** reorder via `transact` + due-card weakness×topic interleave; 66+ speedrun tests; §7a artifacts |
+| Score accuracy & honest uncertainty | 20% | ✅ all three scores LIVE + honest (Memory Wilson+abstain; Performance P(correct)+gap Δ+abstain; Readiness IRT→200–990+conformal+give-up). ⬜ held-out calibration/accuracy RUNS remain (Sunday). 1 P0 band-edge bug fix in progress. |
+| Study feature on learning science | 15% | ✅ points-at-stake reorder + due-card interleave + LS1 calibration + LS2 worked-examples-faded + LS3 honesty copy; §8 ablation harness done |
+| AI checking & safety | 15% | ✅ service shipped (OFF by default): SymPy verify + hybrid RAG + gold-set gate; adversarially reviewed. 2 P1 gate hardening fixes in progress (AI is off → not demo-blocking) |
+| Fair re-runnable tests | 12% | ✅ ablation harness + gold set + leakage clearance done. ⬜ crash×20 / offline / `make bench` runs remain (Sunday) |
+| Two apps one engine + sync | 10% | ✅ one engine, both apps (Phase 6 AAR + APK); §7b conflict test ✅. ⬜ live two-way phone demo recording pending |
+| Useful product & clean UX | 8% | ✅ Speedrun Home + Memory + 3 scores + mini-mock on both platforms; Manrope/#F4F7FA identity; desktop data path fixed |
 
-**Hard limits watch:** real Rust change ✅ (read + mutating). Phone shares engine ✅; sync test ✅ (live demo pending — needed to fully lift the 70% cap). Clean-device: installer now network-independent ✅ (actual clean-machine run still to record). No fake numbers ✅ (everything abstains until it can't be wrong).
+**Hard limits watch:** real Rust change ✅ (read + mutating + interleave). Phone shares engine ✅; sync test ✅ (live demo recording pending — needed to fully lift the 70% cap). Clean-device: network-independent installer ✅ + clean-machine run recorded ✅. No fake numbers ✅ (everything abstains until it can't be wrong) — 1 P0 single-card band edge case being fixed to keep this true in a corner case.
