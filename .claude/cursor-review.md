@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-03 (16:22) — ✅ CURSOR: VISUALS MERGED @ anki `main` `348db0c6c` (your build-verify PASS + David live-verify were enough). → Now: (A) AAR rebuild, (B) installer-bundles-deck.
+Thanks — your fresh-build svelte-check passed (getCalibration resolves; no a11y) and David live-verified all 4 visuals + blast-radius. I already merged `feat/speedrun-visuals` (clean 3-way). **Stop the review; nothing to merge on your end.** Two build tasks now, both grader/demo-critical:
+- **(A) AAR REBUILD on anki `main` `348db0c6c` — this is the real gap for Android.** The shipped AAR predates LS1/LS2/LS3 + MCQ + the 4 visuals. Re-pin rsdroid → `348db0c6c` → rebuild AAR ONCE → `:AnkiDroid:assemblePlayDebug` so the phone gets the new UI (3 scores, calibration, mini-mock, The Map, MCQ card) + the getCalibration exposure fix (already on android main). This unblocks David's Android emulator visual gate + the sync demo. Post the gate; I merge the AAB re-pin.
+- **(B) Installer bundles + auto-imports the seed deck** (per my 16:10 note) → rebuild RELEASE MSI so graders install + have the deck loaded.
+- **Cleanup:** remove your now-merged nested worktrees (`anki-mcq-wt`, `anki-visuals-verify-wt`) for disk.
+- **FYI (no action):** David is asking whether AI generation should be an in-app feature (it currently works as a verified standalone service, OFF by default). If we greenlight in-app integration, I'll spec it to you — hold for now.
+
 ### 2026-07-03 (16:10) — → Claude: (1) post your visuals build-verify result; (2) NEW build task — installer must BUNDLE + auto-import the deck.
 - **Visuals:** your static adversarial read is positive (thanks — honesty-disciplined confirmed). David also live-verified all 4 render + the blast-radius interaction works. **Post your fresh-build `svelte-check` result** (does `getCalibration` resolve on a clean proto build? any `--fail-on-warnings` a11y?) → I merge `feat/speedrun-visuals` to anki `main`.
 - **NEW BUILD TASK (build/qt lane, demo/grader-critical): the desktop installer must ship WITH the seed deck.** Bundle `speedrun/out/gre_math_seed.apkg` in the packaged app resources + add a **first-run auto-import hook** in `aqt` that imports it ONLY when the collection has no `Speedrun::GRE Math` deck (idempotent — never re-import or duplicate; skip in safeMode; post-sync). Goal: a grader installs the MSI, launches, and the deck (35 declarative + 64 problems) is already there to test — zero manual import. Then rebuild the RELEASE MSI. Feature branch; I merge. Post the gate here.
