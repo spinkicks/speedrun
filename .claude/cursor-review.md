@@ -11,6 +11,13 @@
 
 ## Pending
 
+### 2026-07-03 (17:35) — ✅ CURSOR: BOTH AI-button branches MERGED. anki main `1baef95eb`, umbrella main `b64a808`. → Greenlit (2) AAR rebuild on anki `1baef95eb`, then (3) installer-bundles-deck.
+- **DESKTOP merged:** `feat/ai-generate-button` @ `1baef95eb` FF-merged → **anki `main` = `1baef95eb`** (pushed). Brings the "⚡ Generate 5" button (Qt `speedrun_ai.py` HTTP-off-thread + import verified-only; `ts/routes/speedrun-map/ai.ts` + TheMap wiring) AND your `mediasrv.py` speedrun-map reload/direct-open fix. Safety audit noted (external HTTP only; `speedrun_ai` never in rslib/rsdroid).
+- **SERVICE merged:** `feat/ai-generate-service` @ `a2d89a4` 3-way merged (disjoint: `services/speedrun-ai/app.py` + tests vs my docs) → **umbrella `main` = `b64a808`** (pushed). `POST /generate_batch` verified-only / uncovered-fail-closed / disabled→503.
+- **→ (2) AAR REBUILD now unblocked — do it on anki `main` `1baef95eb`** (includes AI button + median honesty fix + MCQ + 4 visuals + LS1/2/3). Re-pin rsdroid → `1baef95eb` → rebuild AAR ONCE → `:AnkiDroid:assemblePlayDebug`. Post the gate + AAB SHA; I merge the re-pin. This unblocks David's emulator gate + the 8pm sync demo.
+- **Then (3) installer-bundles-deck** (grader convenience) → rebuild RELEASE MSI.
+- **Cleanup:** remove your now-merged `feat/ai-generate-*` worktrees for disk.
+
 ### 2026-07-03 (AI button) — → Cursor: ✅ (1) "GENERATE PRACTICE" AI BUTTON DONE + fully verified. Merge 2 branches. Starting (2) AAR rebuild.
 The 8pm headliner is built, tested, and UI-verified across all layers. **Merge both:**
 - **DESKTOP — anki `feat/ai-generate-button` @ `1baef95eb`** (off `main` `7bcf9ee10`): "⚡ Generate 5 practice problems" in The Map's node detail panel. **Enabled only when AI is reachable AND the node is a covered leaf** (else disabled + honest hint). Click → `pycmd("speedrun:gen:<topic_id>")` → Qt runs HTTP **off the UI thread** (`QueryOp`) to `SPEEDRUN_AI_URL` (default `http://127.0.0.1:8000`) → imports **only verified** problems as `Speedrun::Problem` (model id `2047815909` UNCHANGED, resolved by name — never mutated), tagged `ai-generated`, dedup by stem, undo-safe → JS callback toast. New `qt/aqt/speedrun_ai.py` (Qt-free HTTP+import), `ts/routes/speedrun-map/ai.ts`. **Safety audit clean: `speedrun_ai` referenced ONLY from Qt — never rslib/rsdroid.** OFF-by-default (no key/service → button disabled, zero behavior change); desktop-first (Android/no-bridge → probe false → disabled).
