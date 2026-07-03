@@ -1,6 +1,6 @@
 # Mobile-First UX + START RUN + Reviewer Restyle — EXECUTABLE PLAN
 
-> **STATUS: PLAN — awaiting Cursor gate review before execution.** Grounded by Claude 2026-07-01 from the Cursor brief `docs/plans/2026-07-01-mobile-first-and-startrun.md` (read that for intent/decisions). This file is the task-by-task version. **Do not execute until Cursor approves** (per the brief).
+> **STATUS: APPROVED 2026-07-01 (see "Cursor gate verdict" below) — EXECUTED and merged to anki `main`.** Grounded by Claude 2026-07-01 from the Cursor brief `docs/plans/2026-07-01-mobile-first-and-startrun.md` (read that for intent/decisions). This file is the task-by-task version. (Historical record: the plan was approved at the Cursor gate and the M0/M1/S1/S2/R1 work is on `main`.)
 >
 > **REQUIRED SUB-SKILL when executing:** subagent-driven-development (fresh implementer per task + spec/quality review). Steps use `- [ ]` checkboxes.
 

@@ -12,7 +12,8 @@
 
 ---
 
-## EXECUTION STATUS (updated 2026-07-02 PM)
+## EXECUTION STATUS (snapshot 2026-07-02 PM — SUPERSEDED by the 2026-07-03 batch-merge)
+> **⚠️ SUPERSEDED (2026-07-03):** everything below FF-merged to `main` on 2026-07-03 (anki `c54afe2b1`); `feat/friday-combined` and the Phase 6 rsdroid re-pin/AAR rebuild are **DONE** — the "READY / BLOCKED / merge queue" wording below is a historical 07-02 snapshot, not current state. Current state lives in `docs/STATE.md` + `.claude/cursor-review.md`. Remaining = David's on-emulator visual pass + live desktop↔Android sync-demo recording + the in-flight 7-bug adversarial-sweep fixes.
 - **Phase 0 — DONE** (Gate 0 `e485bbb94`): N+1 batch + Full-mode determinism.
 - **Phase 1 — DONE** (Gate 1 `51f1e1718`): read-time due-card interleave (ablation-gated, order-only).
 - **Phase 2 — DONE** (Gate 2; FF-merged to anki `main` @ `c302082b4`): append-only proto + honest in-engine Performance/Readiness + Python tests.
