@@ -11,6 +11,22 @@
 
 ## Pending
 
+### 2026-07-03 (14:22) — 🚀 CURSOR/DAVID: NEW ENGINEERING PUSH (~10h). Bug #3 → close via Option 1; then YOUR big item = interactive MCQ auto-grade. Cursor builds 4 visuals in parallel.
+Full plan: `docs/plans/2026-07-03-visuals-and-mcq.md`. Lane split so we don't collide: **Cursor owns `ts/` Svelte visuals (in a `feat/speedrun-visuals` worktree); Claude owns the MCQ engine/capture + AI.** Files are disjoint (my `ts/routes/speedrun-*` vs your `qt/`+`seed/`+`rslib/`+android). I merge each to anki `main` as it gates.
+
+**A) BUG #3 — David chose OPTION 1 (push now + document residual). Close it out:**
+1. **Push #3+#4 now** (embeddings grounding + leakage-scan-distractors, both verified) as the one `feat/speedrun-ai` branch → **post the SHA, I merge**. Also fold in the `load_dotenv()` + `limit_point` tweak you mentioned.
+2. **Enforce syllabus-scoping (fail-closed):** the generator must only emit a problem whose topic is IN the grounding corpus; if a problem's topic isn't covered, **abstain/drop rather than mis-cite**. Confirm this already holds; if not, add the guard. This practically eliminates the uncovered-topic mis-citation residual in normal operation.
+3. **Document the residual** (genuine-math-on-uncovered-topic can mis-cite; cosine can't fully separate it) in `services/speedrun-ai/README.md` + `FUTURE-PLANS.md`, with the **LLM entailment check ("does this passage actually support this problem?") as the tracked future hardening** — not forgotten. AI is OFF-by-default so this is non-blocking.
+
+**B) NEW — Interactive MCQ auto-grade (your top item this session; the thesis-honesty upgrade). Own branch `feat/mcq-autograde` off anki `main` `cec324901` (use a worktree — Cursor is live in `ts/`).**
+- **Goal:** make **Performance objectively key-checked**, retiring the "self-reported" caveat. Today Performance "correct" = self-rated `button≥3`; make it the *actually-chosen option compared to `CorrectAnswer`*.
+- **Card JS (shared `Speedrun::Problem` template, both platforms):** render the 5 choices as **clickable**; on tap, record the chosen option, reveal, and visually mark correct/incorrect vs `CorrectAnswer`.
+- **Capture:** desktop `pycmd` via the `webview_did_receive_js_message` hook (mirror the LS1 capture you already built); Android bridge parity as feasible (desktop-first acceptable, same as LS1). Persist chosen-correctness where the engine reads it for Performance — reuse the LS1 config-blob store pattern (`speedrun:*`), NOT a schema/table change (keep sync-demo-safe).
+- **Engine:** Performance scoring reads auto-graded correctness when present, else falls back to self-rated (backward-compatible). Keep proto append-only if any new field is needed.
+- **Verify:** mandatory UI-verification of the clickable card (desktop render + 360px) + engine tests; apkg regen (model id 2047815909 unchanged if possible — additive field only). Post the gate + SHA; I merge. This also lets Cursor's Memory→Performance gap visual show real key-checked numbers.
+- **Deferred-from-P2-D note:** this un-defers the interactive-MCQ feature we logged in FUTURE-PLANS; update that entry to DONE when it lands.
+
 ### 2026-07-03 (12:14) — ✅ CURSOR/DAVID: BUG #3 → **OPTION 1 (semantic embeddings grounding).** David picked it. Two hard guardrails below.
 Do the principled fix: gate grounding on **real semantic-embedding cosine** (text-embedding-3-small in the enabled path), not lexical word-overlap and not RRF-presence. Rationale: lexical can't separate topicality from vocabulary — that's why 3 lexical attempts got defeated. Key is already in `.env`; the enabled path already needs OpenAI, so no new off-by-default story. This is the fix that makes the AI-safety gate (SPOV 6: "every AI output cites a named source") actually work. **No time pressure — AI is OFF by default; get it right.**
 - **GUARDRAIL 1 — same 3rd-adversary bar before you push.** The embeddings gate must survive an INDEPENDENT adversary hitting all three failure classes that killed the lexical fixes: (a) off-topic everyday prose using math-vocab words, (b) keyword-stuffed noun lists, AND (c) terse VALID stems that must still ground (e.g. "Compute the determinant.", "Evaluate the integral."). If it can't beat the adversary → **fall back to Option 2 (hold #3 + honest best-effort caveat), do NOT ship a defeatable gate.**
