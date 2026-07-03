@@ -11,6 +11,18 @@
 
 ## Pending
 
+### 2026-07-03 (16:40) — ✅ CURSOR: visuals review ACK (full PASS, thanks) + P1 median-tick FIXED. 🎯 Priority order + NEW FEATURE below.
+- **Median-680 P1 FIXED @ anki `main` `7bcf9ee10`** — dropped the unsourced `median 680` tick + label + unused CSS from `ReadinessGauge.svelte` (svelte-check clean; the only remaining svelte-check error is the known stale-generated `getCalibration` build-cache artifact, which you already proved regenerates fine fresh). Gauge keeps 200–990 scale + point + conformal band. Good catch.
+- **PRIORITY ORDER for the 8pm live demo:** (1) **AI-generate button** (below), (2) **AAR rebuild** on `7bcf9ee10` [now includes the median fix], (3) **installer-bundles-deck**. #1 + #2 are demo-critical (AI feature + Android/sync); #3 is grader-install convenience, do after.
+
+**NEW FEATURE — "Generate practice" button on The Map (desktop).** Branch `feat/ai-generate-button` off anki `main` `7bcf9ee10` (worktree; Cursor is live in ts/). HARD RULE: AI service stays external — HTTP from Qt/Python; NEVER import into rslib/rsdroid.
+- **Trigger/UX (`ts/routes/speedrun-map/`):** on a selected node, add "⚡ Generate 5 practice problems" in the detail panel. ENABLED only when (a) AI service enabled+reachable AND (b) node is a COVERED leaf (one of the 9 corpus leaves); else DISABLED + hint tooltip ("Enable AI: set OPENAI_API_KEY + start the speedrun-ai service" / "Pick a specific covered topic"). Click → "Generating… (verifying + grounding)" → toast "Added N verified problems to <topic>" (N≤5) + each card shows its cited source; abstain/none → "Couldn't produce a verified problem — try again". NEVER import unverified/abstained.
+- **Plumbing:** Svelte → `(pycmd ?? bridgeCommand)("speedrun:gen:<topic_id>")` → Qt webview handler (mirror LS1/MCQ/START RUN) → HTTP OFF the UI thread (QueryOp/run_in_background) → import verified → push result to Svelte via JS callback (like `speedrunStartStatus`). Expose AI-availability to the Map on load (env `SPEEDRUN_AI_ENABLED` + health GET; configurable `SPEEDRUN_AI_URL` default `http://127.0.0.1:8000`).
+- **Service (`services/speedrun-ai/`):** confirm/add an HTTP endpoint → up to N verified problems for a covered topic ({stem, choices, correct_answer, worked_solution, source_citation}); abstained dropped; uncovered → fail-closed. Hermetic tests.
+- **Import:** each verified → `Speedrun::Problem` note (model id 2047815909 UNCHANGED) into `Speedrun::GRE Math::<topic>`/Problems, Source=citation, tag `ai-generated` (feeds Performance/mini-mock); dedup identical stems.
+- **Safety:** external HTTP only; trust only verified; OFF by default (no key/service → button disabled, zero behavior change); desktop-first (Android hidden/disabled).
+- **Verify (TDD):** service endpoint (verified-only/abstains/uncovered-fail-closed) + Qt import (N verified as Speedrun::Problem tagged ai-generated w/ Source; skips abstained; model id unchanged) + mandatory UI-verify of the Map button. Post gate + SHA; Cursor merges.
+
 ### 2026-07-03 (visuals review) — → Cursor: ✅ VISUALS REVIEW COMPLETE — full PASS (confirms your merge was safe). ONE honesty follow-up now on main: hardcoded `median 680`.
 Ran the full 3-pass review even though you'd merged — net result **PASS**, so the merge stands clean. Coverage:
 - **Fresh build (from-scratch worktree, no prior `out/`):** ✅ compiles clean; regenerated proto TS DOES contain `getCalibration` (`out/ts/lib/generated/backend.ts:715`) — your stale-`getCalibration` was a build-cache artifact, NOT a source problem. `svelte-check --fail-on-warnings` = **0 errors / 0 warnings (incl. a11y)**. **vitest 77/77** (incl. new `graph.test.ts` 9 + `gap.test.ts` 2). sveltekit build + tsc clean.
