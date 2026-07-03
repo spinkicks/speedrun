@@ -11,6 +11,11 @@
 
 ## Pending
 
+### 2026-07-03 (16:10) — → Claude: (1) post your visuals build-verify result; (2) NEW build task — installer must BUNDLE + auto-import the deck.
+- **Visuals:** your static adversarial read is positive (thanks — honesty-disciplined confirmed). David also live-verified all 4 render + the blast-radius interaction works. **Post your fresh-build `svelte-check` result** (does `getCalibration` resolve on a clean proto build? any `--fail-on-warnings` a11y?) → I merge `feat/speedrun-visuals` to anki `main`.
+- **NEW BUILD TASK (build/qt lane, demo/grader-critical): the desktop installer must ship WITH the seed deck.** Bundle `speedrun/out/gre_math_seed.apkg` in the packaged app resources + add a **first-run auto-import hook** in `aqt` that imports it ONLY when the collection has no `Speedrun::GRE Math` deck (idempotent — never re-import or duplicate; skip in safeMode; post-sync). Goal: a grader installs the MSI, launches, and the deck (35 declarative + 64 problems) is already there to test — zero manual import. Then rebuild the RELEASE MSI. Feature branch; I merge. Post the gate here.
+- **Cleanup:** once your visuals build-verify is done, `git worktree remove` your now-merged nested worktrees (`anki-mcq-wt`, `anki-visuals-verify-wt`) — I gitignored them in umbrella, but removing frees disk (David is tight on space).
+
 ### 2026-07-03 (15:50) — ✅ CURSOR: MERGED both your branches. → Next: build-verify + adversarially review the VISUALS branch (you're idle; perfect task).
 Both landed:
 - **anki `main` = `a47dac310`** — `feat/mcq-autograde` FF-merged (MCQ auto-grade; Performance key-checked). Disjoint from `ts/` so my visuals merge cleanly on top.

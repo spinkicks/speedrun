@@ -94,6 +94,19 @@ The Friday depth work landed as one batch merge; all three forks + umbrella are 
 - **External AI service consolidated to umbrella `main`, OFF by default:** `services/speedrun-ai/` (FastAPI, SymPy verify + hybrid RAG 82-passage + gold-set gate) requires `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY`; both apps score fully with AI off. Lives OUTSIDE all native libs (never imported into rslib/rsdroid). Gold set `eval/holdout/gre_math_gold.jsonl` (50, triple-verified) is off-limits to agents.
 - **Still pending (human / Sunday):** emulator visual gate, live sync-demo recording, demo video, the Sunday eval RUNS, robustness (crash ×20 / offline / `make bench`), signed APK, BrainLift final pass; 7 bug fixes in progress.
 
+## Decision 16 — Interactive visuals + MCQ auto-grade + installer-bundles-deck (recorded 2026-07-03 PM)
+This batch turns several previously-textual thesis claims into live, honest UI and closes the Decision 15 "Performance is self-reported" loop. Per-repo main SHAs: anki `348db0c6c` · umbrella `e36d765`.
+- **Four interactive visuals shipped (pure-SVG, shared Svelte surface, both platforms, honest abstains):**
+  1. **The Map** (`/speedrun-map`) — an interactive prerequisite graph where tapping a weak node lights its downstream **blast radius** (every topic it caps). This **realizes BrainLift Flagship Feature #7** ("Prerequisite-DAG blast-radius diagnosis") as a real screen, using the graph for *diagnosis/sequencing* (its defensible strength), not score-gating.
+  2. **Calibration reliability diagram** (on Memory) — plots stated confidence vs. observed accuracy (the SPOV 2 calibration self-bet, made visible).
+  3. **Memory→performance gap chart** (on Memory) — the explicit recall-vs-timed-accuracy delta per topic.
+  4. **Readiness gauge** (on Home) — the 200–990 point estimate with its range.
+  All four are **pure SVG** (no chart lib), render identically on desktop `ts/` and the Android WebView, and **abstain honestly** (show "insufficient data / unlock by…" rather than a fake shape) below the data threshold.
+- **Interactive-MCQ auto-grading MERGED → Performance is now key-checked (reverses Decision 15's "DEFERRED"):** clickable choices are compared to `CorrectAnswer` and correctness is persisted, so Performance "correct" is now **objectively graded, backend-authoritative** — retiring the "self-reported/self-assessed" caveat. Stored in the **config-blob** store (same MVP mechanism as `speedrun:calibration_log`); crucially **no `.proto` field change and no note/model change** were needed, so it stayed inside the AGENTS.md sync invariants (no `scm` bump, no forced full sync during the demo).
+- **All 7 adversarial-sweep bugs fixed;** notably **bug #3 — AI grounding hardened:** the AI layer now gates on a **semantic-embedding** grounding check and the syllabus lookup is **fail-closed** (unknown/ungrounded → refuse, not guess). Consistent with Decision 7/11 (source-grounded, gold-set-gated) and keeps the AI honest when it can't verify.
+- **Installer will bundle + auto-import the seed deck (in progress):** the win/mac installer (Briefcase, vendored templates per Decision 14) will **ship the seed deck and auto-import it on first launch** so a grader gets a populated, ready-to-run app with zero manual import. Convenience/grading affordance only; the deck remains ordinary imported notes (no engine change).
+- **External AI service unchanged / still OFF by default:** `services/speedrun-ai/` continues to require `SPEEDRUN_AI_ENABLED=1` + `OPENAI_API_KEY`; both apps score fully with AI off (Decision 15).
+
 ## Open questions / TODO research
 - [x] Architecture & build feasibility → `docs/ARCHITECTURE.md` (DONE; desktop low-risk, Android medium, iOS deferred).
 - [x] Innovation landscape (Math Academy, ALEKS, Khanmigo, Korbit) — DONE; white space confirmed. `research/claude-innovation landscape plus bold ideation.md`.

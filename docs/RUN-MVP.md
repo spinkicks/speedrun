@@ -1,8 +1,8 @@
 # Running the Speedrun MVP
 
-Authoritative run guide, **updated 2026-07-03**: forked Anki (desktop) and AnkiDroid (Android emulator) both drive **one** Rust engine (`rslib`) exposing the `SpeedrunService` RPCs (coverage, topic-mastery, exam-profile, **performance/readiness**, **calibration**, and the mutating points-at-stake reorder), a shared Svelte **Speedrun Home** + **Memory dashboard** on both platforms, a seed exam deck **plus a 64-problem `Speedrun::Problem` MCQ bank + timed mini-mock**, desktop calibration self-bet capture, and a self-hosted sync server. **Speedrun Home is merged and auto-opens on launch** on desktop (Manrope ExtraBold / #F4F7FA branding).
+Authoritative run guide, **updated 2026-07-03**: forked Anki (desktop) and AnkiDroid (Android emulator) both drive **one** Rust engine (`rslib`) exposing the `SpeedrunService` RPCs (coverage, topic-mastery, exam-profile, **performance/readiness**, **calibration**, and the mutating points-at-stake reorder), a shared Svelte **Speedrun Home** + **Memory dashboard** on both platforms, a seed exam deck **plus a 64-problem `Speedrun::Problem` MCQ bank + timed mini-mock**, desktop calibration self-bet capture, and a self-hosted sync server. **Speedrun Home is merged and auto-opens on launch** on desktop (Manrope ExtraBold / #F4F7FA branding). Four pure-SVG **interactive visuals** — headlined by **THE MAP** (`/speedrun-map`, an interactive prerequisite graph), plus a readiness gauge and the calibration reliability / memory→performance gap charts — render on both platforms and abstain honestly like the scores.
 
-All work is merged into **`main`** on all three forks (anki `c54afe2b1` · Anki-Android-Backend `14c2992` · anki-android `f2cf66ac35`; feature branches kept as backup), so the steps below just use `main`. The **Phase 6 AAR is already rebuilt** against anki `main`, and the Android APK is compiled.
+All work is merged into **`main`** on all three forks (anki `348db0c6c` · Anki-Android-Backend `70b8eaf` · anki-android `6845e4e70a`; feature branches kept as backup), so the steps below just use `main`. The **Phase 6 AAR is already rebuilt** against anki `main`, and the Android APK is compiled.
 
 > **Human gates still pending (not blockers to running):** the on-emulator visual pass, a live desktop↔phone sync-demo recording, the demo video, Sunday evals, and a signed APK. Everything below runs today off `main` — the earlier pre-merge audit blockers (desktop webview→backend path, exam-profile bootstrap) are fixed and merged.
 
@@ -17,13 +17,19 @@ All paths are relative to the workspace root `C:\Users\davir\Ultra\Alpha\Speedru
 
 ## A. Desktop (forked Anki with our engine)
 
+### Easiest: the deck-bundled installer (no import needed)
+Install the prebuilt MSI at **`repos\anki\out\installer\dist\anki-26.05-win-x64.msi`** and launch **Speedrun**. **The installer now bundles the seed deck and auto-imports it on first launch** — the 35 declarative cards + the 64-problem `Speedrun::Problem` bank are already loaded, so **skip the File → Import step (step 1) entirely**. Speedrun Home auto-opens; go straight to step **2** below (START RUN / mini-mock / THE MAP). Rebuild the MSI only if it predates the Friday UI (see `docs/BUILD-PREREQS.md`).
+
+### From source (`just run`)
 In **PowerShell**:
 ```powershell
 cd C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki
-git checkout main          # all Speedrun work is on main (c54afe2b1)
+git checkout main          # all Speedrun work is on main (348db0c6c)
 just run                   # builds + launches the desktop app (first build is slow)
 ```
-The Anki window opens running our forked `rslib` and **auto-opens Speedrun Home** ("The Run"). Web pages serve at `http://localhost:40000/_anki/pages/`. `ANKIDEV` is auto-set (auto-backups off — safe throwaway profile). (Auto-open is config-gated by `speedrunHomeAutoOpenEnabled`, default on; *Tools → Speedrun: Home* / *Tools → Speedrun: Memory* reopen the pages.)
+The Anki window opens running our forked `rslib` and **auto-opens Speedrun Home** ("The Run"). Web pages serve at `http://localhost:40000/_anki/pages/`. `ANKIDEV` is auto-set (auto-backups off — safe throwaway profile). (Auto-open is config-gated by `speedrunHomeAutoOpenEnabled`, default on; *Tools → Speedrun: Home* / *Tools → Speedrun: Memory* reopen the pages.) Unlike the installer, this from-source path does **not** auto-import — do steps 0–1 below to build and import the seed deck.
+
+*(Steps 0–1 are only for the from-source path — the installer already auto-imported the deck.)*
 
 **0. (once) Build the seed deck with the problem bank** — the seed apkg now bundles the declarative cards **and** the 64 `Speedrun::Problem` MCQs. If `speedrun\out\gre_math_seed.apkg` is stale or missing, rebuild it (out-of-tree venv via the `uvw` wrapper — do NOT run bare `uv` here, per `speedrun/README.md`):
 ```powershell
@@ -32,15 +38,16 @@ pwsh uvw.ps1 sync
 pwsh uvw.ps1 run python seed\build_seed_deck.py   # -> out\gre_math_seed.apkg (35 cards + 64 problems)
 ```
 
-**1. Import the seed exam deck:** *File → Import…* → `repos\anki\speedrun\out\gre_math_seed.apkg`. This imports two decks: `Speedrun::GRE Math` (35 hand-authored calc+LA notes, hierarchical `calc::…` / `linear_algebra::…` tags, Source on every card) and `Speedrun::GRE Math::Problems` (the 64 scored `Speedrun::Problem` MCQs the mini-mock draws from). Review a few cards for the demo.
+**1. Import the seed exam deck** (from-source path only; installer users skip — it's pre-loaded)**:** *File → Import…* → `repos\anki\speedrun\out\gre_math_seed.apkg`. This imports two decks: `Speedrun::GRE Math` (35 hand-authored calc+LA notes, hierarchical `calc::…` / `linear_algebra::…` tags, Source on every card) and `Speedrun::GRE Math::Problems` (the 64 scored `Speedrun::Problem` MCQs the mini-mock draws from). Review a few cards for the demo.
 
 **2. Run the honest-score flow from Speedrun Home:**
+- **THE MAP ▸** (Home link, route `/speedrun-map`) → an **interactive prerequisite graph**: tap any topic node to light up its downstream **blast radius** (what depends on it / breaks if you skip it). Pure-SVG, the signature "not-Anki" visual; abstains honestly where data is thin.
 - **► START RUN** → launches a real reviewer session on `Speedrun::GRE Math` (new cards ordered by points-at-stake; due reviews weakness×topic interleaved). On a fresh/empty deck it shows an honest banner ("import" / "caught up" / Custom Study) instead of a dead-end.
-- **MINI-MOCK** → builds a **timed** filtered deck over the Problems subdeck; per-answer wall-clock is captured automatically and feeds **Performance** + the **Readiness** give-up counter (Readiness needs **≥2** mini-mocks before it shows a number).
+- **MINI-MOCK** → builds a **timed** filtered deck over the Problems subdeck; each `Speedrun::Problem` now renders as a **clickable multiple-choice question that is auto-graded against the answer key** — so **Performance is objectively key-checked**, not self-rated. Per-answer wall-clock is captured automatically and feeds **Performance** + the **Readiness** give-up counter (Readiness needs **≥2** mini-mocks before it shows a number).
 - On a **`Speedrun::Problem`** card, the pre-answer **Sure / Think / Guess** confidence buttons log a self-bet (desktop capture hook) that powers the **Calibration** score (Brier/ECE; abstains under 20 attempts; self-rated framing).
-- The three headline scores on Home — **Memory** (Wilson 95% range), **Performance** (P(correct) on problems + memory→performance gap Δ), **Readiness** (flat-IRT 200–990 + conformal range) — each **abstain honestly** until they have enough real data. That abstention IS the honest-score demo; ranges/points fill in only as real reviews and mini-mocks accumulate. **Never expect a filled score on a fresh deck.**
+- The three headline scores on Home — **Memory** (Wilson 95% range), **Performance** (P(correct) on problems + memory→performance gap Δ), **Readiness** (flat-IRT 200–990 + conformal range, shown on an **SVG readiness gauge**) — each **abstain honestly** until they have enough real data. That abstention IS the honest-score demo; ranges/points fill in only as real reviews and mini-mocks accumulate. **Never expect a filled score on a fresh deck.**
 
-**3. Open the Memory dashboard:** *Tools → Speedrun: Memory* (or the Home link). Expect: coverage header (topics present / required), grouped topic rows with recall ranges, and per-topic ABSTAIN ("insufficient data — review N more to unlock") on fresh data. Per-topic Readiness is intentionally "—" (exam-level Readiness on Home is the real score).
+**3. Open the Memory dashboard:** *Tools → Speedrun: Memory* (or the Home link). Expect: coverage header (topics present / required), grouped topic rows with recall ranges, and per-topic ABSTAIN ("insufficient data — review N more to unlock") on fresh data. Per-topic Readiness is intentionally "—" (exam-level Readiness on Home is the real score). Two pure-SVG visuals render here as well — a **calibration reliability diagram** and the **memory→performance gap chart** — both abstaining until they have real data.
 
 **4. RPC from the Debug Console** (optional, proves the seam directly — *Tools → Debug Console*):
 ```python
@@ -68,16 +75,16 @@ just check                      # full build + lint + tests (green modulo known 
 **1. Build the AAR from our `rslib`** — PowerShell:
 ```powershell
 cd C:\Users\davir\Ultra\Alpha\Speedrun\repos\Anki-Android-Backend
-git checkout main                         # 14c2992 (Phase 6 AAR rebuilt against anki main)
-git submodule update --init --recursive   # anki submodule pinned to our fork @ c54afe2b1 (main)
+git checkout main                         # 70b8eaf (Phase 6 AAR rebuilt against anki main)
+git submodule update --init --recursive   # anki submodule pinned to our fork @ 348db0c6c (main)
 cargo run -p build_rust                    # (== build.bat) -> rsdroid AAR (x86_64; bundles the sveltekit pages)
 ```
-Output: `rsdroid\build\outputs\aar\rsdroid-release.aar`. (The submodule pin already tracks anki `main` `c54afe2b1`, so the shipped AAR includes the three scores, calibration, and mini-mock frontend. Rebuild only if you change `rslib` / the shared pages.)
+Output: `rsdroid\build\outputs\aar\rsdroid-release.aar`. (The submodule pin already tracks anki `main` `348db0c6c`, so the shipped AAR includes the three scores, calibration, the mini-mock frontend, and the interactive visuals. Rebuild only if you change `rslib` / the shared pages.)
 
 **2. Point AnkiDroid at the local AAR** — PowerShell:
 ```powershell
 cd C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki-android
-git checkout main                          # f2cf66ac35
+git checkout main                          # 6845e4e70a
 # ensure local.properties contains:  local_backend=true
 ```
 
@@ -96,7 +103,7 @@ git checkout main                          # f2cf66ac35
 ```
 (Or open `repos\anki-android` in Android Studio and press Run with `Pixel_10` selected.)
 
-**5. Open Speedrun Home + Memory on the phone:** in AnkiDroid, import the same seed `.apkg` (share it to the emulator or use *Import*), then from the DeckPicker **⋮ overflow menu → "Speedrun: Home"** (and **"Speedrun: Memory"**). The SAME shared Svelte pages render from the AAR-bundled assets — the same three scores, abstaining honestly on fresh data, identical to desktop. (The desktop-only calibration self-bet capture and the bespoke timed mini-mock UI are desktop-side this cycle; Android studies the same Problems subdeck through its native reviewer.)
+**5. Open Speedrun Home + Memory on the phone:** in AnkiDroid, import the same seed `.apkg` (share it to the emulator or use *Import*), then from the DeckPicker **⋮ overflow menu → "Speedrun: Home"** (and **"Speedrun: Memory"**). The SAME shared Svelte pages render from the AAR-bundled assets — the same three scores plus the same pure-SVG interactive visuals (**THE MAP**, the readiness gauge, and the reliability / memory→performance gap charts), abstaining honestly on fresh data, identical to desktop. (The desktop-only calibration self-bet capture and the bespoke timed mini-mock UI are desktop-side this cycle; Android studies the same Problems subdeck through its native reviewer.)
 
 **6. Re-run the "one engine, two apps" proof (the gate test)** — PowerShell, in `repos\anki-android`:
 ```powershell

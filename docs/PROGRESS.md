@@ -1,8 +1,8 @@
 # Speedrun — Progress Tracker (done / left), mapped to the spec
 
-Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-03 (Fri AM)** — after the full Friday-scope + LS1/2/3 + §8 ablation + AI-service batch-merge to `main` on all repos. Per-repo `main`: anki `c54afe2b1` · Anki-Android-Backend `14c2992` · anki-android `f2cf66ac35` · umbrella latest.
+Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-03 (Fri PM)** — after the full Friday-scope + LS1/2/3 + §8 ablation + AI-service batch-merge, plus all 7 sweep fixes + interactive MCQ auto-grade merged, and 4 interactive visuals merged to anki `main`. Per-repo `main`: anki `348db0c6c` · anki-android `6845e4e70a` · Anki-Android-Backend `70b8eaf` · umbrella `e36d765`.
 
-> **2026-07-03 headline:** the entire build scope is shipped + merged. What's left is human demo/eval (emulator gate, sync-demo recording, demo video), the Sunday eval RUNS + robustness + signed APK + BrainLift pass, and 7 fixes from the 2026-07-03 adversarial sweep (2 P0 demo-visible, 2 P1 AI-safety, 2 P2 calibration — in progress on branches, see `.claude/cursor-review.md`).
+> **2026-07-03 PM headline:** the entire build scope is shipped + merged, including **all 7 adversarial-sweep fixes** and the **interactive MCQ auto-grade** (Performance now objectively key-checked on desktop). **NEW:** 4 interactive pure-SVG visuals (THE MAP blast-radius + calibration reliability diagram + memory→performance gap slope + readiness gauge) are live-verified + Claude-reviewed and **merging to anki `main`** (SHA finalizes at merge). What's left is human demo/eval (emulator gate, sync-demo recording, demo video), the Sunday eval RUNS + robustness + signed APK + BrainLift pass, and one in-progress convenience item (installer bundles the seed deck + auto-imports on first launch).
 
 ## ✅ Done — foundation (walking skeleton, Mon–Tue)
 - ✅ Anki forked & building from source; `just run` / `just check` green (known complexipy tool crash only).
@@ -66,6 +66,16 @@ The audit that caught the above (UI shipped "code-complete" but never rendered o
 ## ✅ §8 ablation harness (2026-07-02) — MERGED
 - ✅ One build, three modes (`AblationMode` Full/FeatureOff/Plain); pre-registered metrics: M1 same-topic adjacency (Full **0.00** vs 0.79 baselines — decisive), M2 pre-registered secondary was mis-specified and reported honestly (not hidden), M3 exploratory. Results: `docs/ablation-s8-results.md`. (This was on the Sunday list; done early.)
 
+## ✅ Interactive layer (2026-07-03 PM) — MERGED / merging
+- ✅ **Interactive MCQ auto-grade** — MERGED (anki `a47dac310`). `Speedrun::Problem` choices are now clickable → the chosen option is graded **backend-side** against `CorrectAnswer` (not client-trusted) → persisted to the synced `speedrun:mcq_attempts` config blob (no schema/proto/model-field change). The engine's Performance (`topic_problem_stats`) now counts **objective key-checked correctness**, overriding self-rating and falling back to self-rated (`button≥3`) only when no auto-grade exists (backward-compatible). **Retires the "self-reported until interactive grading" caveat on desktop.** ⚠️ Android in-reviewer capture deferred (native bridge) — the engine reads the blob regardless of platform, so Android inherits the read side once capture lands.
+- ✅ **4 interactive pure-SVG visuals** — `feat/speedrun-visuals`, live-verified + Claude-reviewed, **merging to anki `main`** (SHA finalizes at merge). Both platforms, honest abstains, **11/11 unit tests**:
+  - ✅ **THE MAP** (`/speedrun-map`) — interactive prerequisite-graph; tap a node → **blast-radius** (every downstream topic it caps). Realizes **BrainLift Flagship #7** — the signature not-Anki visual.
+  - ✅ **Calibration reliability diagram** (Memory) — predicted-confidence vs observed-accuracy, honest abstain below threshold.
+  - ✅ **Memory→performance gap slope chart** (Memory) — per-topic slope between flashcard recall and timed novel-problem accuracy (§7d gap meter, visualized).
+  - ✅ **Readiness gauge** (Home) — 200–990 with the conformal band drawn in.
+- ✅ **All 7 adversarial-sweep bugs fixed+merged** — incl. #3 RAG grounding (semantic-embedding gate + fail-closed syllabus scoping) and #4 leakage; #1 single-card band-abstain and #2 Android `getCalibration` exposure landed earlier in the sweep. No sweep fixes remain in flight.
+- ⚠️ **Installer bundles seed deck + auto-import on first launch** — IN PROGRESS (Claude). Bundle the seed deck into the installer and auto-import it on first launch so a grader sees live data immediately. Convenience only; not on any build critical path.
+
 ## Sunday — prove it & ship (partly done early)
 - ✅ **Gold set + leakage clearance** — `eval/holdout/gre_math_gold.jsonl` (50, triple-verified, leakage-cleared); `eval/holdout/` created (implementer agents must NOT read it).
 - ✅ **3-build ablation harness** (§8) — done (above).
@@ -75,19 +85,19 @@ The audit that caught the above (UI shipped "code-complete" but never rendered o
 - ⬜ **crash ×20** + offline tests (§7g); **`make bench`** p50/p95/worst on 50k deck (§7h, §10).
 - ⬜ **Signed APK** (+ arm64-v8a for physical devices); both apps score with AI off (✅ already true).
 - ⬜ Results report + model one-pagers + demo video (3–5 min) + BrainLift final pass.
-- ⬜ **7 sweep bug fixes** (2026-07-03) — 2 P0 (single-card band; Android getCalibration) demo-visible; 2 P1 AI-safety; 2 P2 calibration. In progress on branches (`.claude/cursor-review.md`).
+- ✅ **7 sweep bug fixes** (2026-07-03) — ALL fixed+merged: 2 P0 (single-card band-abstain; Android getCalibration) + 2 P1 AI-safety (#3 RAG grounding via semantic-embedding gate + fail-closed syllabus, #4 leakage) + 2 P2 calibration-capture + #7. None remain in flight.
 
 ---
 
-## Rubric weight coverage (updated 2026-07-03 post-Friday-merge)
+## Rubric weight coverage (updated 2026-07-03 PM — post sweep-fix + MCQ-autograde merge, visuals merging)
 | Area | Weight | Status |
 |---|---|---|
 | Rust change & fit with Anki | 20% | ✅ read-only RPCs + a real **mutating** reorder via `transact` + due-card weakness×topic interleave; 66+ speedrun tests; §7a artifacts |
-| Score accuracy & honest uncertainty | 20% | ✅ all three scores LIVE + honest (Memory Wilson+abstain; Performance P(correct)+gap Δ+abstain; Readiness IRT→200–990+conformal+give-up). ⬜ held-out calibration/accuracy RUNS remain (Sunday). 1 P0 band-edge bug fix in progress. |
-| Study feature on learning science | 15% | ✅ points-at-stake reorder + due-card interleave + LS1 calibration + LS2 worked-examples-faded + LS3 honesty copy; §8 ablation harness done |
-| AI checking & safety | 15% | ✅ service shipped (OFF by default): SymPy verify + hybrid RAG + gold-set gate; adversarially reviewed. 2 P1 gate hardening fixes in progress (AI is off → not demo-blocking) |
+| Score accuracy & honest uncertainty | 20% | ✅ all three scores LIVE + honest (Memory Wilson+abstain; Performance P(correct)+gap Δ+abstain; Readiness IRT→200–990+conformal+give-up). ✅ **Performance now OBJECTIVELY KEY-CHECKED** — interactive MCQ auto-grade (backend-graded against `CorrectAnswer`) retires the "self-reported" caveat on desktop (Android capture deferred). ✅ P0 single-card band-edge bug fixed+merged (abstains). ⬜ held-out calibration/accuracy RUNS remain (Sunday). |
+| Study feature on learning science | 15% | ✅ points-at-stake reorder + due-card interleave + LS1 calibration + LS2 worked-examples-faded + LS3 honesty copy + interactive MCQ practice/auto-grade + THE MAP prerequisite-graph blast-radius; §8 ablation harness done |
+| AI checking & safety | 15% | ✅ service shipped (OFF by default): SymPy verify + hybrid RAG + gold-set gate; adversarially reviewed. ✅ P1 gate-hardening fixes MERGED (#3 RAG grounding via semantic-embedding gate + fail-closed syllabus scoping, #4 leakage) |
 | Fair re-runnable tests | 12% | ✅ ablation harness + gold set + leakage clearance done. ⬜ crash×20 / offline / `make bench` runs remain (Sunday) |
 | Two apps one engine + sync | 10% | ✅ one engine, both apps (Phase 6 AAR + APK); §7b conflict test ✅. ⬜ live two-way phone demo recording pending |
-| Useful product & clean UX | 8% | ✅ Speedrun Home + Memory + 3 scores + mini-mock on both platforms; Manrope/#F4F7FA identity; desktop data path fixed |
+| Useful product & clean UX | 8% | ✅ Speedrun Home + Memory + 3 scores + mini-mock on both platforms; Manrope/#F4F7FA identity; desktop data path fixed. ✅ **+ 4 interactive pure-SVG visuals** (THE MAP tap→blast-radius, calibration reliability diagram, memory→performance gap slope chart, readiness gauge) — both platforms, honest abstains |
 
-**Hard limits watch:** real Rust change ✅ (read + mutating + interleave). Phone shares engine ✅; sync test ✅ (live demo recording pending — needed to fully lift the 70% cap). Clean-device: network-independent installer ✅ + clean-machine run recorded ✅. No fake numbers ✅ (everything abstains until it can't be wrong) — 1 P0 single-card band edge case being fixed to keep this true in a corner case.
+**Hard limits watch:** real Rust change ✅ (read + mutating + interleave). Phone shares engine ✅; sync test ✅ (live demo recording pending — needed to fully lift the 70% cap). Clean-device: network-independent installer ✅ + clean-machine run recorded ✅ (installer seed-deck auto-import in progress — convenience). No fake numbers ✅ (everything abstains until it can't be wrong) — the P0 single-card band edge case is now fixed+merged (abstains when `cards_with_data<2`), keeping this true in the corner case.

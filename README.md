@@ -10,9 +10,9 @@ Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitec
 
 ## Status (2026-07-03 — full feature set merged to `main`, both platforms)
 
-Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study.
+Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study. Four pure-SVG **interactive visuals** — headlined by **THE MAP** (an interactive prerequisite graph) — ship on both platforms and abstain honestly like the scores.
 
-**Current `main` pins:** anki `c54afe2b1` · Anki-Android-Backend `14c2992` · anki-android `f2cf66ac35` · umbrella latest.
+**Current `main` pins:** anki `348db0c6c` · Anki-Android-Backend `70b8eaf` · anki-android `6845e4e70a` · umbrella `e36d765`.
 
 See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pending breakdown, and `docs/STATE.md` for the live handoff state.
 
@@ -21,8 +21,12 @@ See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pend
 - **A real Rust engine change** on `SpeedrunService` (`rslib/src/speedrun/`, append-only `proto/anki/speedrun.proto`): read-only RPCs (coverage, topic mastery, exam profile, performance/readiness, calibration) + one **mutating, undo-safe** RPC (`ReorderNewByPointsAtStake`, via `transact(Op::SortCards)`). 66+ Rust speedrun tests + Python integration.
 - **Three honest scores:**
   - **Memory** — per-topic recall from FSRS retrievability → Wilson 95% interval + **abstention** below a data threshold.
-  - **Performance** — P(correct) on novel `Speedrun::Problem` MCQs, with a mean-CI band, a memory→performance gap Δ, and abstention below thresholds.
+  - **Performance** — P(correct) on novel `Speedrun::Problem` MCQs, now **objectively key-checked** by the interactive auto-grading reviewer (not self-rated), with a mean-CI band, a memory→performance gap Δ, and abstention below thresholds.
   - **Readiness** — flat IRT → scaled **200–990** + conformal range + a give-up rule (needs ≥2 timed mini-mocks); exam-level on Home, per-topic abstains by design.
+- **Interactive visuals — the "not-Anki" layer** (all pure-SVG, both platforms, honest abstains):
+  - **THE MAP** (`ts/routes/speedrun-map/`, route `/speedrun-map`) — an interactive **prerequisite graph**; tap a node to light up its downstream **blast radius**. The signature differentiator that makes Speedrun not look like Anki.
+  - **Calibration reliability diagram + memory→performance gap chart** on the Memory dashboard.
+  - **Readiness gauge** on Home (200–990 + conformal band).
 - **Weakness-aware scheduling** — new-card points-at-stake reorder **and** due-card weakness×topic-weight interleave (read-time, ablation-gated).
 - **Problem bank + timed mini-mock** — `Speedrun::Problem` MCQ note type + 64-problem bank (double-SymPy-verified); a filtered-deck timed mini-mock that scores real attempts.
 - **Learning-science layer** — LS1 calibration (pre-answer confidence self-bet → Brier/ECE, self-rated framing, abstains below threshold), LS2 worked-examples-first + faded step reveal, LS3 honesty-guardrail copy (gated to render only on real data).
@@ -42,9 +46,9 @@ Android emulator visual gate + live desktop↔Android sync-demo recording + demo
 
 **Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
 
-### Desktop — easiest: the installer
+### Desktop — easiest: the installer (deck pre-loaded)
 A packaged, release-optimized Windows installer is prebuilt at
-**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** — install it and launch **Speedrun** (it opens into Speedrun Home). The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels). Rebuild if the prebuilt MSI predates the Friday UI.
+**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer now bundles the seed deck and auto-imports it on first launch**, so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels). Rebuild if the prebuilt MSI predates the Friday UI.
 
 ### Desktop — from source
 ```powershell
@@ -52,7 +56,7 @@ cd repos/anki
 git checkout main
 just run              # builds + launches; Speedrun Home auto-opens
 ```
-Then **File → Import** `repos/anki/speedrun/out/gre_math_seed.apkg` (35-card seed deck + 64-problem bank), click **► START RUN** to review, try a timed **mini-mock**, and open Tools → **Speedrun: Memory** for the dashboard. Run tests: `cargo test -p anki speedrun::` and `just check`.
+This from-source path does NOT auto-import, so **File → Import** `repos/anki/speedrun/out/gre_math_seed.apkg` (35-card seed deck + 64-problem bank), then click **► START RUN** to review, follow **THE MAP ▸** from Home to the prerequisite graph, try a timed **mini-mock**, and open Tools → **Speedrun: Memory** for the dashboard. Run tests: `cargo test -p anki speedrun::` and `just check`.
 
 ### Android — emulator (x86_64)
 ```powershell
@@ -74,7 +78,7 @@ Self-hosted sync demo: `docs/SYNC-SELFHOST.md`. Optional AI service: `services/s
 
 ## Architecture: two apps, one engine
 Our code lives in three public forks (linked below); this umbrella repo holds docs, the plan, the AI service, and proof.
-- **Desktop + shared engine:** **[`spinkicks/anki`](https://github.com/spinkicks/anki)** (fork of [`ankitects/anki`](https://github.com/ankitects/anki)) — the Rust engine change lives in **`rslib/src/speedrun/`** + `proto/anki/speedrun.proto`; UI in `ts/routes/speedrun-*` (Svelte) + `qt/aqt/speedrun*.py`. **← the headline engine change.**
+- **Desktop + shared engine:** **[`spinkicks/anki`](https://github.com/spinkicks/anki)** (fork of [`ankitects/anki`](https://github.com/ankitects/anki)) — the Rust engine change lives in **`rslib/src/speedrun/`** + `proto/anki/speedrun.proto`; UI in `ts/routes/speedrun-*` (Svelte, including **THE MAP** interactive prerequisite graph at `ts/routes/speedrun-map/`) + `qt/aqt/speedrun*.py`. **← the headline engine change.**
 - **Phone:** **[`spinkicks/Anki-Android`](https://github.com/spinkicks/Anki-Android)** (fork of [`ankidroid/Anki-Android`](https://github.com/ankidroid/Anki-Android)) — renders the same shared Svelte pages via `PageFragment`.
 - **Engine → Android bridge:** **[`spinkicks/Anki-Android-Backend`](https://github.com/spinkicks/Anki-Android-Backend)** (fork of rsdroid) — cross-compiles `rslib` into the JNI AAR (with `local_backend=true`).
 - The external AI/RAG service (`services/speedrun-ai/`) lives **outside** all native libs, OFF by default.
