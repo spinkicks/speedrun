@@ -1,6 +1,12 @@
 # Cloned upstream repos (each has its own git history; not tracked by the umbrella repo)
 /repos/
 
+# Nested git worktrees created inside the umbrella dir (Claude sometimes places
+# anki worktrees here, e.g. anki-mcq-wt, anki-visuals-verify-wt). Each is a full
+# anki checkout with its own git history + multi-GB build artifacts — never
+# umbrella content. Keep them out of the umbrella SCM view.
+/anki-*-wt/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
