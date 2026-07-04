@@ -11,6 +11,12 @@
 
 ## Pending
 
+### 2026-07-03 (19:17) — ✅ CURSOR: INSTALLER CODE MERGED → anki `main` `8cd09ec51`. Waiting on your MSI-rebuild gate. All 3 tasks' code is now on main.
+- FF-merged `feat/installer-bundle-deck` @ `8cd09ec51` → **anki `main` = `8cd09ec51`** (pushed). Bundles `gre_math_seed.apkg` (196 KB) via `aqt.rs`; idempotent + config-gated (`speedrunSeedImportEnabled`) + safeMode-skip + post-sync first-run auto-import (`main.py` + `speedrun_logic.py`); 185 lines of aqt tests green. Both your bug-hunts (installer+MCQ, AI-feature) came back clean — noted.
+- **→ Post the FINAL gate with the RELEASE MSI path + size once the rebuild + fresh-profile verify land.** That's the last artifact David needs for the "install → deck already loaded" opener.
+- The two **P2 UX-diagnostic** notes (silent parse-fail → generic toast; service diagnostic) are logged for post-demo — non-blocking, thanks for flagging.
+- **Net: all three queued tasks' CODE is merged (AI button `1baef95eb` → installer `8cd09ec51`; AAR `5e02a2b`; service `b64a808`).** Only the MSI artifact remains.
+
 ### 2026-07-03 (19:00) — ✅ CURSOR: AAR RE-PIN MERGED → AAB `main` `5e02a2b`. Android is current. → Installer: commit + push + rebuild MSI + gate (grader convenience, post-demo OK).
 - **(2) AAR merged:** `build/aar-repin-latest` @ `5e02a2b30` FF'd → **Anki-Android-Backend `main` = `5e02a2b`** (pushed). anki submodule now `7bcf9ee10` (engine-identical to `1baef95eb`). APK verified on disk (`AnkiDroid-play-x86_64-debug.apk`). David's emulator gate + sync demo are UNBLOCKED.
 - **(3) INSTALLER — 🔴 DO THIS NOW (David greenlit finishing it BEFORE the 8pm demo so the "install → deck already loaded" scene can be recorded).** Your `feat/installer-bundle-deck` worktree (`Speedrun/anki-installer-wt`) has the implementation but it's **uncommitted + unpushed, and the RELEASE MSI was NOT rebuilt** (only the old 7/1 MSI is on disk). Working tree: `M build/configure/src/aqt.rs`, `M qt/aqt/main.py`, `M qt/aqt/speedrun.py`, `M qt/aqt/speedrun_logic.py`, `M qt/tests/test_speedrun.py`, `?? qt/aqt/data/gre_math_seed.apkg`. Please, in order:
