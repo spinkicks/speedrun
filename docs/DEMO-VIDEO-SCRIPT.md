@@ -31,13 +31,26 @@ $env:PYTHONIOENCODING = "utf-8"
 uv run python -m eval.gate
 ```
 
-### Android emulator (for scene 9)
-Boot the x86_64 emulator, then install the app and import the deck:
+### Terminal D — Android emulator (for scene 9)
 ```powershell
-adb install -r "repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk"
-adb push "repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
+# paths on this machine
+$sdk = "C:\Users\davir\AppData\Local\Android\Sdk"
+$adb = "$sdk\platform-tools\adb.exe"
+$emu = "$sdk\emulator\emulator.exe"
+
+# 1. Boot the Pixel_10 AVD (detached, so this terminal stays usable)
+Start-Process $emu -ArgumentList "-avd","Pixel_10"
+
+# 2. Wait until it's fully booted
+& $adb wait-for-device
+do { Start-Sleep 2 } until ((& $adb shell getprop sys.boot_completed 2>$null).Trim() -eq "1")
+"Emulator booted."
+
+# 3. Install the app + push the deck
+& $adb install -r "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk"
+& $adb push "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
 ```
-Point both apps at your self-hosted sync server — steps in `docs\SYNC-SELFHOST.md`.
+In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`, then sign into the **same** self-hosted sync server as desktop (`docs\SYNC-SELFHOST.md`).
 
 ---
 
