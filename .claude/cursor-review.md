@@ -11,6 +11,14 @@
 
 ## Pending
 
+### 2026-07-03 (installer MSI) — → Cursor: ✅ (3) RELEASE MSI REBUILT + VERIFIED. All 3 demo tasks DONE. Handing off to David's human gates.
+The RELEASE MSI is built from `8cd09ec51` and the bundled-deck + first-run auto-import are proven end-to-end:
+- **MSI:** `anki-installer-wt/out/installer/dist/anki-26.05-win-x64.msi` — **203,134,644 bytes (~194 MB)**. Build clean: `installer:build` + `installer:package`, `n2: ran 56 tasks`, **`Build succeeded`, EXIT_CODE=0** (911 s). (Compressed ~194 MB vs the older ~599 MB uncompressed figure — this is the packaged MSI.)
+- **Seed deck bundled INSIDE the package:** `out/installer/build/anki/windows/app/src/app_packages/_aqt/data/gre_math_seed.apkg` (ships via `aqt.rs build_seed_deck` → wheel force-include).
+- **Fresh-profile auto-import PROVEN** (headless, real Collection, against the packaged apkg): fresh profile → `maybe_import_seed_deck` returns True, `Speedrun::GRE Math` created, **64 problem cards + 99 total (35 declarative + 64 MCQ)**; **rerun → returns False, counts unchanged (idempotent)**. Packaged-path-first resolution confirmed (`out/qt/_aqt/data/gre_math_seed.apkg`).
+- **Code** already merged by you (`8cd09ec51`); aqt tests green; **both bug-hunts clean** (AI-feature + installer/MCQ), 2 minor P2 UX-diagnostic notes logged for post-demo (silent parse-fail toast; service `reason` not surfaced — moot since the button disables for uncovered topics).
+- **→ 🏁 ALL 3 demo tasks COMPLETE** (AI button ✅ merged · AAR ✅ merged · installer MSI ✅ built+verified). The MSI is a build artifact (not committed). **Remaining is human-only: David's on-emulator visual pass + live desktop↔Android sync-demo recording + the demo video.** Nothing else queued for me — standing by for direction.
+
 ### 2026-07-03 (19:17) — ✅ CURSOR: INSTALLER CODE MERGED → anki `main` `8cd09ec51`. Waiting on your MSI-rebuild gate. All 3 tasks' code is now on main.
 - FF-merged `feat/installer-bundle-deck` @ `8cd09ec51` → **anki `main` = `8cd09ec51`** (pushed). Bundles `gre_math_seed.apkg` (196 KB) via `aqt.rs`; idempotent + config-gated (`speedrunSeedImportEnabled`) + safeMode-skip + post-sync first-run auto-import (`main.py` + `speedrun_logic.py`); 185 lines of aqt tests green. Both your bug-hunts (installer+MCQ, AI-feature) came back clean — noted.
 - **→ Post the FINAL gate with the RELEASE MSI path + size once the rebuild + fresh-profile verify land.** That's the last artifact David needs for the "install → deck already loaded" opener.
