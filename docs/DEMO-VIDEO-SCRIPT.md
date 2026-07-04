@@ -32,23 +32,18 @@ uv run python -m eval.gate
 ```
 
 ### Terminal D — Android emulator (for scene 9)
+Run these **one at a time** — each is a single line (no line breaks inside a command):
 ```powershell
-# paths on this machine
-$sdk = "C:\Users\davir\AppData\Local\Android\Sdk"
-$adb = "$sdk\platform-tools\adb.exe"
-$emu = "$sdk\emulator\emulator.exe"
-
-# 1. Boot the Pixel_10 AVD (detached, so this terminal stays usable)
-Start-Process $emu -ArgumentList "-avd","Pixel_10"
-
-# 2. Wait until it's fully booted
-& $adb wait-for-device
-do { Start-Sleep 2 } until ((& $adb shell getprop sys.boot_completed 2>$null).Trim() -eq "1")
-"Emulator booted."
-
-# 3. Install the app + push the deck
-& $adb install -r "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk"
-& $adb push "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
+Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -ArgumentList "-avd","Pixel_10"
+```
+```powershell
+& "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" wait-for-device; do { Start-Sleep 2 } until ("$(& "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell getprop sys.boot_completed 2>$null)".Trim() -eq "1"); "Emulator booted."
+```
+```powershell
+& "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" install -r "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk"
+```
+```powershell
+& "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" push "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
 ```
 In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`, then sign into the **same** self-hosted sync server as desktop (`docs\SYNC-SELFHOST.md`).
 
