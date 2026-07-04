@@ -19,8 +19,10 @@ Then **off-camera**: `File → Import` → `repos\anki\speedrun\out\gre_math_see
 Make sure `services\speedrun-ai\.env` has `OPENAI_API_KEY=...` and `SPEEDRUN_AI_ENABLED=1`, then:
 ```powershell
 cd services\speedrun-ai
-uv run uvicorn app:app --port 8000
+uv sync                              # first run only: installs deps (incl. uvicorn) into the venv
+uv run uvicorn app:app --port 8000   # leave this running; serves on http://127.0.0.1:8000
 ```
+Verify it's up (in Terminal C or a browser): open `http://127.0.0.1:8000/health` → should show `{"status":"ok","ai_enabled":true}`. If it says `ai_enabled:false`, the `.env` key/flag isn't set.
 
 ### Terminal C — Eval numbers (run when you reach scene 11)
 ```powershell
