@@ -4,6 +4,8 @@ A desktop + Android study app built **on Anki**, focused on one graduate exam: t
 
 > One exam. Two apps on one Rust engine. A real engine change. Honest scores that show a **range** and **refuse to answer** when they lack data.
 
+> **📦 Graders — download the desktop installer:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** → `anki-26.05-win-x64.msi` (~194 MB, Windows x64). Run it, launch **Speedrun**, and the study deck **auto-imports on first launch** — no manual import. Full run guide (Android, sync, AI): [How to run](#how-to-run-for-graders--reviewers).
+
 Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitects/anki). Some upstream components are BSD-3-Clause; the Android app is GPL-3.0.
 
 ---
@@ -48,8 +50,7 @@ Android emulator visual gate + live desktop↔Android sync-demo recording + demo
 **Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
 
 ### Desktop — easiest: the installer (deck pre-loaded)
-A packaged, release-optimized Windows installer is prebuilt at
-**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** (~194 MB, built 2026-07-03 from anki `main` `8cd09ec51` — includes the full Friday UI: 4 visuals + MCQ auto-grade + AI Generate button) — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer bundles the seed deck and auto-imports it on first launch** (idempotent, config-gated, skips if the exam deck already exists), so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels).
+**⬇️ Download:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** → `anki-26.05-win-x64.msi` (~194 MB, Windows x64; built 2026-07-03 from anki `main` `8cd09ec51` — full Friday UI: 4 visuals + MCQ auto-grade + AI Generate button). *(Also prebuilt locally at `repos/anki/out/installer/dist/anki-26.05-win-x64.msi`.)* — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer bundles the seed deck and auto-imports it on first launch** (idempotent, config-gated, skips if the exam deck already exists), so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels).
 
 ### Desktop — from source
 ```powershell
