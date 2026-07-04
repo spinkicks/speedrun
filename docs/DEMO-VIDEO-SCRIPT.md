@@ -1,113 +1,80 @@
 # Speedrun — Demo Video Script
 
-> **Deliverable:** the "Speedrun Demo Video" (target 3–5 min). Scene-by-scene: **[SHOW]** = on-screen action, **[SAY]** = narration. Content reflects the **currently shipped app** and the honesty rules in `docs/WHAT-WE-BUILT.md` **apply on camera — never present a number the app can't back up.** Draft **2026-07-03** — everything below is **merged to `main`** on every fork (desktop engine, Android, backend, the shared Svelte pages), so this is **safe to record now**. The only setup requirement: record on a **profile that has some accumulated study data** so the scores, the Readiness gauge, and THE MAP are populated with real colors — otherwise honestly show the **abstain states**.
-
-## What Speedrun is (one-liner for the intro)
-An **honest** GRE Math Subject Test trainer built **on** Anki — same **Rust engine** on **desktop and Android**, its own **"Speedrun" identity** (Manrope wordmark, near-white **#F4F7FA** accent, mobile-first dark shell), with an **external AI service that is OFF by default**. It never shows you a number it can't defend.
-
-## Friday deliverables → where each one appears (checklist for the recording)
-Every "Due Friday" item must be visible on camera or in the captured proof. Map:
-
-| Due-Friday item | Scene / proof |
-| --- | --- |
-| **AI: a short note on what you built, why, what you skipped** | Scene 11 [SAY] + show `services/speedrun-ai/README.md` |
-| **AI: every output traces to a named source** | Scene 11 — each generated card shows its **cited source**; no citation ⇒ abstains, emits nothing |
-| **AI: eval before students see anything — accuracy + wrong-answer rate on a held-out set, with a cutoff** | Scene 12 — `uv run python -m eval.gate`: **wrong-answer 0 %** (cutoff ≤2 %), **Recall@10 90 %** (family), **leakage 0** |
-| **AI: side-by-side vs a simpler method (keyword / vector)** | Scene 12 — BM25 vs dense vs hybrid table (**honest framing — see guardrails**) |
-| **AI: app still scores with AI OFF** | Scene 4/13 — kill-switch (`/generate` → 503 disabled); the 3 scores are engine-computed, AI service never imported |
-| **Mobile: two-way sync, no lost/double-counted reviews** | Scene 9 — review on phone → appears on desktop and the reverse; back it with the §7b test (20 distinct revlog both sides, `integrity_check ok`) |
-| **Mobile: offline review, then syncs on reconnect** | Scene 9 — airplane-mode a review on one device, reconnect, sync |
-| **Mobile: phone shows the three scores with ranges + follows the give-up rule** | Scene 9 — Android Home: Memory/Performance/Readiness with **RangeBand** + honest **"review N more to unlock"** abstains |
-| **Proof: eval numbers + baseline comparison + phone→desktop sync recording** | Scene 12 (numbers) + Scene 9 (sync capture) + `docs/PROOF-INDEX.md` |
-
-## Before recording (setup)
-- **Desktop — demo from the running app; you do NOT need to record installing the MSI.** Launch with **`just run` inside `repos/anki`** (or open the installed app) and demo everything from your main page. Because the from-source `just run` path does **not** auto-import, **import `repos/anki/speedrun/out/gre_math_seed.apkg` once OFF-camera** (File → Import) so the deck is present before you hit record; if you instead open the installed MSI app, the deck is already auto-imported. Either way, **start recording on Speedrun Home**. The installer + first-run auto-import are built and verified — you can mention them verbally (Scene 1) without filming an install.
-- **Use a profile that has genuinely accumulated study** so scores/visuals are populated: Memory unlocks per topic after enough graded reviews; Performance needs logged (key-checked) problem attempts; **Readiness needs ≥2 timed mini-mocks**; Calibration needs enough confidence bets. Wherever a score/topic is still abstaining, **show the abstention** ("—" / "review N more to unlock") — that honesty is the differentiator. **Never fake a number for the camera.**
-- **Android:** emulator (`Pixel_10`, x86_64) with the app installed, signed into the **same self-hosted sync** account as desktop so you can show a live sync.
-- **AI is a REQUIRED Friday beat now (Scenes 11–13), but still lives OUTSIDE the app.** Have `services/speedrun-ai` ready to start with `SPEEDRUN_AI_ENABLED=1` + `OPENAI_API_KEY` (`uv run uvicorn app:app --port 8000`) for the Generate button + eval scenes, then stop it for the kill-switch scene. Never imply the AI runs inside rslib/rsdroid — the in-app **Generate** button calls the service over localhost and imports only verified problems.
-- Have both windows ready to alt-tab / screen-record.
-
-## Runtime budget (~6–7 min; AI + eval scenes are REQUIRED for Friday, not optional)
-1. Open Speedrun (from `just run` / running app; no install filmed) — 20s · 2. Speedrun Home + Readiness gauge — 40s · 3. **THE MAP** — 45s · 4. START RUN + ordering — 25s · 5. Problem + MCQ auto-grade + faded worked example — 45s · 6. Mini-mock — 20s · 7. Calibration self-bet + reliability diagram — 35s · 8. Memory→Performance gap — 25s · 9. **Two apps, one engine + two-way / offline sync + phone 3 scores** — 55s · 10. Honest close — 20s · **11. AI generator + named-source citation — 35s · 12. AI eval + baseline side-by-side (the "checked" deliverable) — 40s · 13. Kill-switch: app still scores with AI OFF — 15s.**
+Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Golden rule: never show a number the app can't back up — where a score has no data, show the honest **"—"**.
 
 ---
 
-### Scene 1 — Open Speedrun (~20s) — no install recording needed
-- **[SHOW]** The app is **already open** (via `just run` or the installed app) on **Speedrun Home** ("The Run") — Manrope ExtraBold wordmark on the **#F4F7FA** accent, mobile-first dark shell — **already populated** with the deck + your study data. (No install or import shown on camera — the deck was imported off-camera / auto-imported.)
-- **[SAY]** "This is Speedrun — an honest trainer for the GRE Math Subject Test, built **on top of** Anki's proven spaced-repetition engine. It's its own app — our own front door, our own scores, the same engine on desktop and phone. And the packaged installer even **ships the deck baked in and auto-imports it on first launch**, so a grader just installs it and lands right here, with data. Its whole theme is honesty: it never shows a number it can't back up."
+## Setup before recording (do this once)
 
-### Scene 2 — Speedrun Home + the Readiness gauge (~40s) — the differentiator
-- **[SHOW]** Home's three headline scores: **Memory**, **Performance**, exam-level **Readiness**. Focus on the **NEW Readiness gauge** — a **200–990 number line** with the **conformal range drawn as a band** and the point estimate on it. Also show coverage and the calibration stat. Where a score abstains, show the honest "—" / "review N more".
-- **[SAY]** "Three scores, each earned from your real data. **Memory** is recalled mastery, shown as a range — never a single fake number. **Performance** is your chance on a *novel* problem. And **Readiness** maps onto the real **200-to-990** exam scale — here on the gauge, with a **conformal range** drawn as a band around the estimate, so you see the uncertainty, not just a point. Below its data threshold it **abstains** and refuses to draw a number at all. That's the pattern everywhere: earn the data, or it stays silent."
+All terminals are **PowerShell**, started from the repo root `c:\Users\davir\Ultra\Alpha\Speedrun`.
 
-### Scene 3 — THE MAP (~45s) — the signature visual
-- **[SHOW]** Click **"THE MAP ▸"**. An interactive **prerequisite graph (DAG)** of the exam's topics appears, **nodes colored by your real mastery**, abstaining topics an honest **grey "—"**. **Tap a node — e.g. Calculus** — and its downstream **"blast radius"** lights up: every topic whose ceiling that weakness caps.
-- **[SAY]** "This is THE MAP — and it's why Speedrun is built **on** Anki, not just Anki with a skin. It's the prerequisite graph of the whole subject. Every node is colored by your actual mastery, and grey ones honestly say '—' because they haven't earned a score yet. Tap a weak prerequisite like Calculus and watch its **blast radius** light up — every downstream topic it's holding back. Fix the root and you lift everything above it. That's the thesis of the product, made visible."
+### Terminal A — Desktop app
+```powershell
+cd repos\anki
+just run
+```
+Then **off-camera**: `File → Import` → `repos\anki\speedrun\out\gre_math_seed.apkg` (once), and study ~20 cards + run 2 mini-mocks + place a few confidence bets so the scores and visuals have real data. Begin recording on **Speedrun Home**.
 
-### Scene 4 — START RUN + our ordering (~25s)
-- **[SHOW]** Back on Home, click **► START RUN** → a real review session on the GRE deck (dark reviewer on **desktop**). Answer a card or two; if nothing's due, show the honest "caught up / Custom Study" banner.
-- **[SAY]** "START RUN drops you into the exam deck. Under the hood this is Anki's FSRS scheduler — we did **not** change FSRS and we did **not** reinvent memory science. What we add is **ordering**: **new cards by points-at-stake** — the highest-weighted exam topics first — and your **due reviews interleaved by weakness across topics**, which the research shows beats blocked practice."
+### Terminal B — AI service (for scenes 10–12)
+Make sure `services\speedrun-ai\.env` has `OPENAI_API_KEY=...` and `SPEEDRUN_AI_ENABLED=1`, then:
+```powershell
+cd services\speedrun-ai
+uv run uvicorn app:app --port 8000
+```
 
-### Scene 5 — Problem + MCQ auto-grade + faded worked example (~45s)
-- **[SHOW]** Study a **Speedrun::Problem** multiple-choice card. **Click a choice** — it's graded **backend-side against the answer key**: **correct → green + locked**, **wrong → red + the key revealed**. Then reveal the **worked solution**: it shows the method **step-by-step (LS2 worked-examples-first with faded steps)**, not just the final answer.
-- **[SAY]** "These are real multiple-choice problems, and grading happens **in the engine, against the answer key** — click a choice and it's checked immediately: green and locked if you're right, red with the correct key shown if you're not. That means **Performance is now objectively key-checked** — not self-rated — so the number it reports is real. And when you reveal the solution, you get a **worked example with faded steps** — the research-backed way to learn a method — not just the answer."
+### Terminal C — Eval numbers (run when you reach scene 11)
+```powershell
+cd services\speedrun-ai
+$env:PYTHONIOENCODING = "utf-8"
+uv run python -m eval.gate
+```
 
-### Scene 6 — Timed mini-mock (~20s)
-- **[SHOW]** On Home, click **MINI-MOCK** → a **timed** set drawn from the problem bank. Answer a couple, finish.
-- **[SAY]** "A mini-mock is a short **timed** set over the problem bank. It's what feeds Readiness — and Readiness won't show a number until you've done **at least two**. Timing is captured automatically; nothing is faked to make the run look good."
-
-### Scene 7 — Calibration self-bet + reliability diagram (~35s)
-- **[SHOW]** In the **Memory** area, study a problem and **place a pre-answer bet — Sure / Think / Guess** — then grade it. Then open the **reliability diagram**: **stated confidence vs actual (key-checked) accuracy**, with **Brier / ECE**. Abstains until enough bets; show real once logged.
-- **[SAY]** "Before you check, you bet on yourself — Sure, Think, or Guess. We log that bet against how you **actually** did — and because grading is now key-checked, the outcome is objective. The **reliability diagram** plots your stated confidence against your real accuracy, scored with **Brier and ECE**. This is weaponized honesty: it tells you exactly where you're overconfident. And like everything else, it **abstains** until it has enough bets — no fabricated curve."
-
-### Scene 8 — Memory→Performance gap (~25s)
-- **[SHOW]** Still in **Memory**, show the **slope chart**: per topic, **recall (Memory)** on one side vs **timed-problem accuracy (Performance)** on the other, lines connecting them.
-- **[SAY]** "And here's the gap we care about most — the **slope chart**. For each topic it puts what you **remember** next to how you actually **perform** under time. When the line drops, that's the honest message: *you remember it, but you can't use it yet.* That's the difference between flashcards and being ready for the exam."
-
-### Scene 9 — Two apps, one engine + two-way / offline sync + phone three scores (~55s) — the Friday MOBILE deliverable
-- **[SHOW]** Switch to the **Android emulator**; open the app → the **same Speedrun Home**, the **same three scores** (Memory / Performance / Readiness) each with its **range band**, and where a topic hasn't earned data, the honest **"review N more to unlock"** give-up state. Same **THE MAP**.
-- **[SHOW — two-way, no lost/double-count]** Both devices signed into the **same self-hosted sync** account. **Answer a card on the phone → sync → it appears on the desktop.** Then the **reverse**: answer on desktop → sync → shows on the phone. Point out the review count is consistent — **nothing lost, nothing double-counted**.
-- **[SHOW — offline then reconnect]** Put the phone in **airplane mode**, review a card offline (it works), then **turn the connection back on and sync** — the offline review lands on the desktop.
-- **[SAY]** "Here's the same app on Android — not a reimplementation. It's the **same Rust engine** cross-compiled for the phone, rendering the **same shared pages** and the same three scores, each with its honest range and the same give-up rule. It **syncs through a self-hosted server** — your data, your machine. A card I answer on the phone shows up on the desktop, and the reverse — with **no lost or double-counted reviews** (the engine unions the review log and checks integrity). And it works **offline**: review on the plane, and when the connection comes back it syncs cleanly. One engine, two apps, honestly in sync."
-- **[PROOF]** This scene is the required **phone→desktop sync recording**; also grab a still of the **Android three-scores** screen for `docs/PROOF-INDEX.md`. Backing test: the §7b conflict test (`repos/anki/rslib/src/sync/collection/tests.rs`) asserts all 20 distinct revlog entries on both sides + `integrity_check = ok`.
-
-### Scene 10 — Honest close (~20s)
-- **[SAY]** "That's Speedrun: one engine on two apps, a Readiness gauge that draws its own uncertainty, a prerequisite map that shows you what to fix first, objectively-graded problems, calibration that measures how well you know yourself — and scores that each know when to stay silent. All built on Anki. We'd rather ship something true than something that just looks impressive."
-
-### Scene 11 — AI generator + named-source citation (~35s) — REQUIRED (Due-Friday: AI added; every output cites a source)
-- **[SHOW]** Start the external service (`services/speedrun-ai`, `SPEEDRUN_AI_ENABLED=1` + `OPENAI_API_KEY`). On the desktop, open **THE MAP**, tap a **covered leaf topic (e.g. Calculus)**, and click **"⚡ Generate 5 practice problems."** The button is **only enabled when the service is reachable AND the topic is covered** (else it's disabled with an honest hint). On success: a toast "**Added N verified problems**," and each new card shows its **cited source**. Briefly show `services/speedrun-ai/README.md` — the **what / why / skipped** note.
-- **[SAY]** "The AI is a **separate service, off by default** — the study app never depends on it. Turn it on and you get a **Generate** button right on THE MAP, but only for topics the corpus actually covers. Every problem it adds went through a real **SymPy symbolic verifier**, was **grounded in a cited source**, and cleared a **gold-set leakage gate** — and every card it imports **shows that named source**. If it can't produce a verified, grounded problem, it **abstains and emits nothing** — it never imports a guess. What we skipped is written down too: no LLM reranker, and an entailment/support check is future work."
-
-### Scene 12 — AI eval + baseline side-by-side (~40s) — REQUIRED (Due-Friday: "checked" — accuracy, wrong-answer rate, cutoff, baseline)
-- **[SHOW]** A terminal: `PYTHONIOENCODING=utf-8 uv run python -m eval.gate` in `services/speedrun-ai/`. Show the recorded numbers (also in `services/speedrun-ai/eval/README.md`):
-  - **Wrong-answer rate = 0 %** (0/6 deliberately-wrong specs survived the verifier), pre-registered cutoff **≤ 2 %**.
-  - **Recall@10 = 90 %** (family, 45/50) on the **held-out** gold set; **leakage = 0**.
-  - **Baseline side-by-side (Recall@10):** BM25 **0.900** · dense/vector **0.900** · **hybrid 0.900** — hybrid **≥ each single-arm baseline (never regresses)**.
-- **[SAY]** "Before any of this reaches a student, it runs an eval on a **held-out set the generator and corpus never saw**. The number that matters most: **zero percent wrong answers** — anything the symbolic verifier can't confirm is dropped, against a pre-registered two-percent cutoff. Retrieval hits **ninety percent** of the right sources, with **zero leakage**. And here's the honest **side-by-side against the simpler methods** — keyword search and vector search: on this small, curated corpus **all three saturate at the same ninety percent**, so our hybrid **matches** them and, importantly, **never regresses below either** — we deliberately **don't manufacture a win the data doesn't support.** Where our AI decisively **beats** a naive generator is safety: **zero wrong answers** because every problem is symbolically verified — a plain keyword-or-vector pipeline with no verifier ships wrong answers."
-- **[PROOF]** The eval output + `services/speedrun-ai/eval/README.md` are the **eval-numbers + baseline** proof for submission (`docs/PROOF-INDEX.md`).
-
-### Scene 13 — Kill-switch: the app still scores with AI OFF (~15s) — REQUIRED (Due-Friday: score with AI switched off)
-- **[SHOW]** Stop the AI service (or unset the key). The **Generate** button on THE MAP goes **disabled**; the three scores on Home are **unchanged**. Optionally show `POST /generate` → **503** when disabled.
-- **[SAY]** "And with the AI switched **completely off** — service down, no key — the app still does everything: all three scores, THE MAP, sync, calibration. The scores are computed by the **Anki engine** from the curated bank; the AI service is **never imported** into it. The intelligence is a bonus, never a crutch."
+### Android emulator (for scene 9)
+Boot the x86_64 emulator, then install the app and import the deck:
+```powershell
+adb install -r "repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk"
+adb push "repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
+```
+Point both apps at your self-hosted sync server — steps in `docs\SYNC-SELFHOST.md`.
 
 ---
 
-## Honesty guardrails (enforced on camera)
-- ❌ Never show a **fabricated number on an abstaining/empty state** — if a score, the Readiness gauge, or a MAP node has no data, show the honest **"—" / "insufficient data" / "review N more to unlock"**. Real numbers come from real accumulated study, not a config tweak.
-- ❌ Never say "we improved / changed **FSRS**" — we build **on** it, unchanged.
-- ❌ Don't present **Readiness before ≥2 mini-mocks**; don't draw a per-topic Readiness number — exam-level is the real Readiness.
-- ❌ Don't imply the **AI runs inside rslib/rsdroid** — the generator is a separate, OFF-by-default HTTP service; the in-app **Generate** button calls it over localhost and imports only verified problems. The three scores never depend on it.
-- ❌ **On the baseline side-by-side, do NOT claim "our RAG beats keyword/vector."** The honest measured result is a **tie at the coverage ceiling (all 0.900)** with **non-regression** (hybrid ≥ each arm). The legitimate "beats a simpler method" claim is at the **safety** layer: **0 % wrong-answer via SymPy verification** vs an unverified generator. Say it exactly that way.
-- ✅ **Problem grading is now objective** — MCQ answers are key-checked backend-side, so **Performance is key-checked, not self-rated**. In the calibration beat, be clear: the **confidence bet is self-reported**, but the **outcome is objectively graded**.
-- ✅ **Useful / bad-teaching quality metrics are LLM-judge-gated** — only their cutoffs (≥80 % useful, ≤15 % bad-teaching) are pre-registered; run them at demo time with the key if you want them on camera, otherwise don't claim they're met.
-- ✅ Safe to show: the auto-imported deck on first launch, the three honest scores, the **Readiness gauge with its conformal band**, **THE MAP** with real mastery colors + grey abstains + the blast-radius highlight + the **⚡ Generate** button, points-at-stake **new-card** ordering + weakness×topic **due-card** interleave, backend MCQ auto-grade, the timed mini-mock, the **calibration self-bet + reliability diagram (Brier/ECE)**, the **memory→performance slope chart**, one-engine-two-apps with a **two-way + offline self-hosted sync**, the **0 % wrong-answer eval + baseline table**, and the **AI-off kill-switch**.
+## Script
 
-## Proof to capture for submission (Friday)
-1. **Eval numbers** — terminal run of `python -m eval.gate` (wrong-answer 0 %, Recall@10 90 %, leakage 0) + `services/speedrun-ai/eval/README.md`.
-2. **Baseline comparison** — the BM25 / dense / hybrid table (honest parity + non-regression) from the same eval README.
-3. **Phone→desktop sync recording** — a card reviewed on the phone appearing on the desktop after sync (and the reverse; plus the offline-then-reconnect clip).
-4. **Android three-scores still** — Home showing Memory/Performance/Readiness with ranges + a give-up state.
-5. Log all four in `docs/PROOF-INDEX.md`.
+**1 — Open.** "This is Speedrun *scrolls Speedrun Home* — an honest trainer for the GRE Math Subject Test, built on top of Anki's spaced-repetition engine. Same engine on desktop and phone, our own front door, and one rule: it never shows you a number it can't back up."
 
-## Pairs with
-- `docs/DEMO-SCRIPT.md` (click-by-click operator steps) · `docs/WHAT-WE-BUILT.md` (honest content reference) · `docs/RUN-MVP.md` (how to launch both apps).
+**2 — Three scores + Readiness gauge.** "Three scores, each earned from real data *points at Memory, Performance, Readiness*. Memory is recalled mastery, shown as a range. Performance is your chance on a novel problem. And Readiness maps onto the real 200-to-990 exam scale *points at the gauge and its band* — with a band for the uncertainty, not just a point. Below its data threshold it just abstains *points at a '—'* — no fake number."
+
+**3 — THE MAP.** "This is THE MAP *clicks THE MAP ▸* — the prerequisite graph of the whole subject. Every node is colored by your real mastery; grey ones honestly say '—'. Tap a weak topic like Calculus *taps a node* and its blast radius lights up *gestures at the highlighted downstream nodes* — everything it's holding back. Fix the root, and you lift everything above it."
+
+**4 — START RUN.** "START RUN *clicks ► START RUN* drops you into the exam deck. This is Anki's FSRS scheduler, unchanged — what we add is ordering: new cards by points-at-stake, and due reviews interleaved by weakness across topics."
+
+**5 — Problem + auto-grade + worked example.** "These are real multiple-choice problems *clicks a choice* — graded in the engine against the answer key: green if you're right, red with the key if you're not *shows the marking*. So Performance is objectively key-checked, not self-rated. Reveal the solution *reveals the worked solution* and you get a worked example with faded steps — not just the answer."
+
+**6 — Mini-mock.** "A mini-mock *clicks MINI-MOCK* is a short timed set from the problem bank — it's what feeds Readiness, which won't show a number until you've done at least two."
+
+**7 — Calibration.** "Before you check, you bet on yourself — Sure, Think, or Guess *places a bet, then grades the card*. We log that against how you actually did and plot it on the reliability diagram *opens the reliability diagram* — stated confidence versus real accuracy, scored with Brier and ECE. It shows exactly where you're overconfident — and abstains until it has enough bets."
+
+**8 — Memory→Performance gap.** "And the gap we care about most *shows the slope chart* — what you remember versus how you perform under time. When the line drops, you remember it but can't use it yet. That's the difference between flashcards and being exam-ready."
+
+**9 — Two apps, one engine + sync.** "Same app on Android *switches to the emulator* — same engine, the same three scores with ranges, the same MAP. I answer a card on the phone *answers a card, syncs* and it shows up on the desktop *shows it on desktop* — and the reverse — with no lost or double-counted reviews. And it works offline *airplane-mode a review, then reconnect and sync*: review on the plane, and it syncs when you're back."
+
+**10 — AI generate + cited source.** "There's also a separate AI generator — off by default, never inside the study app. Turn it on *(Terminal B running)* and tap Generate on a covered topic *clicks ⚡ Generate 5 practice problems* — every problem it adds was SymPy-verified, grounded in a cited source, and gold-gated, and each card shows its source *points at the citation*. If it can't verify one, it abstains and adds nothing."
+
+**11 — The eval (the "checked" part).** "Before any of that reaches a student, it runs an eval *shows Terminal C output* on a held-out set: zero percent wrong answers against a two-percent cutoff, ninety percent retrieval, zero leakage. Here's the honest side-by-side against keyword and vector search *points at the BM25 / dense / hybrid table* — on this small curated corpus all three tie at ninety percent, so we match them and never regress; we don't fake a win. Where our AI actually beats a naive baseline is safety: zero wrong answers, because every problem is symbolically verified."
+
+**12 — Kill switch.** "And with the AI switched fully off *stops Terminal B — the Generate button disables* the app still does everything — all three scores, the MAP, sync, calibration. The scores come from the engine; the AI is a bonus, never a crutch."
+
+**13 — Close.** "That's Speedrun: one engine on two apps, honest scores that draw their own uncertainty, a map that shows what to fix first, objectively-graded problems, and calibration that measures how well you know yourself. All built on Anki — we'd rather ship something true than something that just looks impressive."
+
+---
+
+## Keep it honest (on camera)
+- Show **"—"** wherever a score or topic has no data — never fake a number.
+- Don't say we changed **FSRS** — we build on it, unchanged.
+- Don't claim the RAG **beats** keyword/vector — it's an honest **tie**; the real win is **0% wrong via verification**.
+- Readiness needs **≥2 mini-mocks** and is **exam-level only** (no per-topic Readiness number).
+
+## Friday deliverables covered
+AI note + every-output-cited (scene 10) · eval accuracy / wrong-rate / cutoff + baseline (11) · scores with AI off (12) · two-way + offline sync, no lost/double-count (9) · phone shows 3 scores with ranges (9).
+**Proof to save:** the scene-11 eval output + `services/speedrun-ai/eval/README.md`, the phone→desktop sync clip, and an Android 3-scores screenshot → log in `docs/PROOF-INDEX.md`.
