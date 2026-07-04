@@ -28,7 +28,7 @@ Every "Due Friday" item must be visible on camera or in the captured proof. Map:
 - Have both windows ready to alt-tab / screen-record.
 
 ## Runtime budget (~6–7 min; AI + eval scenes are REQUIRED for Friday, not optional)
-1. Install & open — 20s · 2. Speedrun Home + Readiness gauge — 40s · 3. **THE MAP** — 45s · 4. START RUN + ordering — 25s · 5. Problem + MCQ auto-grade — 35s · 6. Mini-mock — 20s · 7. Calibration self-bet + reliability diagram — 35s · 8. Memory→Performance gap — 25s · 9. **Two apps, one engine + two-way / offline sync + phone 3 scores** — 55s · 10. Honest close — 20s · **11. AI generator + named-source citation — 35s · 12. AI eval + baseline side-by-side (the "checked" deliverable) — 40s · 13. Kill-switch: app still scores with AI OFF — 15s.**
+1. Install & open — 20s · 2. Speedrun Home + Readiness gauge — 40s · 3. **THE MAP** — 45s · 4. START RUN + ordering — 25s · 5. Problem + MCQ auto-grade + faded worked example — 45s · 6. Mini-mock — 20s · 7. Calibration self-bet + reliability diagram — 35s · 8. Memory→Performance gap — 25s · 9. **Two apps, one engine + two-way / offline sync + phone 3 scores** — 55s · 10. Honest close — 20s · **11. AI generator + named-source citation — 35s · 12. AI eval + baseline side-by-side (the "checked" deliverable) — 40s · 13. Kill-switch: app still scores with AI OFF — 15s.**
 
 ---
 
@@ -48,9 +48,9 @@ Every "Due Friday" item must be visible on camera or in the captured proof. Map:
 - **[SHOW]** Back on Home, click **► START RUN** → a real review session on the GRE deck (dark reviewer on **desktop**). Answer a card or two; if nothing's due, show the honest "caught up / Custom Study" banner.
 - **[SAY]** "START RUN drops you into the exam deck. Under the hood this is Anki's FSRS scheduler — we did **not** change FSRS and we did **not** reinvent memory science. What we add is **ordering**: **new cards by points-at-stake** — the highest-weighted exam topics first — and your **due reviews interleaved by weakness across topics**, which the research shows beats blocked practice."
 
-### Scene 5 — Problem + MCQ auto-grade (~35s)
-- **[SHOW]** Study a **Speedrun::Problem** multiple-choice card. **Click a choice** — it's graded **backend-side against the answer key**: **correct → green + locked**, **wrong → red + the key revealed**.
-- **[SAY]** "These are real multiple-choice problems, and grading happens **in the engine, against the answer key** — click a choice and it's checked immediately: green and locked if you're right, red with the correct key shown if you're not. That matters, because it means **Performance is now objectively key-checked** — not self-rated. The app knows whether you actually got it right, so the number it reports is real."
+### Scene 5 — Problem + MCQ auto-grade + faded worked example (~45s)
+- **[SHOW]** Study a **Speedrun::Problem** multiple-choice card. **Click a choice** — it's graded **backend-side against the answer key**: **correct → green + locked**, **wrong → red + the key revealed**. Then reveal the **worked solution**: it shows the method **step-by-step (LS2 worked-examples-first with faded steps)**, not just the final answer.
+- **[SAY]** "These are real multiple-choice problems, and grading happens **in the engine, against the answer key** — click a choice and it's checked immediately: green and locked if you're right, red with the correct key shown if you're not. That means **Performance is now objectively key-checked** — not self-rated — so the number it reports is real. And when you reveal the solution, you get a **worked example with faded steps** — the research-backed way to learn a method — not just the answer."
 
 ### Scene 6 — Timed mini-mock (~20s)
 - **[SHOW]** On Home, click **MINI-MOCK** → a **timed** set drawn from the problem bank. Answer a couple, finish.

@@ -11,6 +11,12 @@
 
 ## Pending
 
+### 2026-07-03 (19:32) — ✅ CURSOR: ACK — ALL 3 TASKS DONE. MSI copied to canonical path. Branch audit clean. You're free (Sunday #4 stretch optional).
+- **MSI verified + relocated:** confirmed 203,134,644 bytes; **copied to the canonical `repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** so the grader README path is correct even after you prune `anki-installer-wt`. Fresh-profile auto-import (35 declarative + 64 MCQ = 99) proven — thanks.
+- **Branch audit (David asked):** `git branch --no-merged main` = **EMPTY on all 3 code repos** (anki `8cd09ec51`, anki-android `6845e4e70a`, AAB `5e02a2b`). The 62/40/33 counts David sees are inherited **upstream** branches (dependabot/release/archive) + our merged backup `feat/*`. Nothing valuable unmerged.
+- **Docs synced:** umbrella README (grader instructions + pins + MSI ~194 MB + AI Generate button + auto-import) and the demo script (all Friday deliverables + LS2 faded worked-example) updated + pushed.
+- **→ Safe to prune your worktrees.** Optional next: the **Sunday deliverable-#4 fair-harder retrieval eval** (`docs/FUTURE-PLANS.md`) — HONEST attempt only, non-blocking; the tie stands for the demo. Otherwise stand by; David is recording.
+
 ### 2026-07-03 (installer MSI) — → Cursor: ✅ (3) RELEASE MSI REBUILT + VERIFIED. All 3 demo tasks DONE. Handing off to David's human gates.
 The RELEASE MSI is built from `8cd09ec51` and the bundled-deck + first-run auto-import are proven end-to-end:
 - **MSI:** `anki-installer-wt/out/installer/dist/anki-26.05-win-x64.msi` — **203,134,644 bytes (~194 MB)**. Build clean: `installer:build` + `installer:package`, `n2: ran 56 tasks`, **`Build succeeded`, EXIT_CODE=0** (911 s). (Compressed ~194 MB vs the older ~599 MB uncompressed figure — this is the packaged MSI.)

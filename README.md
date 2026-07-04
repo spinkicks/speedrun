@@ -10,9 +10,9 @@ Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitec
 
 ## Status (2026-07-03 — full feature set merged to `main`, both platforms)
 
-Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study. Four pure-SVG **interactive visuals** — headlined by **THE MAP** (an interactive prerequisite graph) — ship on both platforms and abstain honestly like the scores.
+Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study — and, when enabled, is reachable from an in-app **⚡ Generate practice** button on THE MAP (imports only verified, cited problems). Four pure-SVG **interactive visuals** — headlined by **THE MAP** (an interactive prerequisite graph) — ship on both platforms and abstain honestly like the scores. The **Windows installer bundles the seed deck and auto-imports it on first launch** (graders install → launch → data is already there).
 
-**Current `main` pins:** anki `348db0c6c` · Anki-Android-Backend `70b8eaf` · anki-android `6845e4e70a` · umbrella `e36d765`.
+**Current `main` pins:** anki `8cd09ec51` · Anki-Android-Backend `5e02a2b` · anki-android `6845e4e70a` · umbrella `149ab33` (advances with docs commits).
 
 See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pending breakdown, and `docs/STATE.md` for the live handoff state.
 
@@ -35,7 +35,8 @@ See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pend
 - **Ablation harness (§8)** — one build, three modes (`AblationMode` Full/FeatureOff/Plain), pre-registered metrics (`docs/ablation-s8-results.md`).
 
 ### Optional, OFF by default
-- **AI/RAG generation service** (`services/speedrun-ai/`, FastAPI + LangGraph) — propose → SymPy verify → hybrid RAG ground → distractors → gold-set gate → emit or abstain. Requires `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY`. Never imported into `rslib`/`rsdroid`; the app scores fully with AI off.
+- **AI/RAG generation service** (`services/speedrun-ai/`, FastAPI + LangGraph) — propose → SymPy verify → hybrid RAG ground → distractors → gold-set gate → emit or abstain. Requires `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY`. Never imported into `rslib`/`rsdroid`; the app scores fully with AI off. Pre-registered eval numbers (wrong-answer **0 %**, Recall@10 **90 %**, leakage **0**, honest baseline side-by-side) in `services/speedrun-ai/eval/README.md`.
+- **In-app ⚡ Generate practice button** (desktop, THE MAP) — enabled only when the service is reachable **and** the node is a covered leaf topic; imports **only verified, cited** problems as `Speedrun::Problem` (tagged `ai-generated`). Disabled with an honest hint when AI is off. Desktop-first; hidden/disabled on Android.
 
 ### Still pending (human / Sunday)
 Android emulator visual gate + live desktop↔Android sync-demo recording + demo video; Sunday eval runs (calibration reliability + Brier/log-loss, performance accuracy on held-out, score-mapping writeup); robustness (crash×20, offline, `make bench` p50/p95 on a 50k-card deck); signed APK; final BrainLift pass.
@@ -48,7 +49,7 @@ Android emulator visual gate + live desktop↔Android sync-demo recording + demo
 
 ### Desktop — easiest: the installer (deck pre-loaded)
 A packaged, release-optimized Windows installer is prebuilt at
-**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer now bundles the seed deck and auto-imports it on first launch**, so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels). Rebuild if the prebuilt MSI predates the Friday UI.
+**`repos/anki/out/installer/dist/anki-26.05-win-x64.msi`** (~194 MB, built 2026-07-03 from anki `main` `8cd09ec51` — includes the full Friday UI: 4 visuals + MCQ auto-grade + AI Generate button) — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer bundles the seed deck and auto-imports it on first launch** (idempotent, config-gated, skips if the exam deck already exists), so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels).
 
 ### Desktop — from source
 ```powershell
