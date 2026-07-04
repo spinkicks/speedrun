@@ -45,7 +45,23 @@ Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -
 ```powershell
 & "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" push "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
 ```
-In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`, then sign into the **same** self-hosted sync server as desktop (`docs\SYNC-SELFHOST.md`).
+In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`. (Sync setup is Terminal E below.)
+
+### Terminal E — Self-hosted sync server (for scene 9)
+```powershell
+cd C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki
+$env:SYNC_USER1 = "test:test"      # login is  test / test
+$env:SYNC_PORT  = "8088"
+$env:SYNC_BASE  = "$PWD\out\syncserver-data"
+cargo run --release -p anki-sync-server
+```
+Leave it running (first run compiles the server — a few minutes). It listens on `http://127.0.0.1:8088/`.
+
+**Point both apps at it (same account `test` / `test`):**
+- **Desktop** (`just run` app): `Preferences → Syncing → Self-hosted sync server` → `http://127.0.0.1:8088/` → close → click **Sync** → log in `test` / `test` → choose **Upload to server** (the server starts empty).
+- **Emulator** (AnkiDroid): `Settings → Sync → Custom sync server` → set the sync URL to **`http://10.0.2.2:8088/`** (that address is how the emulator reaches your PC) → back → **Sync** → log in `test` / `test` → choose **Download from server**.
+
+Both now hold the same collection — you're ready for scene 9.
 
 ---
 
