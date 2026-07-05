@@ -59,7 +59,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 | **Demo video (3–5 min)** | ⬜ | per `docs/DEMO-VIDEO-SCRIPT.md` — review session, Rust change, phone→desktop sync, 3 scores w/ ranges, AI features, test results; **highlight what changed since the MVP** |
 | **Phone build install + run on clean device** | ⬜ | install the signed APK on a fresh emulator/device; review session |
 | **Live two-way + offline sync** | ⬜ | desktop↔Android via self-hosted server (`docs/SYNC-SELFHOST.md`); card reviewed on phone appears on desktop + reverse + offline-reconnect |
-| **Android three-scores screenshot** | ⬜ | Memory/Performance/Readiness with ranges + abstain states |
+| **Android three-scores + sidebar (native-verify)** | ✅ | Cursor ran it on the Pixel_10 emulator (x86_64 debug APK on AAB `ccccad3`): Home shows the sidebar nav + all 3 scores abstaining honestly; The Map graph renders (Part-B `speedrun-map` route works); Memory renders w/ abstains. Screenshots `repos/anki/speedrun/out/emu-04-home.png`, `emu-05-map.png`, `emu-06-memory.png` — re-usable in the demo/submission |
 
 ---
 
