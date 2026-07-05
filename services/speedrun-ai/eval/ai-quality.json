@@ -1,0 +1,43 @@
+{
+  "blocked": 0,
+  "counts": {
+    "bad_teaching": 0,
+    "correct_not_useful": 0,
+    "correct_useful": 47,
+    "wrong": 0
+  },
+  "cutoffs": {
+    "bad_teaching": {
+      "cutoff": 0.15,
+      "direction": "<=",
+      "pass": true,
+      "value": 0.0
+    },
+    "correct_useful": {
+      "cutoff": 0.8,
+      "direction": ">=",
+      "pass": true,
+      "value": 1.0
+    },
+    "wrong": {
+      "cutoff": 0.02,
+      "direction": "<=",
+      "pass": true,
+      "value": 0.0
+    }
+  },
+  "judge_model": "gpt-4o",
+  "kept": 47,
+  "n_abstained": 3,
+  "n_generated": 50,
+  "n_judged": 47,
+  "passed": true,
+  "rates": {
+    "bad_teaching": 0.0,
+    "correct_useful": 1.0,
+    "wrong": 0.0
+  },
+  "source": "OpenStax Calculus Vol. 1, single-variable differentiation (\u00a73.1-3.6, 4.3-4.4) (CC BY 4.0)",
+  "spec": "\u00a77f AI-card 3-count (AI checking & safety)",
+  "topic": "calc::single_var::differentiation"
+}
