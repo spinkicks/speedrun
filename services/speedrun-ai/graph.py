@@ -31,6 +31,7 @@ by the caller (``app.py`` and Tasks 4.3 / 4.4).
 
 from __future__ import annotations
 
+import random
 import re
 from typing import Any, Callable, Optional, TypedDict
 
@@ -360,16 +361,30 @@ def _make_distractors_node(make_distractors: MakeDistractors):
     return distractors
 
 
-def _assemble_choices(correct: str, distractors: list) -> list[str]:
+def _assemble_choices(correct: str, distractors: list, seed: str = "") -> list[str]:
     """Assemble the answer choices: correct answer + distractors, deduped, with
     the correct answer appearing exactly once. Shared by the gold_gate node (so
     the gate scans exactly what will ship) and :func:`emit_node`.
+
+    BUG P1-C: the choices used to be returned as ``[correct, *distractors]``, so
+    the correct answer was UNCONDITIONALLY index 0 → the app lettered it 'A' for
+    every problem → trivially gameable (and it feeds the objectively
+    key-checked Performance estimator). We now shuffle the assembled options so
+    the correct value's position VARIES per problem.
+
+    The shuffle is DETERMINISTIC: it is seeded from a stable per-problem key
+    (``seed``, e.g. the stem), so generation stays reproducible and tests are
+    stable, and — critically — the gold_gate node and :func:`emit_node` produce
+    the IDENTICAL order (the gate scans exactly what ships) as long as both pass
+    the same ``seed``. No nondeterminism is introduced.
     """
     choices: list[str] = []
     for option in [correct, *distractors]:
         option = str(option).strip()
         if option and option not in choices:
             choices.append(option)
+    # Deterministic per-problem permutation keyed on a stable field (the stem).
+    random.Random(str(seed)).shuffle(choices)
     return choices
 
 
@@ -387,8 +402,11 @@ def _candidate_for_gate(state: GraphState) -> dict:
     candidate = dict(state.get("candidate", {}))
     correct = str(candidate.get("correct", "")).strip()
     distractors = list(state.get("distractors", []))
+    # Seed the deterministic shuffle on the stem so the gate scans EXACTLY the
+    # choice ordering emit_node will ship (same seed → same order).
+    stem = str(candidate.get("stem", ""))
     candidate["distractors"] = distractors
-    candidate["choices"] = _assemble_choices(correct, distractors)
+    candidate["choices"] = _assemble_choices(correct, distractors, seed=stem)
     return candidate
 
 
@@ -408,8 +426,11 @@ def emit_node(state: GraphState) -> dict:
     correct = str(candidate.get("correct", "")).strip()
     distractors = list(state.get("distractors", []))
     # Assemble the answer choices: correct answer + distractors, deduped, with
-    # the correct answer appearing exactly once.
-    choices = _assemble_choices(correct, distractors)
+    # the correct answer appearing exactly once, then deterministically shuffled
+    # (BUG P1-C) keyed on the stem — the SAME seed the gold_gate node used, so
+    # the gate scanned exactly this ordering.
+    stem = str(candidate.get("stem", ""))
+    choices = _assemble_choices(correct, distractors, seed=stem)
 
     problem = {
         "stem": candidate.get("stem", ""),

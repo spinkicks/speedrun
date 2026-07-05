@@ -441,7 +441,9 @@ def test_limit_infinite_x_to_oo():
 
 
 def test_limit_infinite_one_over_x():
-    """lim_{x→0+} 1/x = oo (SymPy default dir='+') → PASS."""
+    """lim_{x→0} 1/x: left=-oo, right=+oo → BOTH infinite. Under the documented
+    unsigned-infinite convention this is accepted, so claimed 'oo' → PASS. (This
+    is the case the two-sided rule must NOT break.)"""
     spec = ProblemSpec(
         answer_type="limit",
         expression="1/x",
@@ -480,6 +482,103 @@ def test_limit_infinite_wrong_still_fails():
     except Exception as exc:  # pragma: no cover
         pytest.fail(f"verify() raised on infinite-vs-finite limit: {exc}")
     assert result.passed is False, f"Expected FAIL got PASS: {result.reason}"
+
+
+# ===========================================================================
+# BUG P1-D (SAFETY): the limit verifier used SymPy's DEFAULT one-sided
+# ``limit(expr, var, point)`` (dir='+', right-hand). For expressions whose
+# TWO-SIDED limit does NOT exist but whose right-hand limit is clean
+# (floor(x), sign(x), Abs(x)/x, exp(1/x)), the honesty gate wrongly labelled an
+# ill-posed problem as "verified". The verifier must require the two-sided limit
+# to EXIST: accept iff (left and right are both finite and equal) OR (both are
+# infinite — the project's documented unsigned-infinite convention). Reject when
+# the one-sided limits differ finitely, differ in sign, or one is finite and the
+# other infinite.
+# ===========================================================================
+def test_limit_two_sided_dne_floor_claimed_zero_fails():
+    """lim_{x→0} floor(x): left=-1, right=0 → two-sided DNE. Right-hand alone is
+    0, so the one-sided bug would PASS claimed '0'. Two-sided rule → FAIL."""
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="floor(x)",
+        variable="x",
+        limit_point="0",
+        claimed_answer="0",
+    )
+    result = verify(spec)
+    assert result.passed is False, (
+        f"floor(x)@0 has no two-sided limit (left=-1, right=0); "
+        f"must FAIL not PASS: {result.reason}"
+    )
+
+
+def test_limit_two_sided_dne_abs_over_x_claimed_one_fails():
+    """lim_{x→0} Abs(x)/x: left=-1, right=1 → two-sided DNE. Right-hand alone is
+    1, so the one-sided bug would PASS claimed '1'. Two-sided rule → FAIL."""
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="Abs(x)/x",
+        variable="x",
+        limit_point="0",
+        claimed_answer="1",
+    )
+    result = verify(spec)
+    assert result.passed is False, (
+        f"Abs(x)/x@0 has no two-sided limit (left=-1, right=1); "
+        f"must FAIL not PASS: {result.reason}"
+    )
+
+
+def test_limit_two_sided_dne_sign_claimed_one_fails():
+    """lim_{x→0} sign(x): left=-1, right=1 → two-sided DNE. Right-hand alone is
+    1, so the one-sided bug would PASS claimed '1'. Two-sided rule → FAIL."""
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="sign(x)",
+        variable="x",
+        limit_point="0",
+        claimed_answer="1",
+    )
+    result = verify(spec)
+    assert result.passed is False, (
+        f"sign(x)@0 has no two-sided limit (left=-1, right=1); "
+        f"must FAIL not PASS: {result.reason}"
+    )
+
+
+def test_limit_two_sided_dne_exp_recip_finite_vs_infinite_fails():
+    """lim_{x→0} exp(1/x): left=0 (finite), right=oo (infinite) → two-sided DNE.
+    Right-hand alone is oo, so the one-sided bug would PASS claimed 'oo'. One
+    side finite and the other infinite → FAIL under the two-sided rule."""
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="exp(1/x)",
+        variable="x",
+        limit_point="0",
+        claimed_answer="oo",
+    )
+    result = verify(spec)
+    assert result.passed is False, (
+        f"exp(1/x)@0 has no two-sided limit (left=0 finite, right=oo infinite); "
+        f"must FAIL not PASS: {result.reason}"
+    )
+
+
+def test_limit_two_sided_exists_sin_over_x_still_passes():
+    """Guard against over-tightening: lim_{x→0} sin(x)/x = 1 has a genuine
+    two-sided limit (left=1, right=1). Claimed '1' must still PASS."""
+    spec = ProblemSpec(
+        answer_type="limit",
+        expression="sin(x)/x",
+        variable="x",
+        limit_point="0",
+        claimed_answer="1",
+    )
+    result = verify(spec)
+    assert result.passed is True, (
+        f"sin(x)/x@0 has a genuine two-sided limit of 1; must still PASS: "
+        f"{result.reason}"
+    )
 
 
 # ===========================================================================
