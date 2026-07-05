@@ -511,3 +511,48 @@ def test_uncovered_topic_abstains_before_proposing(topic):
     assert llm.calls["n"] == 0, (
         "the scoping guard must abstain BEFORE proposing on an uncovered topic"
     )
+
+
+# ---------------------------------------------------------------------------
+# BUG P1-C: option order must VARY per problem (correct not always index 0).
+# ``_assemble_choices`` used to build ``[correct, *distractors]`` unconditionally,
+# so the correct answer was ALWAYS choices[0] → always letter 'A' → trivially
+# gameable. It must now shuffle DETERMINISTICALLY per problem (stable seed) while
+# keeping the correct value present exactly once.
+# ---------------------------------------------------------------------------
+
+
+def test_assemble_choices_keeps_correct_exactly_once():
+    from graph import _assemble_choices
+
+    choices = _assemble_choices("1", ["2", "3", "4"], seed="some stem")
+    assert sorted(choices) == sorted(["1", "2", "3", "4"])
+    assert choices.count("1") == 1
+
+
+def test_assemble_choices_is_deterministic_for_same_seed():
+    """Same (correct, distractors, seed) → identical order every time (stable
+    tests, reproducible generation — no nondeterminism)."""
+    from graph import _assemble_choices
+
+    a = _assemble_choices("1", ["2", "3", "4", "5"], seed="stable-key")
+    b = _assemble_choices("1", ["2", "3", "4", "5"], seed="stable-key")
+    assert a == b
+
+
+def test_assemble_choices_position_varies_across_problems():
+    """Across problems with distinct correct values / seeds the correct answer's
+    index is NOT constant 0 — i.e. the option order actually varies."""
+    from graph import _assemble_choices
+
+    positions = set()
+    for i in range(20):
+        correct = str(i)
+        distractors = [str(i + 100 + d) for d in range(4)]
+        choices = _assemble_choices(correct, distractors, seed=f"stem-{i}")
+        assert choices.count(correct) == 1
+        positions.add(choices.index(correct))
+    assert positions != {0}, (
+        "correct answer is always index 0 — options are not being shuffled"
+    )
+    assert len(positions) > 1, "correct-answer position never varies across problems"

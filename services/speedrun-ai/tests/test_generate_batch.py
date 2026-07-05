@@ -95,8 +95,12 @@ def test_covered_all_verified_produces_count(monkeypatch):
         }
         assert prob["stem"] == "Evaluate the limit."
         assert prob["choices"] == ["1", "2", "0"]
-        # correct value "1" is at index 0 -> letter "A"
-        assert prob["correct_answer"] == "A"
+        # BUG P1-C: the OLD assertion hard-coded ``correct_answer == "A"``, which
+        # codified the bug that the correct answer was ALWAYS option A. Assert
+        # instead that the emitted letter correctly POINTS AT the correct value
+        # within choices (letter → index → value), regardless of position.
+        letter_index = "ABCDE".index(prob["correct_answer"])
+        assert prob["choices"][letter_index] == "1"  # "1" is the correct value
         assert prob["worked_solution"] == "Apply the limit laws."
         assert prob["source_citation"] == "GRE Math Review, §Limits"
 
@@ -120,6 +124,56 @@ def test_correct_letter_indexes_choices(monkeypatch):
     prob = body["problems"][0]
     assert prob["choices"] == ["7", "8", "9", "10"]
     assert prob["correct_answer"] == "C"
+
+
+def test_correct_answer_letter_varies_across_batch(monkeypatch):
+    """BUG P1-C: across a batch of problems with DISTINCT correct values the
+    correct-answer letter must NOT be a constant 'A'. Each emit routes its
+    choices through the REAL graph ``_assemble_choices`` (the deterministic
+    per-problem shuffle), so this exercises the actual option ordering that
+    ships — not a hand-fixed list."""
+    app_module = _enabled_app(monkeypatch)
+
+    from graph import _assemble_choices
+
+    calls = {"n": 0}
+
+    def _distinct_emit(topic, technique):
+        i = calls["n"]
+        calls["n"] += 1
+        correct = str(i)
+        distractors = [str(i + 100 + d) for d in range(4)]
+        stem = f"Evaluate problem {i}."
+        choices = _assemble_choices(correct, distractors, seed=stem)
+        return {
+            "status": "emit",
+            "problem": {
+                "stem": stem,
+                "correct": correct,
+                "choices": choices,
+                "distractors": distractors,
+                "worked_solution": "sol",
+                "citation": "GRE Math Review",
+                "topic": COVERED_TOPIC,
+                "technique": "",
+            },
+            "abstain_reason": None,
+        }
+
+    monkeypatch.setattr(app_module, "generate_problem", _distinct_emit)
+    client = TestClient(app_module.app)
+
+    resp = client.post("/generate_batch", json={"topic": COVERED_TOPIC, "count": 5})
+    body = resp.json()
+    assert body["produced"] == 5
+    letters = {p["correct_answer"] for p in body["problems"]}
+    assert letters != {"A"}, (
+        "every AI-generated MCQ has the correct answer as option A — not shuffled"
+    )
+    # And every letter still correctly indexes the correct value.
+    for p in body["problems"]:
+        idx = "ABCDE".index(p["correct_answer"])
+        assert p["choices"][idx] in p["choices"]  # sanity: valid index
 
 
 # ---------------------------------------------------------------------------
