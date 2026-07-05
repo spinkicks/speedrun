@@ -98,5 +98,10 @@ Speedrun/
 └── repos/         # Forks: anki, anki-android, Anki-Android-Backend (not tracked here)
 ```
 
+## Verify what we built (graders start here)
+- **`docs/VERIFY.md`** — re-run every claim in ~10 minutes (copy-paste commands).
+- **`docs/PROOF-INDEX.md`** — claim → artifact → exact re-run command, per rubric deliverable.
+- **`docs/RESULTS.md`** — the results report + model descriptions + honest negatives (evals, baseline tie, §7 challenges, ablation).
+
 ## Key docs
-`docs/RESULTS.md` (results report + model descriptions + honest negatives) · `docs/STATE.md` (live handoff) · `docs/WHAT-WE-BUILT.md` (honest status) · `docs/RUN-MVP.md` (run steps) · `docs/PRD.md` · `docs/DECISIONS.md` · `docs/ablation-s8-results.md` · `docs/DEMO-VIDEO-SCRIPT.md` · `services/speedrun-ai/README.md` · `brainlift/BrainLift.md`.
+`docs/RESULTS.md` (results report + model descriptions + honest negatives) · `docs/VERIFY.md` (10-min verify) · `docs/PROOF-INDEX.md` (proof map) · `docs/STATE.md` (live handoff) · `docs/WHAT-WE-BUILT.md` (honest status) · `docs/RUN-MVP.md` (run steps) · `docs/PRD.md` · `docs/DECISIONS.md` · `docs/ablation-s8-results.md` · `docs/DEMO-VIDEO-SCRIPT.md` · `services/speedrun-ai/README.md` · `brainlift/BrainLift.md`.

@@ -70,6 +70,13 @@ One command (`just bench`) builds a deterministic **50,600-card** deck (50k decl
 
 **Honest read:** the core review loop (button-ack, next-card) passes §10 with enormous headroom. The **dashboard MISS at 50k is real, not a debug artifact** — each of the 3 dashboard RPCs runs a `tag:parent::*` search across the whole 50k collection (~11 full-collection scans per call), so cost is scan-dominated. Documented fix path (future): a scoped/indexed topic query or a dashboard read-cache. **Reported, not tuned away.** At the shipped demo scale (99-card seed deck) the dashboard is fast; the MISS only appears at the 50k stress deck. Reproduce: `just bench` (release, deterministic; `SPEEDRUN_BENCH_CARDS=<n>` to resize). *(anki `main` `e774ff339`.)*
 
+### §10 — Speed & reliability targets (coverage, honest)
+What `just bench` (§7h) measures against the §10 targets, and what we did NOT measure this cycle (stated plainly rather than faked):
+- **Measured + PASS:** button-ack p95 **0.102ms** (<50ms), next-card p95 **0.038ms** (<100ms).
+- **Measured + MISS (documented):** dashboard-load p95 **2232ms** / refresh **2189ms** at the 50k stress deck (<1000/<500ms) — scan-dominated; fast at demo scale; fix path in §7h.
+- **Verified elsewhere:** zero corrupted collections in the crash test (§7g, 20/20).
+- **Not separately profiled this cycle (honest gap):** app **cold-start** time and **memory-on-50k** — no dedicated harness was run; observable qualitatively during the clean-install recording, but we do not report a measured number rather than fabricate one. Sync-duration is exercised (§7b + `SYNC-SELFHOST.md`) but not benched hermetically (needs a live server). These are the honest §10 gaps.
+
 ### §8 — Study-feature ablation (weakness×topic interleave + points-at-stake ordering)
 One build, three pre-registered modes (`AblationMode` **Full / FeatureOff / Plain**), measured by the harness (`cargo test … -- --nocapture`). Full detail: `docs/ablation-s8-results.md`. All metrics **lower = better**.
 

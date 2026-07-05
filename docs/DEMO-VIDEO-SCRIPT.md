@@ -68,6 +68,14 @@ Both now hold the same collection — you're ready for scene 9.
 
 ---
 
+## Since the Wednesday MVP (call this out on camera — the manager wants the delta)
+Open with one line, and weave it through: "The Wednesday MVP was two apps on one engine with an honest Memory score. Since then we added the two harder bridges and the proof." What's new since the MVP:
+- **Three real scores** (MVP had Memory only): **Performance** — now **objectively key-checked** by clickable MCQ auto-grading, not self-rated — and exam-level **Readiness** (200–990 + conformal range + give-up rule).
+- **Four interactive visuals** (new): THE MAP prerequisite graph w/ blast-radius, calibration reliability diagram, memory→performance gap slope, readiness gauge.
+- **Clean sidebar shell** (new): one-click Home / The Map / Memory / Start Run / Mini-mock.
+- **External AI service** (new, OFF by default): verified + source-cited generation, with an in-app Generate button.
+- **The proof** (new — this is the Sunday story): calibration Brier/log-loss, held-out performance, the §8 ablation, the §7f AI 3-count, the leakage check, crash×20, and `just bench`.
+
 ## Script
 
 **1 — Open.** "This is Speedrun *scrolls Speedrun Home; gesture at the left sidebar* — an honest trainer for the GRE Math Subject Test, built on top of Anki's spaced-repetition engine. Everything's one click from this sidebar — Home, The Map, Memory, and your practice runs. Same engine on desktop and phone, our own front door, and one rule: it never shows you a number it can't back up."
