@@ -4,7 +4,11 @@ A desktop + Android study app built **on Anki**, focused on one graduate exam: t
 
 > One exam. Two apps on one Rust engine. A real engine change. Honest scores that show a **range** and **refuse to answer** when they lack data.
 
-> **📦 Graders — download the desktop installer:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** → `anki-26.05-win-x64.msi` (~194 MB, Windows x64). Run it, launch **Speedrun**, and the study deck **auto-imports on first launch** — no manual import. Full run guide (Android, sync, AI): [How to run](#how-to-run-for-graders--reviewers).
+> **📦 Graders — download the builds:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** →
+> - **Desktop:** `anki-26.05-win-x64.msi` (Windows x64). Run it, launch **Speedrun**, and the study deck **auto-imports on first launch** — no manual import. Enable the optional AI generator via **Tools → "Enable AI generation (this session)"** (no env var needed).
+> - **Phone:** `AnkiDroid-play-arm64-v8a-release.apk` (signed, arm64 real device). Sideload it, open **Speedrun: Home**.
+>
+> Fastest local bring-up (from source): `powershell -ExecutionPolicy Bypass -File scripts\speedrun-launch.ps1 -All`. Verify every claim in ~10 min: **[`docs/VERIFY.md`](docs/VERIFY.md)**. Full run guide: [How to run](#how-to-run-for-graders--reviewers).
 
 Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitects/anki). Some upstream components are BSD-3-Clause; the Android app is GPL-3.0.
 
@@ -14,7 +18,7 @@ Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitec
 
 Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study — and, when enabled, is reachable from an in-app **⚡ Generate practice** button on THE MAP (imports only verified, cited problems). Four pure-SVG **interactive visuals** — headlined by **THE MAP** (an interactive prerequisite graph) — ship on both platforms and abstain honestly like the scores. The **Windows installer bundles the seed deck and auto-imports it on first launch** (graders install → launch → data is already there).
 
-**Current `main` pins:** anki `8cd09ec51` · Anki-Android-Backend `5e02a2b` · anki-android `6845e4e70a` · umbrella `149ab33` (advances with docs commits).
+**Current `main` pins:** anki `b28c23648` · Anki-Android-Backend `ccccad3` · anki-android `5680917f79` · umbrella `main` (advances with docs commits). Adds since the earlier pins: the persistent **sidebar** shell (both platforms, native-verified), the in-app **AI toggle**, and all Sunday evals recorded in `docs/RESULTS.md`.
 
 See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pending breakdown, and `docs/STATE.md` for the live handoff state.
 

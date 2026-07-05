@@ -1,6 +1,6 @@
 # Speedrun — Demo Video Script
 
-Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Golden rule: never show a number the app can't back up — where a score has no data, show the honest **"—"**.
+Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Golden rule: never show a number the app can't back up — where a score has no data, show the honest **"—"**. **Final-submission build (2026-07-05):** anki `main` `b28c23648` · anki-android `5680917f79` · Anki-Android-Backend `ccccad3`. Installers hosted on the GitHub Release `v0.1.0-early` (MSI + signed arm64 APK). Grader verify guide: `docs/VERIFY.md`.
 
 ---
 
@@ -27,6 +27,8 @@ uv run uvicorn app:app --port 8000   # leave this running; serves on http://127.
 ```
 Verify it's up (in Terminal C or a browser): open `http://127.0.0.1:8000/health` → should show `{"status":"ok","ai_enabled":true}`. If it says `ai_enabled:false`, the `.env` key/flag isn't set.
 
+**Enabling the ⚡ button (two ways):** the launcher (`-All`) and Terminal A's `just run` don't set `SPEEDRUN_AI_ENABLED` unless you export it. Easiest on camera: with the service running, use the **in-app toggle** — **Tools → "Enable AI generation (this session)"** (OFF by default; flips the desktop enable flag, key stays in the service). This is exactly how a grader on the installed **MSI** enables it. (The `-All` launcher already exports the flag for you; the toggle is the click-only path.)
+
 ### Terminal C — Eval numbers (run when you reach scene 11)
 ```powershell
 cd services\speedrun-ai
@@ -49,6 +51,8 @@ Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -
 & "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" push "C:\Users\davir\Ultra\Alpha\Speedrun\repos\anki\speedrun\out\gre_math_seed.apkg" /sdcard/Download/
 ```
 In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`. (Sync setup is Terminal E below.)
+
+> **APK note (which build to use where):** the **emulator** (x86_64) needs the **x86_64 debug** APK above. The **signed release** build for a **real arm64 device** — `AnkiDroid-play-arm64-v8a-release.apk` — is on the GitHub Release `v0.1.0-early` (that's the "packaged signed phone build" deliverable; use it for a clean-device install recording, not the x86_64 emulator).
 
 ### Terminal E — Self-hosted sync server (for scene 9)
 ```powershell
