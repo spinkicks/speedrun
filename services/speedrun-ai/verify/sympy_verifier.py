@@ -567,10 +567,48 @@ def _verify_limit(spec: ProblemSpec) -> VerificationResult:
     if err:
         return _fail(f"limit_point parse error: {err}")
 
+    # BUG P1-D: SymPy's default ``limit(expr, var, point)`` is ONE-SIDED
+    # (dir='+', the right-hand limit). Accepting on the right-hand limit alone
+    # lets an ill-posed problem whose TWO-SIDED limit does NOT exist pass as
+    # "verified" (e.g. floor(x), sign(x), Abs(x)/x, exp(1/x) at 0). The honesty
+    # gate must require the two-sided limit to EXIST first: compute BOTH the
+    # left- and right-hand limits and accept the existence only when
+    #   (a) both are finite and equal, OR
+    #   (b) both are infinite (the project's documented unsigned-infinite
+    #       convention — see BUG 2 regression, e.g. 1/x @ 0 → oo).
+    # Any other combination (finite but unequal, one finite / one infinite)
+    # means the two-sided limit does not exist → reject (fail closed / abstain).
+    # All finiteness reasoning is wrapped so any exception fails CLOSED rather
+    # than granting a spurious PASS.
     try:
-        true_limit = limit(expr, var, point)
+        left = limit(expr, var, point, "-")
+        right = limit(expr, var, point, "+")
     except Exception as exc:
         return _fail(f"failed to compute limit: {exc}")
+
+    try:
+        left_finite = left.is_finite is True and left.is_number
+        right_finite = right.is_finite is True and right.is_number
+        left_infinite = left.is_infinite is True
+        right_infinite = right.is_infinite is True
+    except Exception as exc:
+        # Fail CLOSED: if we cannot even classify the one-sided limits, refuse
+        # rather than fall through to a symbolic-only PASS.
+        return _fail(f"limit existence guard errored (failing closed): {exc}")
+
+    if left_finite and right_finite and _symbolic_equal(left, right):
+        # Genuine finite two-sided limit; compare the shared value to claimed.
+        true_limit = left
+    elif left_infinite and right_infinite:
+        # Both sides diverge; documented unsigned-infinite convention accepts
+        # this as an (unsigned) infinite limit.
+        true_limit = oo
+    else:
+        return _fail(
+            "two-sided limit does not exist "
+            f"(left={left}, right={right}); ill-posed limit rejected",
+            symbolic_ran=True,
+        )
 
     sym_ok = _symbolic_equal(true_limit, claimed)
 
