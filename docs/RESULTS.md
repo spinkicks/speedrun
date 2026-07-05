@@ -57,6 +57,19 @@ To show declarative *recall* outstrips *transfer* (solving a reworded, exam-styl
 ### §7g — Robustness (crash durability + AI-offline)
 We stress-tested collection durability by simulating an **abrupt crash mid-review 20 times**: each run copies the GRE-Math seed collection, drives real scheduler answers through the Rust `Collection::transact` path (~291 SQLite commits/s), then hard-kills the process (`TerminateProcess`) after a randomized 0.02–0.35s delay so a write is **in flight** (mid-write kill confirmed 20/20). Reopening + running the backend integrity check (fsck) reported **zero corruption in 20/20 runs** — SQLite WAL recovery holds under abrupt termination. Separately, with the external AI/RAG service **down** (its default), all three engine scores (Memory, Performance/Readiness, Calibration) compute with no crash, hang, or network dependency, returning abstain-honest results — confirming the scores are engine-only and the AI service is genuinely external. Reproduce: `out/pyenv/Scripts/python.exe speedrun/eval/crash_offline_test.py` (seeded; exits non-zero on any corruption; emits `speedrun/eval/crash-offline-results.json`). **Android device crash-testing deferred** (needs a device). *(anki `main` `777ff7149`.)*
 
+### §7h — One-command benchmark (`just bench`, p50/p95/worst vs §10 targets)
+One command (`just bench`) builds a deterministic **50,600-card** deck (50k declarative across 9 leaf topics + 600 problems, with real FSRS state + revlog + calibration log) and times the real engine ops with nearest-rank percentiles. Against the §10 targets:
+
+| metric | p50 | p95 | worst | §10 target | verdict |
+|---|---|---|---|---|---|
+| button-ack (`answer_card`) | 0.062ms | **0.102ms** | 0.542ms | <50ms | **PASS** (~490× headroom) |
+| next-card (`get_next_card`) | 0.033ms | **0.038ms** | 0.113ms | <100ms | **PASS** (~2600×) |
+| dashboard-load (3 RPCs) | 1663ms | **2232ms** | 2242ms | <1000ms | **MISS** |
+| dashboard-refresh | 1722ms | **2189ms** | 3202ms | <500ms | **MISS** |
+| sync | — | — | — | <5000ms | **not benched** (needs a server; see §7b + `SYNC-SELFHOST.md`) |
+
+**Honest read:** the core review loop (button-ack, next-card) passes §10 with enormous headroom. The **dashboard MISS at 50k is real, not a debug artifact** — each of the 3 dashboard RPCs runs a `tag:parent::*` search across the whole 50k collection (~11 full-collection scans per call), so cost is scan-dominated. Documented fix path (future): a scoped/indexed topic query or a dashboard read-cache. **Reported, not tuned away.** At the shipped demo scale (99-card seed deck) the dashboard is fast; the MISS only appears at the 50k stress deck. Reproduce: `just bench` (release, deterministic; `SPEEDRUN_BENCH_CARDS=<n>` to resize). *(anki `main` `e774ff339`.)*
+
 ### §8 — Study-feature ablation (weakness×topic interleave + points-at-stake ordering)
 One build, three pre-registered modes (`AblationMode` **Full / FeatureOff / Plain**), measured by the harness (`cargo test … -- --nocapture`). Full detail: `docs/ablation-s8-results.md`. All metrics **lower = better**.
 
