@@ -153,7 +153,18 @@ def _make_openai_propose(settings):
             "equation_solution_set, derivative, integral, limit, numeric_value. "
             "Include limit_point when answer_type is limit; include lower_bound "
             "and upper_bound for a definite integral; omit fields that do not "
-            "apply."
+            "apply. "
+            # The spec strings are parsed by SymPy (parse_expr with implicit
+            # multiplication), NOT rendered LaTeX. Instruct the model to emit
+            # SymPy-parseable syntax so the verifier can actually check them.
+            "Every expression/claimed_answer/bound in `spec` MUST be a "
+            "SymPy-parseable string: use ** for powers (write x**4, NEVER x^4), "
+            "* for multiplication where needed, sqrt() / exp() / log() / sin() / "
+            "cos() for functions, pi for pi, and oo for infinity. Do not use ^, "
+            "LaTeX, unicode math, or fractions like \\frac. The `candidate` "
+            "fields (stem, correct, worked_solution) are human-facing prose and "
+            "may be written normally, but `candidate.correct` MUST be "
+            "mathematically equal to `spec.claimed_answer`."
         )
         resp = client.chat.completions.create(
             model=model,
