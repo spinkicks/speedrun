@@ -67,11 +67,11 @@ Both now hold the same collection — you're ready for scene 9.
 
 ## Script
 
-**1 — Open.** "This is Speedrun *scrolls Speedrun Home* — an honest trainer for the GRE Math Subject Test, built on top of Anki's spaced-repetition engine. Same engine on desktop and phone, our own front door, and one rule: it never shows you a number it can't back up."
+**1 — Open.** "This is Speedrun *scrolls Speedrun Home; gesture at the left sidebar* — an honest trainer for the GRE Math Subject Test, built on top of Anki's spaced-repetition engine. Everything's one click from this sidebar — Home, The Map, Memory, and your practice runs. Same engine on desktop and phone, our own front door, and one rule: it never shows you a number it can't back up."
 
 **2 — Three scores + Readiness gauge.** "Three scores, each earned from real data *points at Memory, Performance, Readiness*. Memory is recalled mastery, shown as a range. Performance is your chance on a novel problem. And Readiness maps onto the real 200-to-990 exam scale *points at the gauge and its band* — with a band for the uncertainty, not just a point. Below its data threshold it just abstains *points at a '—'* — no fake number."
 
-**3 — THE MAP.** "This is THE MAP *clicks THE MAP ▸* — the prerequisite graph of the whole subject. Every node is colored by your real mastery; grey ones honestly say '—'. Tap a weak topic like Calculus *taps a node* and its blast radius lights up *gestures at the highlighted downstream nodes* — everything it's holding back. Fix the root, and you lift everything above it."
+**3 — THE MAP.** "This is THE MAP *clicks "The Map" in the left sidebar* — the prerequisite graph of the whole subject. Every node is colored by your real mastery; grey ones honestly say '—'. Tap a weak topic like Calculus *taps a node* and its blast radius lights up *gestures at the highlighted downstream nodes* — everything it's holding back. Fix the root, and you lift everything above it."
 
 **4 — START RUN.** "START RUN *clicks ► START RUN* drops you into the exam deck. This is Anki's FSRS scheduler, unchanged — what we add is ordering: new cards by points-at-stake, and due reviews interleaved by weakness across topics."
 
