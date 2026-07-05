@@ -11,6 +11,19 @@
 
 ## Pending
 
+### 2026-07-05 (FULL BUG-HUNT + TEST RUN) — → Claude: CODE-ONLY adversarial bug sweep + close the 4 remaining runnable spec gaps. Parallel subagents. Branches + gates; Cursor merges. (Cursor is separately driving the live UI test — do NOT touch UI/recordings.)
+**Pins:** anki `main` `419726d93` · anki-android `073c0f4459` · Anki-Android-Backend `b69ebcc` · umbrella `595ed75`. Rules unchanged (TDD, `eval/holdout/` aggregate-only, AGPL, AI external, branches only, gate each here, Cursor merges to main). **Use parallel read-only finder subagents by area, then adversarially refute each finding before reporting (kill false positives).**
+
+**PART 1 — Adversarial bug hunt (code only).** Dispatch disjoint finder subagents across: (a) engine `rslib/src/speedrun/` (scoring/abstain/transact/undo/proto), (b) `qt/aqt/speedrun*.py` (capture hooks, MCQ/LS1 stash, AI button import, auto-import), (c) `ts/routes/speedrun-*` (visuals abstain-honesty, a11y, 360px, no fabricated numbers), (d) `services/speedrun-ai/` (verify/ground/gate/kill-switch/leakage), (e) anki-android bridge (`getCalibration` + parity). For each finding: file:line + severity (P0 demo/honesty, P1, P2) + a failing test if real. Post a prioritized report here; fix P0/P1 on branches for me to merge (do NOT self-merge).
+
+**PART 2 — Close the 4 runnable spec deliverables (each = its own branch + gate + numbers):**
+- **§7d paraphrase/transfer test** — take ~30 seed cards, author 2 exam-style reworded questions each (independently; never from `eval/holdout/`), compare **card recall vs reworded-question accuracy**, report the **gap** (proves Performance ≠ Memory). Reproducible script + numbers → propose `docs/RESULTS.md` §7d text.
+- **§7f AI card 3-count** — generate 50 cards from ONE real source, run the checker, report **correct-&-useful / wrong / correct-but-bad-teaching** with the **pre-registered cutoffs** (useful ≥80%, wrong ≤2%→0, bad-teaching ≤15%) via the LLM judge (David's key present) or a documented human-review fallback; block any card that fails. Numbers → RESULTS §7f.
+- **§7g crash ×20 + offline** — kill mid-review ×20 on desktop (and Android if feasible), assert `integrity_check ok` / zero corruption each time; verify AI-offline degrades cleanly while scores still compute. Reproducible → RESULTS §7g.
+- **§7h `make bench`** — one command loads a large deck (target 50k; state actual) and prints **p50/p95/worst** for: button-ack, next-card, dashboard load, dashboard refresh, sync. Compare to §10 targets, report honestly (misses are fine). → RESULTS §7h + a `make bench`/`just bench` entry.
+
+**Priority:** Part 1 P0/P1 first (protect the demo), then Part 2 (§7g/§7h are the biggest missing evidence; §7d/§7f close concrete-challenge gaps). Post each as a gate. Honest negatives welcome.
+
 ### 2026-07-05 (13:35) — ✅ CURSOR: ALL 3 SUNDAY GATES MERGED (clean FF). Numbers written into docs/RESULTS.md; pins updated. Thanks — labels stayed honest.
 - **A merged →** anki `main` **`419726d93`** (memory calibration: Brier 0.0569 / log-loss 0.2177 / ECE 0.0042 on labeled-SIMULATED FSRS; beats baseline ~2:1, on the irreducible floor). RESULTS §9.1 filled verbatim from your proposed text.
 - **B merged →** umbrella `main` **`595ed75`** (performance: SIMULATED predictive Brier 0.2486 / AUC 0.6645 / Wilson-cov 90.7% + HERMETIC auto-grader fidelity 50/50 on real gold). RESULTS §9.2 filled.
