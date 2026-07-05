@@ -1,8 +1,8 @@
 # Speedrun — Progress Tracker (done / left), mapped to the spec
 
-Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-03 (Fri PM)** — after the full Friday-scope + LS1/2/3 + §8 ablation + AI-service batch-merge, plus all 7 sweep fixes + interactive MCQ auto-grade merged, and 4 interactive visuals merged to anki `main`. Per-repo `main`: anki `348db0c6c` · anki-android `6845e4e70a` · Anki-Android-Backend `70b8eaf` · umbrella `e36d765`.
+Living checklist. Legend: ✅ done · ⚠️ partial · ❌ not started. Keep honest (project thesis). **Last updated 2026-07-05 (Sun PM) — CODE SIDE 100% COMPLETE + VERIFIED ON BOTH SHELLS.** Per-repo `main`: anki **`b28c23648`** · anki-android **`5680917f79`** · Anki-Android-Backend **`ccccad3`** · umbrella `main` (RESULTS/VERIFY/PROOF-INDEX current).
 
-> **2026-07-03 PM headline:** the entire build scope is shipped + merged, including **all 7 adversarial-sweep fixes** and the **interactive MCQ auto-grade** (Performance now objectively key-checked on desktop). **NEW:** 4 interactive pure-SVG visuals (THE MAP blast-radius + calibration reliability diagram + memory→performance gap slope + readiness gauge) are live-verified + Claude-reviewed and **merging to anki `main`** (SHA finalizes at merge). What's left is human demo/eval (emulator gate, sync-demo recording, demo video), the Sunday eval RUNS + robustness + signed APK + BrainLift pass, and one in-progress convenience item (installer bundles the seed deck + auto-imports on first launch).
+> **2026-07-05 (Sun) headline — CODE COMPLETE.** Everything is built, merged, and verified: the Friday scope + LS1/2/3 + §8 ablation + AI service + all 7 sweep fixes + interactive MCQ auto-grade + 4 interactive visuals + the **clean sidebar shell** (Home/The Map/Memory/Start Run/Mini-mock, both platforms) + the **in-app AI toggle** (MSI path). **All Sunday model/challenge evals RAN + recorded** (`docs/RESULTS.md`): §9.1 calibration (Brier 0.0569), §9.2 performance, §7d paraphrase gap (Δ=0.204), §7e leakage (0 leaks CLEAN), §7f AI 3-count (47/47 useful, 0 wrong), §7g crash×20 (20/20), §7h `just bench` (button/next-card PASS, dashboard MISS@50k honest). **Signed arm64 release APK** built. **Sidebar native-verified on BOTH shells** (Cursor: Android emulator; Claude: desktop headless — 0 console errors, honest abstains). One-command setup: `scripts/speedrun-launch.ps1 -All`. Grader entry: `docs/VERIFY.md`. **Remaining = human only:** the recordings (demo video, both builds on clean devices, live+offline sync) + BrainLift PDF re-export + submit.
 
 ## ✅ Done — foundation (walking skeleton, Mon–Tue)
 - ✅ Anki forked & building from source; `just run` / `just check` green (known complexipy tool crash only).
@@ -76,16 +76,22 @@ The audit that caught the above (UI shipped "code-complete" but never rendered o
 - ✅ **All 7 adversarial-sweep bugs fixed+merged** — incl. #3 RAG grounding (semantic-embedding gate + fail-closed syllabus scoping) and #4 leakage; #1 single-card band-abstain and #2 Android `getCalibration` exposure landed earlier in the sweep. No sweep fixes remain in flight.
 - ⚠️ **Installer bundles seed deck + auto-import on first launch** — IN PROGRESS (Claude). Bundle the seed deck into the installer and auto-import it on first launch so a grader sees live data immediately. Convenience only; not on any build critical path.
 
-## Sunday — prove it & ship (partly done early)
-- ✅ **Gold set + leakage clearance** — `eval/holdout/gre_math_gold.jsonl` (50, triple-verified, leakage-cleared); `eval/holdout/` created (implementer agents must NOT read it).
-- ✅ **3-build ablation harness** (§8) — done (above).
-- ✅ **Desktop installer** — release MSI, offline, 27/27.
-- ⬜ Memory **calibration RUN** (reliability chart + Brier/log loss on held-out) (§9.1) — LS1 math shipped; the held-out evaluation run remains.
-- ⬜ **Performance accuracy** on held-out exam questions (§9.2); score-mapping + range writeup (§9.3).
-- ⬜ **crash ×20** + offline tests (§7g); **`make bench`** p50/p95/worst on 50k deck (§7h, §10).
-- ⬜ **Signed APK** (+ arm64-v8a for physical devices); both apps score with AI off (✅ already true).
-- ⬜ Results report + model one-pagers + demo video (3–5 min) + BrainLift final pass.
-- ✅ **7 sweep bug fixes** (2026-07-03) — ALL fixed+merged: 2 P0 (single-card band-abstain; Android getCalibration) + 2 P1 AI-safety (#3 RAG grounding via semantic-embedding gate + fail-closed syllabus, #4 leakage) + 2 P2 calibration-capture + #7. None remain in flight.
+## Sunday — prove it & ship (✅ evals DONE; recordings remain)
+- ✅ **Gold set + leakage clearance** — `eval/holdout/gre_math_gold.jsonl` (50, triple-verified); `eval/holdout/` off-limits to implementers.
+- ✅ **3-build ablation harness** (§8) — `docs/ablation-s8-results.md` (M1 Full 0.0000 vs 0.7949; honest M2 miss).
+- ✅ **Desktop installer** — release MSI (~194 MB, bundles+auto-imports deck), offline, 27/27; on GitHub Release `v0.1.0-early`.
+- ✅ **§9.1 Memory calibration RUN** — Brier **0.0569** / log-loss **0.2177** / ECE **0.0042** + reliability chart (labeled simulated FSRS stream). `RESULTS.md §9.1`.
+- ✅ **§9.2 Performance accuracy** (held-out) + **§9.3 score-mapping writeup** — sim predictive Brier 0.2486/AUC 0.6645 + hermetic auto-grader fidelity 50/50; θ→200–990+conformal method documented. `RESULTS.md §9.2/§1.3`.
+- ✅ **§7d paraphrase/transfer gap** — recall 0.907 vs transfer 0.703, Δ=0.204 (70/70 SymPy-verified). `RESULTS.md §7d`.
+- ✅ **§7e leakage check** — standalone run, **0 leaks CLEAN** (181 training vs 50 gold). `RESULTS.md §7e`.
+- ✅ **§7f AI card 3-count** — 47/47 useful, 0 wrong, 0 bad-teaching (live gpt-4o judge). `RESULTS.md §7f`.
+- ✅ **§7g crash ×20 + offline** — 20/20 integrity-ok; AI-off scores compute. `RESULTS.md §7g`.
+- ✅ **§7h `just bench`** — button/next-card PASS §10 (~490×/2600×); dashboard MISS@50k (honest, documented). `RESULTS.md §7h`.
+- ✅ **Signed release APK** — `AnkiDroid-play-arm64-v8a-release.apk` (50.2 MB), v2-signed, real device. Both apps score with AI off ✅.
+- ✅ **Results report + model one-pagers** — `docs/RESULTS.md` (+ `VERIFY.md` grader guide + refreshed `PROOF-INDEX.md`).
+- ✅ **Clean UX / sidebar** — persistent sidebar shell + in-app AI toggle; native-verified both shells.
+- ⬜ **David (human only):** demo video (3–5 min, w/ "since MVP" beat) + both builds installing/running on clean devices + live two-way & offline sync recording + **BrainLift PDF re-export** + submit.
+- ✅ **7 sweep bug fixes + 8 adversarial-hunt bugs** — ALL fixed+merged (engine/qt/services/android; Part-B both platforms). None in flight.
 
 ---
 
@@ -93,11 +99,11 @@ The audit that caught the above (UI shipped "code-complete" but never rendered o
 | Area | Weight | Status |
 |---|---|---|
 | Rust change & fit with Anki | 20% | ✅ read-only RPCs + a real **mutating** reorder via `transact` + due-card weakness×topic interleave; 66+ speedrun tests; §7a artifacts |
-| Score accuracy & honest uncertainty | 20% | ✅ all three scores LIVE + honest (Memory Wilson+abstain; Performance P(correct)+gap Δ+abstain; Readiness IRT→200–990+conformal+give-up). ✅ **Performance now OBJECTIVELY KEY-CHECKED** — interactive MCQ auto-grade (backend-graded against `CorrectAnswer`) retires the "self-reported" caveat on desktop (Android capture deferred). ✅ P0 single-card band-edge bug fixed+merged (abstains). ⬜ held-out calibration/accuracy RUNS remain (Sunday). |
-| Study feature on learning science | 15% | ✅ points-at-stake reorder + due-card interleave + LS1 calibration + LS2 worked-examples-faded + LS3 honesty copy + interactive MCQ practice/auto-grade + THE MAP prerequisite-graph blast-radius; §8 ablation harness done |
-| AI checking & safety | 15% | ✅ service shipped (OFF by default): SymPy verify + hybrid RAG + gold-set gate; adversarially reviewed. ✅ P1 gate-hardening fixes MERGED (#3 RAG grounding via semantic-embedding gate + fail-closed syllabus scoping, #4 leakage) |
-| Fair re-runnable tests | 12% | ✅ ablation harness + gold set + leakage clearance done. ⬜ crash×20 / offline / `make bench` runs remain (Sunday) |
-| Two apps one engine + sync | 10% | ✅ one engine, both apps (Phase 6 AAR + APK); §7b conflict test ✅. ⬜ live two-way phone demo recording pending |
-| Useful product & clean UX | 8% | ✅ Speedrun Home + Memory + 3 scores + mini-mock on both platforms; Manrope/#F4F7FA identity; desktop data path fixed. ✅ **+ 4 interactive pure-SVG visuals** (THE MAP tap→blast-radius, calibration reliability diagram, memory→performance gap slope chart, readiness gauge) — both platforms, honest abstains |
+| Score accuracy & honest uncertainty | 20% | ✅ all three scores LIVE + honest. ✅ **Performance OBJECTIVELY KEY-CHECKED** (MCQ auto-grade). ✅ **held-out RUNS DONE** — §9.1 calibration Brier 0.0569, §9.2 performance + §9.3 score-mapping (`RESULTS.md`). |
+| Study feature on learning science | 15% | ✅ points-at-stake reorder + due-card interleave + LS1/2/3 + MCQ practice/auto-grade + THE MAP; ✅ **§8 3-build ablation RAN** (honest M1 win + M2 miss); ✅ **§7d paraphrase gap RAN** (Δ=0.204) |
+| AI checking & safety | 15% | ✅ service (OFF by default): SymPy verify + hybrid RAG + gold-set gate. ✅ **§7f 3-count RAN** (47/47 useful, 0 wrong, 0 bad-teaching); ✅ **§7e leakage RAN** (0 leaks CLEAN); baseline honest tie documented; every output cited |
+| Fair re-runnable tests | 12% | ✅ ablation + gold set + leakage + **§7g crash×20 (20/20)** + **§7h `just bench`** all RAN + reproducible; `docs/VERIFY.md` gives copy-paste re-run commands |
+| Two apps one engine + sync | 10% | ✅ one engine, both apps (AAR re-pinned `ccccad3` + signed APK); §7b conflict test ✅. ⬜ live two-way phone demo recording pending (human) |
+| Useful product & clean UX | 8% | ✅ Speedrun Home + Memory + 3 scores + mini-mock + 4 interactive visuals + **clean persistent sidebar** (both platforms, native-verified) + in-app AI toggle; Manrope/#F4F7FA identity |
 
-**Hard limits watch:** real Rust change ✅ (read + mutating + interleave). Phone shares engine ✅; sync test ✅ (live demo recording pending — needed to fully lift the 70% cap). Clean-device: network-independent installer ✅ + clean-machine run recorded ✅ (installer seed-deck auto-import in progress — convenience). No fake numbers ✅ (everything abstains until it can't be wrong) — the P0 single-card band edge case is now fixed+merged (abstains when `cards_with_data<2`), keeping this true in the corner case.
+**Hard limits watch:** real Rust change ✅. Phone shares engine ✅; sync test ✅ (live demo recording pending — needed to fully lift the 70% cap). Clean-device: network-independent installer ✅ + clean-machine run recorded ✅ (re-record with current MSI) + **signed release APK** ✅. Held-out testing ✅ (§9.1/§9.2). Re-runnable ✅ (`VERIFY.md`). Leaked data ✅ **0 leaks CLEAN** (§7e). No fake numbers ✅ (everything abstains + labeled-simulated where simulated). **Only remaining cap-relevant item = the human sync + clean-device recordings.**

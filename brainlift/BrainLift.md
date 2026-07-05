@@ -6,6 +6,13 @@
 
 ---
 
+## ✅ Shipped + measured (final state, 2026-07-05)
+Every thesis claim below is realized in code and backed by a re-runnable number. Full report: `docs/RESULTS.md`; 10-minute grader re-run: `docs/VERIFY.md`; artifact map: `docs/PROOF-INDEX.md`. Pins: anki `b28c23648` · anki-android `5680917f79` · Anki-Android-Backend `ccccad3`.
+- **One engine, two apps** (desktop + Android, shared Rust `rslib`); a **real mutating Rust change** (`ReorderNewByPointsAtStake` via `transact`) + due-card weakness×topic interleave; the sidebar/3-scores UI native-verified on **both** shells.
+- **Three honest scores** — Memory (Wilson + abstain), **Performance objectively key-checked** (MCQ auto-grade), Readiness (flat-IRT → 200–990 + conformal range + give-up rule). All abstain rather than fabricate.
+- **Measured, honestly:** §9.1 calibration Brier **0.0569** (labeled simulated); §7d Memory→Performance gap **Δ=0.204**; §7f AI 3-count **47/47 useful, 0 wrong, 0 bad-teaching**; §7e leakage **0 (CLEAN)**; §7g crash×20 **20/20 integrity-ok**; §7h `just bench` (review loop passes §10, dashboard misses at 50k — documented); §8 ablation (M1 win, M2 miss reported).
+- **AI is OFF by default, source-grounded, verified** — and, per the honesty pass, the RAG retrieval **ties** the keyword/vector baselines (corpus saturates) rather than beating them; the defensible win is **0% wrong answers via SymPy verification**. (See SPOV 6 / KT 9.6.)
+
 ## Purpose
 
 To articulate why **Speedrun**, though built on Anki's spaced-repetition engine, is a fundamentally different species of study product for the **GRE Mathematics Subject Test**. Anki (and every tool built on it) optimizes one thing: the **retrievability of an isolated fact**. Speedrun treats that as the *cheapest, weakest* signal of exam readiness and adds, on top of Anki's memory chassis, the layers the entire GRE-math market is missing:
