@@ -97,4 +97,4 @@ Speedrun/
 ```
 
 ## Key docs
-`docs/STATE.md` (live handoff) · `docs/WHAT-WE-BUILT.md` (honest status) · `docs/RUN-MVP.md` (run steps) · `docs/PRD.md` · `docs/DECISIONS.md` · `docs/ablation-s8-results.md` · `docs/DEMO-VIDEO-SCRIPT.md` · `services/speedrun-ai/README.md` · `brainlift/BrainLift.md`.
+`docs/RESULTS.md` (results report + model descriptions + honest negatives) · `docs/STATE.md` (live handoff) · `docs/WHAT-WE-BUILT.md` (honest status) · `docs/RUN-MVP.md` (run steps) · `docs/PRD.md` · `docs/DECISIONS.md` · `docs/ablation-s8-results.md` · `docs/DEMO-VIDEO-SCRIPT.md` · `services/speedrun-ai/README.md` · `brainlift/BrainLift.md`.

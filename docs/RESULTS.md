@@ -1,0 +1,105 @@
+<!--
+Copyright: Speedrun contributors
+License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+-->
+
+# Speedrun — Results Report & Model Descriptions (Sunday submission)
+
+**Honesty contract:** every number here is either measured + reproducible, or explicitly marked as **pending / simulated / abstained**. We report what did **not** work as prominently as what did. Nothing is a per-user fabrication. Pins at time of writing: anki `main` `8cd09ec51` · anki-android `6845e4e70a` · Anki-Android-Backend `5e02a2b`.
+
+This single document is the **results report + the model descriptions**. It maps to the Sunday rubric: model evidence (§9.1–§9.3), the study-feature ablation (§8), honest negatives, the desktop/mobile/sync/AI-off status, and the proof index.
+
+---
+
+## Part 1 — Model descriptions
+
+Three scores, each computed **in the Anki Rust engine** (`rslib/src/speedrun/`), deterministically, recompute-on-read, from the curated bank — **never** from the AI service. All three **abstain** (show "—" / "review N more to unlock") below a data threshold rather than print a number they can't defend.
+
+### 1.1 Memory (per-topic recalled mastery)
+- **Input:** each card's **FSRS retrievability** (Anki's scheduler — we did **not** modify FSRS) for the cards tagged to a topic.
+- **Method:** aggregate the per-card recall into a per-topic estimate and wrap it in a **Wilson 95% score interval** (a binomial-proportion interval that behaves well at small n).
+- **Abstention:** if a topic has `< 2` cards with review data, it **abstains** (no band) — mirrors the `mean_ci` n<2 contract (this is the P0 honesty fix from the adversarial sweep).
+- **Output:** a range, never a single fake point. This is our strongest not-Anki differentiator: a **calibrated** memory signal, not a raw card count.
+- **Calibration evidence:** §9.1.
+
+### 1.2 Performance (chance on a *novel* problem)
+- **Input:** attempts on `Speedrun::Problem` MCQs (model id `2047815909`), **objectively key-checked** — the choices are clickable and graded backend-authoritatively against `CorrectAnswer` (desktop), so Performance is **no longer self-reported**. A card self-rated "Good" but answered wrong counts wrong.
+- **Method:** P(correct) per topic with a **mean-CI band**, plus a **Memory→Performance gap meter (Δ = declarative recall − problem accuracy)** that surfaces "you remember it but can't use it under time."
+- **Abstention:** abstains below `min_problem_attempts = 5` (exam-profile config).
+- **Accuracy evidence:** §9.2.
+
+### 1.3 Readiness (exam-level, 200–990) — includes the score-mapping method (§9.3)
+- **Input:** per-topic ability from Memory + Performance, weighted by the exam's **ETS topic weights** (`speedrun/exam_profiles/gre_math.json`, weights sum to 1.0).
+- **Method (score mapping):**
+  1. **Ability θ** = the **calculus-weighted flat-IRT sum** of per-topic mastery (a weighted sum, **not** a `min()`-gate — a single weak topic lowers but does not zero the score).
+  2. **Equate** θ to the reported scale via the exam-profile equating band **`[min_scaled 200, max_scaled 990]`** → the **scaled 200–990 score**.
+  3. **Range (conformal):** the reported interval is **point ± margin**, where `margin = base_margin + widen_k · sparsity`, with **`base_margin = 40.0`** and **`widen_k = 8.0`** (config). The interval **widens under sparse data** (conformal / CQR-style), so uncertainty is visible, not hidden.
+  4. **Give-up / abstention rule:** Readiness refuses to show a number until **all** hold: **`≥ 2` timed mini-mocks** (`min_mini_mocks`), **`≥ 0.60` coverage** (`min_coverage`), and **interval width `≤ 200`** (`max_interval_width`). Otherwise it abstains with explicit unlock requirements.
+- **Scope:** **exam-level Readiness only** shows on Home; **per-topic Readiness abstains by design** (a single topic isn't an exam).
+- **Config-driven, kill-switch-safe:** the equating band, conformal margins, give-up thresholds, and IRT item difficulty (`b`, fit **offline** and baked into each Problem note) all come from the synced exam-profile config — scoring never depends on the AI service being up.
+
+---
+
+## Part 2 — Evidence
+
+### §9.1 — Memory model calibration (Brier / log-loss on held-out reviews)
+**Status: ⏳ measured run in progress (Sunday).** The in-app **reliability diagram** and the runtime **Brier/ECE** machinery are shipped (`ts/routes/speedrun-memory/Reliability.svelte`, engine `GetCalibration`). The offline **held-out** Brier/log-loss run + calibration chart is being produced by the engine eval (branch/gate pending).
+
+> _To be filled from Claude's gate:_ data source + N, **Brier = …**, **log-loss = …**, reliability-curve figure path, and honest caveats.
+
+### §9.2 — Performance model accuracy (held-out exam questions)
+**Status: ⏳ measured run in progress (Sunday).** Evaluated against the held-out gold exam set (`eval/holdout/gre_math_gold.jsonl`, 50 items, aggregate-only). Methodology + number pending the engine eval gate.
+
+> _To be filled from Claude's gate:_ methodology (predictive accuracy / AUC / Brier vs actual correctness; simulated learner labeled if used), **accuracy = …**, caveats.
+
+### §8 — Study-feature ablation (weakness×topic interleave + points-at-stake ordering)
+One build, three pre-registered modes (`AblationMode` **Full / FeatureOff / Plain**), measured by the harness (`cargo test … -- --nocapture`). Full detail: `docs/ablation-s8-results.md`. All metrics **lower = better**.
+
+| Mode | M1 adjacency ↓ (primary, pre-registered) | M2 wmean pos ↓ (secondary) | M3 wfirst-appear ↓ (exploratory) |
+|---|---|---|---|
+| **Full** | **0.0000** | 0.5241 | **0.0864** |
+| FeatureOff | 0.7949 | **0.4327** | 0.5049 |
+| Plain | 0.7949 | **0.4327** | 0.5049 |
+
+- **M1 (primary): Full wins decisively** — perfect interleave (0.0000) vs 0.7949 for both baselines. `FeatureOff == Plain` exactly, as predicted.
+- **M2 (secondary): MISS — reported honestly.** `Full 0.5241 > baselines 0.4327`. Weighted-**mean** position rewards front-clumping the single heaviest topic — structurally in tension with interleaving. Mis-specified proxy; the miss stands and the harness asserts it so it can't silently flip.
+- **M3 (exploratory, post-hoc): front-loading done right** — Full 0.0864 vs 0.5049; interleave still front-loads high-value topics without penalizing spread.
+- **Honest scope caveat:** this measures the **ordering effect** the feature directly produces. It is **not** an equal-study-time *learning-outcome* study (that needs a human trial). Reported as such — we do not overclaim a learning gain.
+
+### §7f — AI generation eval (the OFF-by-default generator)
+Reproducible via `PYTHONIOENCODING=utf-8 uv run python -m eval.gate` (`services/speedrun-ai/eval/README.md`); pre-registered cutoffs fixed before results.
+
+- **Wrong-answer rate = 0 %** (0/6 deliberately-wrong specs survived the SymPy verifier), cutoff ≤ 2 %. Post-gate wrong-answer rate is **0 by construction** (verify gates every path to emit).
+- **Retrieval Recall@10 = 90 %** (family, 45/50) on the held-out gold set; **leakage = 0** (structural).
+- **Baseline side-by-side (Recall@10):** BM25 **0.900** · dense/vector **0.900** · hybrid **0.900**.
+
+---
+
+## Part 3 — Honest reporting: what did NOT work
+
+- **RAG hybrid does not beat the simpler baselines — it ties (Δ = +0.0 pts).** The pre-registered "≥5-pt hybrid margin" is **not met**: the small curated corpus **saturates** (every method finds the right source, all sit at 0.900). Hybrid proves **non-regression** (≥ each single arm), not a win. We deliberately **do not manufacture a win**. The genuine "beats a naive baseline" is at the **safety** layer: **0 % wrong answers via SymPy verification** vs an unverified pipeline. A fair harder-eval attempt is queued (`docs/FUTURE-PLANS.md`).
+- **Ablation M2 missed its pre-registered prediction** (see §8) — kept in the record rather than swapped out.
+- **Retrieval coverage caps Recall at 90 %:** 5/50 gold items cite closed textbooks (Lay, Strang) we won't vendor; a source absent from the corpus can never be retrieved. Strict citation-string match sits at 0 % purely from format drift, not retrieval failure (family match = 90 % is the fair read).
+- **Calibration outcome vs bet:** the confidence **bet is self-reported** (Sure/Think/Guess); the **outcome is now objectively key-checked**. Android MCQ capture is deferred (desktop-first); the engine reads the shared blob regardless of platform.
+- **RAG mis-citation residual (bounded):** a genuine problem on an *uncovered* topic could mis-cite; neutralized in normal operation by **fail-closed syllabus scoping** (uncovered topics abstain before proposing). LLM-entailment check is tracked future work. AI is OFF by default, so non-blocking.
+- **Useful / bad-teaching quality metrics are LLM-judge-gated** — only cutoffs (≥80 % useful, ≤15 % bad-teaching) are pre-registered; measured at demo time with a key, not claimed as met hermetically.
+
+---
+
+## Part 4 — Desktop & mobile & sync
+
+- **Desktop installer (packaged):** `anki-26.05-win-x64.msi` (~194 MB), on the **GitHub Release** `v0.1.0-early` and at `repos/anki/out/installer/dist/`. Network-independent build (`test_installer.py` 27/27); **bundles the seed deck + first-run auto-imports it** (idempotent, config-gated).
+- **Phone build:** **⏳ signed release APK in progress** (Sunday); arm64-v8a **debug** APK exists as a backstop (sideloadable).
+- **Sync handles conflicts (documented):** collection-level USN + latest-`mtime`, with **append-only revlog** so distinct reviews from both sides are all retained. Both-offline-same-card is covered by the §7b test `speedrun_two_way_reviews_and_same_card_conflict` (`rslib/src/sync/collection/tests.rs`): **all 20 distinct revlog entries land on both sides**, `integrity_check` clean. Rule + caveats: `docs/SYNC-SELFHOST.md`.
+- **Both apps run with AI off and still score:** the AI service returns **503** unless `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY` are set; the three scores are engine-computed and the service is **never imported** into rslib/rsdroid.
+
+---
+
+## Part 5 — Proof index (recordings & artifacts)
+See `docs/PROOF-INDEX.md`. Status:
+- ✅ Desktop clean-machine install recording (`CleanTestInstall.mp4`).
+- ✅ AI eval numbers + baseline (`services/speedrun-ai/eval/README.md`).
+- ✅ Ablation results (`docs/ablation-s8-results.md`).
+- ⏳ §9.1 calibration + §9.2 performance numbers (this doc, Claude gate).
+- ⏳ Signed release APK.
+- ⏳ Recordings: phone install/run on a clean device, live desktop↔phone sync (two-way + offline-reconnect), the 3–5 min demo video.
