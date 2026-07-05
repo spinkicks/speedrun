@@ -8,6 +8,9 @@ Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Gol
 
 All terminals are **PowerShell**, started from the repo root `c:\Users\davir\Ultra\Alpha\Speedrun`.
 
+> **⚡ Shortcut (recommended):** instead of Terminals A + B + E below, run one command from the repo root —
+> `powershell -ExecutionPolicy Bypass -File scripts\speedrun-launch.ps1 -All` — which starts the AI service, the self-hosted sync server, and the desktop app together, and (crucially) launches the app with `SPEEDRUN_AI_ENABLED=1` so the ⚡ Generate button is enabled. It prints the exact sync URLs + creds + next clicks; stop it with `-Stop`. See `docs/QUICKSTART.md`. The manual terminals below remain the fallback (and cover Terminal D, the Android emulator, which the launcher does not automate).
+
 ### Terminal A — Desktop app
 ```powershell
 cd repos\anki

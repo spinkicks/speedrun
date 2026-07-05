@@ -47,6 +47,8 @@ Android emulator visual gate + live desktop↔Android sync-demo recording + demo
 
 ## How to run (for graders / reviewers)
 
+**⚡ Fastest local bring-up (one command, Windows):** from the repo root, run `powershell -ExecutionPolicy Bypass -File scripts\speedrun-launch.ps1 -All` to start the AI service + self-hosted sync server + desktop app together (the app is launched with `SPEEDRUN_AI_ENABLED=1` so the ⚡ Generate button works), then follow the printed "next clicks". Stop with `-Stop`. Full guide: **[docs/QUICKSTART.md](docs/QUICKSTART.md)**. The per-component manual steps below still work unchanged.
+
 **Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
 
 ### Desktop — easiest: the installer (deck pre-loaded)
