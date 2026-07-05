@@ -1,0 +1,50 @@
+{
+  "by_source": {
+    "rag_corpus": {
+      "leaks": 0,
+      "num_items": 82
+    },
+    "seed_study": {
+      "leaks": 0,
+      "num_items": 99
+    }
+  },
+  "clean": true,
+  "cosine_near_copies": 0,
+  "gold_scope": "test-item identity (question + choices + correct_answer)",
+  "leaks": [],
+  "ngram": 13,
+  "ngram_hits": 0,
+  "notes": "\u00a77e leakage check. Each TRAINING/study item (seed declarative cards + curated problem bank via eval.leakage.load_study_texts, and the vendored RAG corpus passages) is scanned against the held-out gold set with eval.leakage.leaks (>=13-gram word overlap OR TF-IDF cosine >= sim_threshold). AGGREGATE counts only \u2014 no gold or near-copy text is read out. PRIMARY surface = test-item identity (question + choices + correct_answer); clean == (runnable AND num_leaks == 0). strict_full_content additionally compares gold worked-solution derivations (a transparency diagnostic; not the \u00a77e verdict). An empty gold or training set fails closed (clean=false).",
+  "num_gold_items": 50,
+  "num_leaks": 0,
+  "num_training_items": 181,
+  "runnable": true,
+  "sim_threshold": 0.85,
+  "strict_full_content": {
+    "by_source": {
+      "rag_corpus": {
+        "leaks": 0,
+        "num_items": 82
+      },
+      "seed_study": {
+        "leaks": 1,
+        "num_items": 99
+      }
+    },
+    "cosine_near_copies": 0,
+    "gold_scope": "full content (test-item identity + worked-solution derivations)",
+    "leaks": [
+      {
+        "max_cosine": 0.7026,
+        "ngram_overlap": true,
+        "source": "seed_study",
+        "training_index": 86
+      }
+    ],
+    "ngram_hits": 1,
+    "note": "Stricter than \u00a77e asks: folds gold worked-solution DERIVATIONS into the compared surface. A flag here with cosine_near_copies == 0 is a shared verbatim DERIVATION step on a canonical example (e.g. the determinant of a standard 2x2 matrix), not a reproduced test QUESTION. Aggregate-safe records only.",
+    "num_gold_items": 50,
+    "num_leaks": 1
+  }
+}
