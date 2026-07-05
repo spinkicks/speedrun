@@ -1,0 +1,98 @@
+{
+  "gap_simulated": {
+    "ability_mean": 1.0,
+    "ability_std": 0.8,
+    "gap_p10": 0.11759259259259257,
+    "gap_p50": 0.20370370370370372,
+    "gap_p90": 0.29999999999999993,
+    "gap_std": 0.07495872631897617,
+    "mean_gap": 0.20391435185185158,
+    "mean_recall": 0.9068148148148147,
+    "mean_transfer": 0.7029004629629632,
+    "n_cards": 35,
+    "n_learners": 400,
+    "n_topics": 9,
+    "n_transfer_items": 70,
+    "per_topic": {
+      "calc::limits": {
+        "gap": 0.1900000000000006,
+        "n_cards": 3,
+        "n_items": 6,
+        "recall": 0.9158333333333339,
+        "transfer": 0.7258333333333333
+      },
+      "calc::multivar": {
+        "gap": 0.24375000000000058,
+        "n_cards": 3,
+        "n_items": 6,
+        "recall": 0.9225000000000003,
+        "transfer": 0.6787499999999997
+      },
+      "calc::sequences_series": {
+        "gap": 0.23333333333333384,
+        "n_cards": 3,
+        "n_items": 6,
+        "recall": 0.9041666666666671,
+        "transfer": 0.6708333333333333
+      },
+      "calc::single_var::differentiation": {
+        "gap": 0.21175000000000188,
+        "n_cards": 5,
+        "n_items": 10,
+        "recall": 0.9065000000000023,
+        "transfer": 0.6947500000000004
+      },
+      "calc::single_var::integration": {
+        "gap": 0.1545000000000023,
+        "n_cards": 5,
+        "n_items": 10,
+        "recall": 0.8925000000000022,
+        "transfer": 0.7379999999999999
+      },
+      "linear_algebra::eigen": {
+        "gap": 0.2570000000000007,
+        "n_cards": 5,
+        "n_items": 10,
+        "recall": 0.9015000000000019,
+        "transfer": 0.6445000000000012
+      },
+      "linear_algebra::linear_maps": {
+        "gap": 0.23083333333333333,
+        "n_cards": 3,
+        "n_items": 6,
+        "recall": 0.9033333333333339,
+        "transfer": 0.6725000000000005
+      },
+      "linear_algebra::matrices": {
+        "gap": 0.14093750000000005,
+        "n_cards": 4,
+        "n_items": 8,
+        "recall": 0.910625,
+        "transfer": 0.7696875
+      },
+      "linear_algebra::vector_spaces": {
+        "gap": 0.17312500000000008,
+        "n_cards": 4,
+        "n_items": 8,
+        "recall": 0.904375,
+        "transfer": 0.73125
+      }
+    },
+    "recall_difficulty_b": -1.5,
+    "seed": 12345,
+    "simulated": true,
+    "transfer_difficulty_offsets": {
+      "easy": 0.5,
+      "hard": 2.0,
+      "medium": 1.2
+    }
+  },
+  "notes": "The gap \u0394 = recall \u2212 transfer is measured on a SIMULATED learner population (no real learner attempts exist yet). The recall side is the shipped declarative seed deck; the transfer side is an independently authored exam-style application set whose easy/medium/hard difficulty grounds the simulation. The sympy_verification_real block IS real: it confirms the authored transfer answers are correct via verify.sympy_verifier. Aggregate numbers only.",
+  "sympy_verification_real": {
+    "all_verified": true,
+    "failures": [],
+    "n_checkable": 70,
+    "n_items": 70,
+    "n_verified": 70
+  }
+}
