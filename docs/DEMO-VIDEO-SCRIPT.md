@@ -1,6 +1,6 @@
 # Speedrun — Demo Video Script
 
-Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Golden rule: never show a number the app can't back up — where a score has no data, show the honest **"—"**. **Final-submission build (2026-07-05):** anki `main` `b28c23648` · anki-android `5680917f79` · Anki-Android-Backend `ccccad3`. Installers hosted on the GitHub Release `v0.1.0-early` (MSI + signed arm64 APK). Grader verify guide: `docs/VERIFY.md`.
+Target 3–5 min. **Read the plain text out loud; do the *italic actions*.** Golden rule: never show a number the app can't back up — where a score has no data, show the honest **"—"**. **Final-submission build (2026-07-05):** anki `main` `0b9149f33` (desktop; incl. the UX-fix sprint: one-window, mini-mock timer, locking confidence flow, map fit-to-width, dual-gate unlock copy, AI loop-to-5) · anki-android `5680917f79` · Anki-Android-Backend `ccccad3`. Installers hosted on the GitHub Release `v0.1.0-early` (MSI + signed arm64 APK). Grader verify guide: `docs/VERIFY.md`.
 
 ---
 
@@ -36,8 +36,11 @@ $env:PYTHONIOENCODING = "utf-8"
 uv run python -m eval.gate
 ```
 
-### Terminal D — Android emulator (for scene 9)
-Run these **one at a time** — each is a single line (no line breaks inside a command):
+### Terminal D — Android (for scene 9). Pick ONE path:
+
+**Path A (real arm64 phone — no rebuild, best fidelity):** on the phone, download `AnkiDroid-play-arm64-v8a-release.apk` from the GitHub Release `v0.1.0-early`, install it, open **AnkiDroid**, import the seed deck, then do the Terminal-E sync setup. This is also the "packaged signed phone build" deliverable.
+
+**Path B (x86_64 emulator):** the local x86_64 **debug** APK is NOT currently on disk (build outputs were cleaned) — it must be **rebuilt** first (`cd repos\anki-android; ./gradlew assemblePlayDebug` after the AAR is in place; ~10–20 min). Once the APK exists at `repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk`, run these **one at a time**:
 ```powershell
 Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -ArgumentList "-avd","Pixel_10"
 ```
@@ -52,7 +55,7 @@ Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -
 ```
 In the phone app: open **AnkiDroid → Speedrun: Home**, import the deck from `Download/gre_math_seed.apkg`. (Sync setup is Terminal E below.)
 
-> **APK note (which build to use where):** the **emulator** (x86_64) needs the **x86_64 debug** APK above. The **signed release** build for a **real arm64 device** — `AnkiDroid-play-arm64-v8a-release.apk` — is on the GitHub Release `v0.1.0-early` (that's the "packaged signed phone build" deliverable; use it for a clean-device install recording, not the x86_64 emulator).
+> **Note:** the merged UX-sprint fixes (L1/L4) are on desktop; the Android build (pin `5680917f79` + AAR `ccccad3`) predates them, but scene 9 only needs the phone's 3 scores + two-way/offline sync, which that build has. Rebuild the AAR+APK only if you want the newest shared-UI polish on the phone too.
 
 ### Terminal E — Self-hosted sync server (for scene 9)
 ```powershell
