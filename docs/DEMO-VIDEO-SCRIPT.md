@@ -40,9 +40,9 @@ uv run python -m eval.gate
 
 **Path A (real arm64 phone — no rebuild, best fidelity):** on the phone, download `AnkiDroid-play-arm64-v8a-release.apk` from the GitHub Release `v0.1.0-early`, install it, open **AnkiDroid**, import the seed deck, then do the Terminal-E sync setup. This is also the "packaged signed phone build" deliverable.
 
-**Path B (x86_64 emulator):** the local x86_64 **debug** APK is NOT currently on disk (build outputs were cleaned) — it must be **rebuilt** first (`cd repos\anki-android; ./gradlew assemblePlayDebug` after the AAR is in place; ~10–20 min). Once the APK exists at `repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk`, run these **one at a time**:
+**Path B (x86_64 emulator):** the local x86_64 **debug** APK is NOT currently on disk (build outputs were cleaned) — it must be **rebuilt** first (`cd repos\anki-android; ./gradlew assemblePlayDebug` after the AAR is in place; ~10–20 min). Once the APK exists at `repos\anki-android\AnkiDroid\build\outputs\apk\play\debug\AnkiDroid-play-x86_64-debug.apk`, run these **one at a time**. Note the **`-no-snapshot-load`** flag — it **cold-boots** the emulator to a clean home screen so the last session's app is NOT auto-resumed (fixes the "emulator opens frozen on the app" issue); installed apps + data persist (only `-wipe-data` would remove them):
 ```powershell
-Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -ArgumentList "-avd","Pixel_10"
+Start-Process "C:\Users\davir\AppData\Local\Android\Sdk\emulator\emulator.exe" -ArgumentList "-avd","Pixel_10","-no-snapshot-load"
 ```
 ```powershell
 & "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" wait-for-device; do { Start-Sleep 2 } until ("$(& "C:\Users\davir\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell getprop sys.boot_completed 2>$null)".Trim() -eq "1"); "Emulator booted."
