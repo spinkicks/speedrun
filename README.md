@@ -14,11 +14,11 @@ Licensed **AGPL-3.0-or-later**, with credit to [Anki](https://github.com/ankitec
 
 ---
 
-## Status (2026-07-03 — full feature set merged to `main`, both platforms)
+## Status (2026-07-05 — final submission; full feature set + UX-polish sprint merged to `main`, both platforms)
 
 Desktop and Android share one Speedrun-patched Rust engine and the same SvelteKit UI. All three scores render with honest ranges and abstain when data is insufficient. The curated problem bank powers timed mini-mocks and Performance/Readiness **without AI**. An external AI generation service is **shipped but OFF by default** — SymPy-verified, gold-set-gated, never required to study — and, when enabled, is reachable from an in-app **⚡ Generate practice** button on THE MAP (imports only verified, cited problems). Four pure-SVG **interactive visuals** — headlined by **THE MAP** (an interactive prerequisite graph) — ship on both platforms and abstain honestly like the scores. The **Windows installer bundles the seed deck and auto-imports it on first launch** (graders install → launch → data is already there).
 
-**Current `main` pins:** anki `b28c23648` · Anki-Android-Backend `ccccad3` · anki-android `5680917f79` · umbrella `main` (advances with docs commits). Adds since the earlier pins: the persistent **sidebar** shell (both platforms, native-verified), the in-app **AI toggle**, and all Sunday evals recorded in `docs/RESULTS.md`.
+**Current `main` pins:** anki `4a93e1796` · Anki-Android-Backend `986f785` · anki-android `4636050842` · umbrella `main` (advances with docs commits). Adds since the earlier pins: the persistent **sidebar** shell (both platforms, native-verified), the in-app **AI toggle**, all Sunday evals recorded in `docs/RESULTS.md`, and the final **UX-polish sprint** (single cohesive desktop window, locking Sure/Think/Guess→answer problem flow, live mini-mock timer, map fit-to-width, AI generation that loops until 5 verified problems).
 
 See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pending breakdown, and `docs/STATE.md` for the live handoff state.
 
@@ -44,8 +44,8 @@ See `docs/WHAT-WE-BUILT.md` for the honest per-feature real / scaffolding / pend
 - **AI/RAG generation service** (`services/speedrun-ai/`, FastAPI + LangGraph) — propose → SymPy verify → hybrid RAG ground → distractors → gold-set gate → emit or abstain. Requires `SPEEDRUN_AI_ENABLED=1` **and** `OPENAI_API_KEY`. Never imported into `rslib`/`rsdroid`; the app scores fully with AI off. Pre-registered eval numbers (wrong-answer **0 %**, Recall@10 **90 %**, leakage **0**, honest baseline side-by-side) in `services/speedrun-ai/eval/README.md`.
 - **In-app ⚡ Generate practice button** (desktop, THE MAP) — enabled only when the service is reachable **and** the node is a covered leaf topic; imports **only verified, cited** problems as `Speedrun::Problem` (tagged `ai-generated`). Disabled with an honest hint when AI is off. Desktop-first; hidden/disabled on Android.
 
-### Still pending (human / Sunday)
-Android emulator visual gate + live desktop↔Android sync-demo recording + demo video; Sunday eval runs (calibration reliability + Brier/log-loss, performance accuracy on held-out, score-mapping writeup); robustness (crash×20, offline, `make bench` p50/p95 on a 50k-card deck); signed APK; final BrainLift pass.
+### Done (2026-07-05, final)
+Sunday eval runs (calibration reliability + Brier/log-loss, performance accuracy, score-mapping writeup), robustness (crash×20, offline, `just bench` p50/p95 on a 50k-card deck), the **signed arm64 APK** (on the Release), the desktop↔Android sync demo, and the demo video are all complete; numbers live in `docs/RESULTS.md`. Only the BrainLift PDF export is a manual step.
 
 ---
 
@@ -56,7 +56,7 @@ Android emulator visual gate + live desktop↔Android sync-demo recording + demo
 **Prerequisites:** see `docs/BUILD-PREREQS.md` (Rust via rustup, Python via `uv`, Node+yarn, MSVC build tools, MSYS2 `rsync`, the `n2` build tool, `just`). Full step-by-step: `docs/RUN-MVP.md`.
 
 ### Desktop — easiest: the installer (deck pre-loaded)
-**⬇️ Download:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** → `anki-26.05-win-x64.msi` (~194 MB, Windows x64; built 2026-07-03 from anki `main` `8cd09ec51` — full Friday UI: 4 visuals + MCQ auto-grade + AI Generate button). *(Also prebuilt locally at `repos/anki/out/installer/dist/anki-26.05-win-x64.msi`.)* — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer bundles the seed deck and auto-imports it on first launch** (idempotent, config-gated, skips if the exam deck already exists), so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels).
+**⬇️ Download:** **[Releases → Speedrun – Early Submission](https://github.com/spinkicks/speedrun/releases/tag/v0.1.0-early)** → `anki-26.05-win-x64.msi` (~194 MB, Windows x64; built from anki `main` — the full shipped UI: sidebar, 4 visuals + MCQ auto-grade, AI Generate button, and the final UX-sprint polish). — install it and launch **Speedrun** (it opens into Speedrun Home). **The installer bundles the seed deck and auto-imports it on first launch** (idempotent, config-gated, skips if the exam deck already exists), so the 35 declarative cards + the 64-problem bank are already loaded — **no manual File → Import needed**. From Home, follow the **THE MAP ▸** link to the prerequisite graph, click **► START RUN** to review, or try a timed **mini-mock**. The installer build is network-independent (`test_installer.py` 27/27). To rebuild, use the `RELEASE=1` ninja `installer:build` → `build_installer.py … package` path in `docs/BUILD-PREREQS.md` (NOT the bare `build_installer.py … build` line — that omits our fork wheels).
 
 ### Desktop — from source
 ```powershell
