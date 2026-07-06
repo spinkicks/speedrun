@@ -79,6 +79,17 @@ class GenerateBatchRequest(BaseModel):
 _BATCH_MIN = 1
 _BATCH_MAX = 5
 
+# Cost guard for the retry loop (AI bug #4). Abstains no longer shrink the
+# batch: we RE-ATTEMPT until we have ``count`` verified problems. Because the
+# graph can abstain (unverifiable / ungrounded / gold-gated) on any attempt,
+# the loop needs a HARD upper bound so it can never spin forever — each attempt
+# is worst-case ~20-60 LLM calls, so an unbounded loop is a real cost hazard.
+# Budget = ``count * _ATTEMPT_MULTIPLIER`` attempts, itself never exceeding
+# ``_MAX_ATTEMPTS_CAP``. When the cap is hit we return the partials we DID
+# verify and report the shortfall honestly (never raise).
+_ATTEMPT_MULTIPLIER = 4
+_MAX_ATTEMPTS_CAP = 25
+
 # Letters used to index answer choices in the batch response (A..E). The graph
 # emits at most 5 choices (1 correct + up to ~3 distractors), so five letters
 # always suffice; any position beyond this is treated as unverifiable and the
@@ -237,50 +248,85 @@ def generate_batch(req: GenerateBatchRequest) -> dict[str, Any]:
     """Batch endpoint for the desktop "Generate practice" button.
 
     A THIN wrapper over :func:`generate_problem` (the single-problem graph): it
-    makes up to ``count`` INDEPENDENT attempts for a covered ``topic`` and keeps
-    ONLY the verified, grounded, gold-gated emits — every abstain / unverified
-    attempt is DROPPED. It never reimplements the graph or weakens any gate.
+    RE-ATTEMPTS generation for a covered ``topic`` until it has ``count``
+    verified, grounded, gold-gated problems — or a cost cap is reached. Every
+    abstain / unverified / duplicate attempt is DROPPED, never returned. It
+    never reimplements the graph or weakens any gate.
+
+    AI bug #4 fix: the old implementation looped a FIXED ``count`` times and
+    kept only the emits, so any abstain silently shrank the batch (4 requested →
+    2 delivered). Now the loop condition is ``while produced < target and
+    attempts < MAX_ATTEMPTS`` so abstains are retried instead of shrinking the
+    result. ``MAX_ATTEMPTS = min(count * _ATTEMPT_MULTIPLIER, _MAX_ATTEMPTS_CAP)``
+    is the mandatory cost guard (each attempt is worst-case tens of LLM calls);
+    on shortfall we return the partials and report it honestly (never raise).
+
+    Server-side stem dedup: two verified emits with the SAME stem count as ONE
+    produced problem — we never ship duplicate stems within a batch.
 
     Safety contract:
       * Disabled kill-switch → 503 (never generate).
       * Uncovered topic → fail CLOSED: the existing ``covered_topics`` guard in
-        ``run_generation`` abstains before proposing; we stop immediately and
-        return ``produced:0, problems:[], reason:"topic not in grounding corpus"``.
+        ``run_generation`` abstains before proposing; we stop immediately —
+        BEFORE any further LLM call — and return ``produced:0, problems:[],
+        reason:"topic not in grounding corpus"``.
       * ``count`` is clamped to ``[1, 5]`` (default 5).
       * ``correct_answer`` is the LETTER (A..E) indexing the emitted correct
         value within ``choices``; an emit we cannot letter/cite is dropped.
+
+    Response fields: ``requested`` (clamped target), ``produced`` (verified,
+    deduped problems returned), ``attempts`` (graph invocations made),
+    ``shortfall`` (``requested - produced``; 0 on success). Lane 4 surfaces
+    ``shortfall`` in a client toast; here we only EXPOSE it.
     """
     if not load_settings().is_enabled():
         raise HTTPException(status_code=503, detail=DISABLED_DETAIL)
 
-    count = max(_BATCH_MIN, min(_BATCH_MAX, req.count))
+    target = max(_BATCH_MIN, min(_BATCH_MAX, req.count))
+    max_attempts = min(target * _ATTEMPT_MULTIPLIER, _MAX_ATTEMPTS_CAP)
 
     problems: list[dict[str, Any]] = []
-    for _ in range(count):
+    seen_stems: set[str] = set()
+    attempts = 0
+
+    # Retry until we hit the target or exhaust the attempt budget. The budget is
+    # a HARD cap — the loop can never spin forever even if every attempt abstains.
+    while len(problems) < target and attempts < max_attempts:
+        attempts += 1
         result = generate_problem(req.topic, "")
-        # Fail closed on an uncovered topic: the syllabus guard fired before any
-        # proposal — stop attempting and report the reason. (Every attempt would
-        # return the same abstain, so short-circuit.)
+        # Fail closed on an uncovered topic: the syllabus guard fired BEFORE any
+        # proposal (no LLM call happened). Every attempt would return the same
+        # abstain, so short-circuit — retrying cannot help an uncovered topic.
         if result.get("abstain_reason") == TOPIC_NOT_COVERED_REASON:
             return {
                 "status": "ok",
                 "topic": req.topic,
-                "requested": count,
+                "requested": target,
                 "produced": 0,
                 "problems": [],
+                "attempts": attempts,
+                "shortfall": target,
                 "reason": TOPIC_NOT_COVERED_REASON,
             }
         # Keep ONLY verified emits; drop every abstain / unverified attempt.
         if result.get("status") != "emit":
             continue
         mapped = _batch_problem_from_emit(result.get("problem") or {})
-        if mapped is not None:
-            problems.append(mapped)
+        if mapped is None:
+            continue
+        # Server-side stem dedup: never emit two problems with the same stem.
+        stem = mapped["stem"]
+        if stem in seen_stems:
+            continue
+        seen_stems.add(stem)
+        problems.append(mapped)
 
     return {
         "status": "ok",
         "topic": req.topic,
-        "requested": count,
+        "requested": target,
         "produced": len(problems),
         "problems": problems,
+        "attempts": attempts,
+        "shortfall": target - len(problems),
     }
